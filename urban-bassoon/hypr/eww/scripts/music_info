@@ -1,0 +1,60 @@
+#!/bin/bash
+
+COVER="/tmp/.music_cover.png"
+MUSIC_DIR="$HOME/Music"
+
+get_status() {
+	if playerctl status 2>/dev/null | grep -q "Playing"; then
+		echo ""
+	else
+		echo "奈"
+	fi
+}
+
+get_song() {
+	song=$(playerctl metadata title 2>/dev/null)
+	if [[ -z "$song" ]]; then
+		echo "Offline"
+	else
+		echo "$song"
+	fi
+}
+
+get_artist() {
+	artist=$(playerctl metadata artist 2>/dev/null)
+	if [[ -z "$artist" ]]; then
+		echo ""
+	else
+		echo "$artist"
+	fi
+}
+
+get_time() {
+	position=$(playerctl position 2>/dev/null || echo 0)
+	length=$(playerctl metadata mpris:length 2>/dev/null || echo 1)
+	if [[ -n "$position" && -n "$length" && "$length" != "0" ]]; then
+		echo $(awk "BEGIN {printf \"%.0f\", ($position * 1000000 / $length) * 100}")
+	else
+		echo "0"
+	fi
+}
+
+get_cover() {
+	artUrl=$(playerctl metadata mpris:artUrl 2>/dev/null)
+	if [[ -n "$artUrl" ]]; then
+		echo "$artUrl" | sed 's|file://||'
+	else
+		echo ""
+	fi
+}
+
+case "$1" in
+	--song) get_song;;
+	--artist) get_artist;;
+	--status) get_status;;
+	--time) get_time;;
+	--cover) get_cover;;
+	--toggle) playerctl play-pause;;
+	--next) playerctl next;;
+	--prev) playerctl previous;;
+esac

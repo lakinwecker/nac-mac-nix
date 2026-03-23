@@ -1,0 +1,2 @@
+#!/usr/bin/env bash
+wayshot --stdout -s "$(slurp -f '%x %y %w %h')" | wl-copy

@@ -1,0 +1,10 @@
+/* Fix icon alignment - reduce left padding */
+.bar-button-icon {
+    padding-left: 0;
+    margin-left: -0.1rem;
+}
+
+.bar .icon {
+    padding-left: 0;
+    margin-left: -0.1rem;
+}

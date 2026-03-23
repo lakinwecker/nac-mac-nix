@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+PROC=`nproc --all`
+ponysay "make -j $PROC $@" && make -j $PROC $@

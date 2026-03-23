@@ -1,0 +1,53 @@
+{
+  "bar.launcher.icon": "󱄅",
+
+  "theme.font.name": "Ubuntu Nerd Font",
+  "theme.font.size": "0.9rem",
+  "theme.font.weight": 500,
+
+  "bar.workspaces.show_numbered": false,
+  "bar.workspaces.showAllActive": true,
+  "bar.workspaces.workspaces": 10,
+  "bar.workspaces.showWsIcons": false,
+  "bar.workspaces.monitorSpecific": false,
+  "bar.workspaces.icons.available": "",
+  "bar.workspaces.icons.active": "",
+  "bar.workspaces.icons.occupied": "",
+
+  "bar.clock.format": "%H:%M:%S",
+
+  "bar.worldclock.tz": ["America/Edmonton", "UTC", "Europe/London", "Europe/Paris"],
+  "bar.worldclock.format": "%H:%M",
+  "bar.worldclock.divider": " | ",
+  "bar.worldclock.showIcon": false,
+
+  "bar.layouts": {
+    "*": {
+      "left": ["dashboard", "workspaces", "windowtitle"],
+      "middle": ["media"],
+      "right": ["volume", "network", "bluetooth", "battery", "systray", "clock", "worldclock", "notifications"]
+    }
+  },
+
+  "menus.clock.time.military": true,
+  "menus.clock.time.hideSeconds": false,
+
+  "menus.clock.weather.enabled": true,
+  "menus.clock.weather.location": "Calgary, Alberta",
+  "menus.clock.weather.unit": "metric",
+
+  "notifications.position": "bottom right",
+  "notifications.ignore": ["discord", "slack"],
+
+  "wallpaper.enable": true,
+  "wallpaper.image": "/etc/wallpaper.jpg",
+
+  "theme.matugen": true,
+  "theme.matugen.mode": "dark",
+  "theme.matugen.scheme_type": "tonal-spot",
+  "theme.matugen.variation": "standard_1",
+  "theme.matugen.contrast": 0.0,
+
+  "theme.bar.transparent": true,
+  "theme.bar.opacity": 90
+}
