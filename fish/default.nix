@@ -6,6 +6,7 @@
     starship
     ponysay
     difftastic
+    zoxide
   ];
 
   environment.etc."fish-user/config.fish".source = ./config.fish;

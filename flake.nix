@@ -45,6 +45,11 @@
         time.timeZone = "America/Edmonton";
         time.hardwareClockInLocalTime = true;
 
+        programs.gnupg.agent = {
+          enable = true;
+          pinentryPackage = pkgs.pinentry-curses;
+        };
+
         security.polkit.enable = true;
         security.rtkit.enable = true;
         services.pipewire = {
@@ -83,6 +88,7 @@
           keepassxc
           pass
           gnupg
+          pinentry-curses
           # SSH tooling
           openssh
         ];
@@ -156,7 +162,21 @@
             SATA_LINKPWR_ON_BAT = "med_power_with_dipm";
           };
         };
+        powerManagement.enable = true;
         powerManagement.powertop.enable = true;
+
+        # SP9 only supports s2idle (Modern Standby) — no S3/deep in firmware.
+        # These params help s2idle actually reach S0ix low-power residency.
+        boot.kernelParams = [
+          "mem_sleep_default=s2idle"
+          "i915.enable_psr=0"       # panel self-refresh can block wake
+        ];
+
+        systemd.sleep.settings.Sleep = {
+          AllowSuspend = "yes";
+          SuspendState = "freeze";
+        };
+
         environment.systemPackages = with pkgs; [ powertop lm_sensors ];
       })
     ];
@@ -245,7 +265,7 @@
           boot.loader.systemd-boot.enable = true;
           boot.loader.efi.canTouchEfiVariables = true;
 
-          networking.hostName = "surface";
+          networking.hostName = "harry";
 
           users.users.lakin = {
             isNormalUser = true;

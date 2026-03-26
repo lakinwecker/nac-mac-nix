@@ -7,6 +7,7 @@
     neovim
     thunderbird
     firefox
+    signal-desktop
     networkmanager
     qogir-icon-theme
     fontconfig
@@ -23,6 +24,7 @@
     unzip
     wget
     curl
+    jq
     tree-sitter
   ];
 
