@@ -35,12 +35,18 @@
                 content = {
                   type = "btrfs";
                   extraArgs = [ "-f" "-L" "pool" "-d" "single" "-m" "single" ];
-                  # After mkfs on the first device, add the second LUKS device
-                  # to the same btrfs pool, then rebalance so existing metadata
-                  # is spread across both devices.
+                  # postCreateHook runs after mkfs but before disko mounts
+                  # the filesystem, so /mnt is not yet the btrfs. Mount
+                  # cryptroot to a temp dir, add crypthome as a second
+                  # device, rebalance, then unmount so disko's normal
+                  # mount step proceeds on the now-multi-device pool.
                   postCreateHook = ''
-                    btrfs device add -f /dev/mapper/crypthome /mnt
-                    btrfs balance start --full-balance /mnt
+                    tmp=$(mktemp -d)
+                    mount /dev/mapper/cryptroot "$tmp"
+                    btrfs device add -f /dev/mapper/crypthome "$tmp"
+                    btrfs balance start --full-balance "$tmp"
+                    umount "$tmp"
+                    rmdir "$tmp"
                   '';
                   subvolumes = {
                     "/root" = {
