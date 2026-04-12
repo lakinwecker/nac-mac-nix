@@ -1,5 +1,5 @@
 # Force rebuild
-{ pkgs, lib, hyprland, hyprgrass ? null, hyprHostConfig ? "", ... }:
+{ pkgs, lib, hyprland, hyprgrass ? null, hyprHostConfig ? "", hyprWallpaper ? ./wallpaper.jpg, ... }:
 let
   hyprgrassEnabled = hyprgrass != null;
 in {
@@ -68,7 +68,7 @@ in {
     + "\n# Per-host overrides\n" + hyprHostConfig;
   environment.etc."hypr/hypridle.conf".source = ./hypridle.conf;
   environment.etc."hypr/hyprlock.conf".source = ./hyprlock.conf;
-  environment.etc."wallpaper.jpg".source = ./wallpaper.jpg;
+  environment.etc."wallpaper.jpg".source = hyprWallpaper;
   environment.etc."hyprpanel/config.json".source = ./hyprpanel-config.json;
   environment.etc."hyprpanel/custom.css".source = ./hyprpanel-custom.css;
   environment.etc."avatar.png".source = ./avatar.png;

@@ -577,6 +577,7 @@ EOF
           monitor=eDP-1,preferred,auto,1.25
           monitor=,preferred,auto,1
         '';
+        hyprWallpaper = ./hypr/wallpaper-roach.jpg;
       };
       modules = asusModules ++ [
         ./iso-packages.nix
@@ -621,6 +622,7 @@ EOF
           monitor=eDP-1,preferred,auto,1.25
           monitor=,preferred,auto,1
         '';
+        hyprWallpaper = ./hypr/wallpaper-roach.jpg;
       };
       modules = asusModules ++ [
         disko.nixosModules.disko
@@ -630,7 +632,7 @@ EOF
           boot.loader.systemd-boot.enable = true;
           boot.loader.efi.canTouchEfiVariables = true;
 
-          networking.hostName = "asus-tuf";
+          networking.hostName = "roach";
 
           users.users.lakin = {
             isNormalUser = true;
