@@ -1,9 +1,15 @@
 { lib, ... }:
 {
+  # Single btrfs pool spanning both NVMe drives via two LUKS containers.
+  # Data/metadata profile: single (~1.85 TB usable, any disk failure = total loss).
+  # Backups are the safety net, not redundancy.
+  #
+  # Note: btrfs swapfiles are unsupported on multi-device filesystems,
+  # so there is no /swap subvolume here. Add a dedicated swap partition
+  # if hibernate is ever needed.
   disko.devices = {
     disk = {
       main = {
-        # nvme0n1 — root/nix/swap. Override with --disk main /dev/disk/by-id/...
         device = lib.mkDefault "/dev/nvme0n1";
         type = "disk";
         content = {
@@ -28,7 +34,14 @@
                 settings.allowDiscards = true;
                 content = {
                   type = "btrfs";
-                  extraArgs = [ "-f" ];
+                  extraArgs = [ "-f" "-L" "pool" "-d" "single" "-m" "single" ];
+                  # After mkfs on the first device, add the second LUKS device
+                  # to the same btrfs pool, then rebalance so existing metadata
+                  # is spread across both devices.
+                  postCreateHook = ''
+                    btrfs device add -f /dev/mapper/crypthome /mnt
+                    btrfs balance start --full-balance /mnt
+                  '';
                   subvolumes = {
                     "/root" = {
                       mountpoint = "/";
@@ -38,9 +51,9 @@
                       mountpoint = "/nix";
                       mountOptions = [ "compress=zstd" "noatime" ];
                     };
-                    "/swap" = {
-                      mountpoint = "/swap";
-                      mountOptions = [ "noatime" ];
+                    "/home" = {
+                      mountpoint = "/home";
+                      mountOptions = [ "compress=zstd" "noatime" ];
                     };
                   };
                 };
@@ -50,7 +63,6 @@
         };
       };
       home = {
-        # nvme1n1 — /home. Override with --disk home /dev/disk/by-id/...
         device = lib.mkDefault "/dev/nvme1n1";
         type = "disk";
         content = {
@@ -63,15 +75,12 @@
                 name = "crypthome";
                 passwordFile = "/tmp/disk-password";
                 settings.allowDiscards = true;
+                # Placeholder btrfs — disko's luks type requires a content
+                # node. It's immediately wiped and absorbed into the main
+                # pool by the postCreateHook above (btrfs device add -f).
                 content = {
                   type = "btrfs";
                   extraArgs = [ "-f" ];
-                  subvolumes = {
-                    "/home" = {
-                      mountpoint = "/home";
-                      mountOptions = [ "compress=zstd" "noatime" ];
-                    };
-                  };
                 };
               };
             };

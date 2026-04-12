@@ -1,5 +1,5 @@
 # Force rebuild
-{ pkgs, lib, hyprland, hyprgrass ? null, ... }:
+{ pkgs, lib, hyprland, hyprgrass ? null, hyprHostConfig ? "", ... }:
 let
   hyprgrassEnabled = hyprgrass != null;
 in {
@@ -64,7 +64,8 @@ in {
 
   environment.etc."hypr/hyprland.conf".text =
     builtins.readFile ./hyprland.conf
-    + lib.optionalString hyprgrassEnabled (builtins.readFile ./hyprgrass.conf);
+    + lib.optionalString hyprgrassEnabled (builtins.readFile ./hyprgrass.conf)
+    + "\n# Per-host overrides\n" + hyprHostConfig;
   environment.etc."hypr/hypridle.conf".source = ./hypridle.conf;
   environment.etc."hypr/hyprlock.conf".source = ./hyprlock.conf;
   environment.etc."wallpaper.jpg".source = ./wallpaper.jpg;

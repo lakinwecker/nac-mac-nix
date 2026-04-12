@@ -569,7 +569,15 @@ EOF
     };
 
     nixosConfigurations.asus-tuf-iso = nixpkgs.lib.nixosSystem {
-      specialArgs = { inherit hyprland; hyprgrass = null; };
+      specialArgs = {
+        inherit hyprland;
+        hyprgrass = null;
+        hyprHostConfig = ''
+          # Asus TUF F16 — 2560x1600 display, 1.25x scale
+          monitor=eDP-1,preferred,auto,1.25
+          monitor=,preferred,auto,1
+        '';
+      };
       modules = asusModules ++ [
         ./iso-packages.nix
         ({ lib, pkgs, modulesPath, ... }: {
@@ -605,7 +613,15 @@ EOF
     };
 
     nixosConfigurations.asus-tuf = nixpkgs.lib.nixosSystem {
-      specialArgs = { inherit hyprland; hyprgrass = null; };
+      specialArgs = {
+        inherit hyprland;
+        hyprgrass = null;
+        hyprHostConfig = ''
+          # Asus TUF F16 — 2560x1600 display, 1.25x scale
+          monitor=eDP-1,preferred,auto,1.25
+          monitor=,preferred,auto,1
+        '';
+      };
       modules = asusModules ++ [
         disko.nixosModules.disko
         ./disko-config-asus-tuf.nix
