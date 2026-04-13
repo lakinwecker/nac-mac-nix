@@ -449,6 +449,11 @@
         ];
         boot.initrd.kernelModules = [ "nvme" "vmd" ];
 
+        boot.extraModprobeConfig = ''
+          options rtw89_pci disable_aspm_l1=y disable_aspm_l1ss=y
+          options rtw89_core disable_ps_mode=y
+        '';
+
         boot.kernelParams = [
           "nvidia_drm.modeset=1"
           "nvidia_drm.fbdev=1"
@@ -498,7 +503,7 @@
             CPU_MAX_PERF_ON_BAT = 40;
             RUNTIME_PM_ON_BAT = "auto";
             USB_AUTOSUSPEND = 1;
-            WIFI_PWR_ON_BAT = "on";
+            WIFI_PWR_ON_BAT = "off";
             PCIE_ASPM_ON_BAT = "default";
             NMI_WATCHDOG = 0;
             SATA_LINKPWR_ON_BAT = "med_power_with_dipm";
