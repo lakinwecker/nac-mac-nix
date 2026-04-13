@@ -179,6 +179,60 @@
         ];
 
         hardware.graphics.enable = true;
+
+        # Bootstrap user config dirs and any "must exist" files for CLI
+        # tools that refuse to run with a missing dir/file. Idempotent —
+        # only creates what's missing, never clobbers user edits.
+        system.activationScripts.userConfigBootstrap = {
+          deps = [ "users" ];
+          text = ''
+            user=lakin
+            home=/home/$user
+
+            ensure_dir() {
+              if [ ! -d "$1" ]; then
+                mkdir -p "$1"
+                chown $user:users "$1"
+              fi
+            }
+
+            ensure_file() {
+              if [ ! -e "$1" ]; then
+                ensure_dir "$(dirname "$1")"
+                touch "$1"
+                chown $user:users "$1"
+              fi
+            }
+
+            ensure_dir  "$home/.config"
+            ensure_dir  "$home/.local/share"
+            ensure_dir  "$home/.local/state"
+            ensure_dir  "$home/.cache"
+
+            # CLI tools that refuse to start with a missing config file
+            ensure_file "$home/.config/lazygit/config.yml"
+
+            # Tools that need their dir to exist but create their own files
+            ensure_dir  "$home/.config/lazydocker"
+            ensure_dir  "$home/.config/yazi"
+            ensure_dir  "$home/.config/k9s"
+            ensure_dir  "$home/.config/gh"
+            ensure_dir  "$home/.config/gh-dash"
+            ensure_dir  "$home/.config/btop"
+            ensure_dir  "$home/.config/bluetuith"
+            ensure_dir  "$home/.config/impala"
+            ensure_dir  "$home/.config/pgcli"
+            ensure_dir  "$home/.config/lazysql"
+            ensure_dir  "$home/.config/zellij"
+            ensure_dir  "$home/.config/nvim"
+            ensure_dir  "$home/.config/fish"
+            ensure_dir  "$home/.config/starship"
+            ensure_dir  "$home/.config/ghostty"
+
+            # Make sure the top-level home tree is owned correctly
+            chown $user:users "$home/.config" "$home/.local" "$home/.local/share" "$home/.local/state" "$home/.cache" 2>/dev/null || true
+          '';
+        };
       })
     ];
 
