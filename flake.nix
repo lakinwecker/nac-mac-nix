@@ -180,57 +180,32 @@
 
         hardware.graphics.enable = true;
 
-        # Bootstrap user config dirs and any "must exist" files for CLI
-        # tools that refuse to run with a missing dir/file. Idempotent —
-        # only creates what's missing, never clobbers user edits.
-        system.activationScripts.userConfigBootstrap = {
-          deps = [ "users" ];
+        # Repair ownership of any home dir left root-owned by an earlier
+        # buggy activation. All home-touching scripts have been fixed to
+        # use `install -d -o lakin -g users`, but pre-existing wrong-owned
+        # dirs from before that fix landed need a one-time chown. This
+        # script also runs after every other home-touching script as a
+        # safety net.
+        system.activationScripts.userHomeOwnership = {
+          deps = [ "users" "hyprConfig" "ghosttyConfig" "userBin" ];
           text = ''
             user=lakin
             home=/home/$user
 
-            ensure_dir() {
-              if [ ! -d "$1" ]; then
-                mkdir -p "$1"
-                chown $user:users "$1"
-              fi
-            }
+            # Standard XDG dirs (idempotent — install -d only acts if missing)
+            install -d -o $user -g users "$home/.config"
+            install -d -o $user -g users "$home/.local"
+            install -d -o $user -g users "$home/.local/share"
+            install -d -o $user -g users "$home/.local/state"
+            install -d -o $user -g users "$home/.cache"
 
-            ensure_file() {
-              if [ ! -e "$1" ]; then
-                ensure_dir "$(dirname "$1")"
-                touch "$1"
-                chown $user:users "$1"
-              fi
-            }
-
-            ensure_dir  "$home/.config"
-            ensure_dir  "$home/.local/share"
-            ensure_dir  "$home/.local/state"
-            ensure_dir  "$home/.cache"
-
-            # CLI tools that refuse to start with a missing config file
-            ensure_file "$home/.config/lazygit/config.yml"
-
-            # Tools that need their dir to exist but create their own files
-            ensure_dir  "$home/.config/lazydocker"
-            ensure_dir  "$home/.config/yazi"
-            ensure_dir  "$home/.config/k9s"
-            ensure_dir  "$home/.config/gh"
-            ensure_dir  "$home/.config/gh-dash"
-            ensure_dir  "$home/.config/btop"
-            ensure_dir  "$home/.config/bluetuith"
-            ensure_dir  "$home/.config/impala"
-            ensure_dir  "$home/.config/pgcli"
-            ensure_dir  "$home/.config/lazysql"
-            ensure_dir  "$home/.config/zellij"
-            ensure_dir  "$home/.config/nvim"
-            ensure_dir  "$home/.config/fish"
-            ensure_dir  "$home/.config/starship"
-            ensure_dir  "$home/.config/ghostty"
-
-            # Make sure the top-level home tree is owned correctly
-            chown $user:users "$home/.config" "$home/.local" "$home/.local/share" "$home/.local/state" "$home/.cache" 2>/dev/null || true
+            # Repair ownership of dirs that should ALWAYS be user-owned.
+            # Never blanket-chown $home (would clobber .ssh perms etc).
+            chown -R $user:users \
+              "$home/.config" \
+              "$home/.local" \
+              "$home/.cache" \
+              "$home/bin" 2>/dev/null || true
           '';
         };
       })
@@ -556,9 +531,9 @@
           system.activationScripts.userDirs = {
             deps = [ "users" ];
             text = ''
-              mkdir -p /home/lakin/.config/hyprpanel
-              mkdir -p /home/lakin/.config/hyprshell
-              chown -R lakin:users /home/lakin
+              install -d -o lakin -g users /home/lakin/.config
+              install -d -o lakin -g users /home/lakin/.config/hyprpanel
+              install -d -o lakin -g users /home/lakin/.config/hyprshell
             '';
           };
 
@@ -586,7 +561,8 @@
           system.activationScripts.lanMouseConfig = {
             deps = [ "users" ];
             text = ''
-              mkdir -p /home/lakin/.config/lan-mouse
+              install -d -o lakin -g users /home/lakin/.config
+              install -d -o lakin -g users /home/lakin/.config/lan-mouse
               cat > /home/lakin/.config/lan-mouse/config.toml << 'EOF'
 port = 4343
 
@@ -596,7 +572,7 @@ ips = ["192.168.50.15"]
 port = 4343
 activate_on_startup = true
 EOF
-              chown -R lakin:users /home/lakin/.config/lan-mouse
+              chown lakin:users /home/lakin/.config/lan-mouse/config.toml
             '';
           };
 
@@ -634,9 +610,9 @@ EOF
           system.activationScripts.userDirs = {
             deps = [ "users" ];
             text = ''
-              mkdir -p /home/lakin/.config/hyprpanel
-              mkdir -p /home/lakin/.config/hyprshell
-              chown -R lakin:users /home/lakin
+              install -d -o lakin -g users /home/lakin/.config
+              install -d -o lakin -g users /home/lakin/.config/hyprpanel
+              install -d -o lakin -g users /home/lakin/.config/hyprshell
             '';
           };
 
@@ -695,9 +671,9 @@ EOF
           system.activationScripts.userDirs = {
             deps = [ "users" ];
             text = ''
-              mkdir -p /home/lakin/.config/hyprpanel
-              mkdir -p /home/lakin/.config/hyprshell
-              chown -R lakin:users /home/lakin
+              install -d -o lakin -g users /home/lakin/.config
+              install -d -o lakin -g users /home/lakin/.config/hyprpanel
+              install -d -o lakin -g users /home/lakin/.config/hyprshell
             '';
           };
 
@@ -765,9 +741,9 @@ EOF
           system.activationScripts.userDirs = {
             deps = [ "users" ];
             text = ''
-              mkdir -p /home/lakin/.config/hyprpanel
-              mkdir -p /home/lakin/.config/hyprshell
-              chown -R lakin:users /home/lakin
+              install -d -o lakin -g users /home/lakin/.config
+              install -d -o lakin -g users /home/lakin/.config/hyprpanel
+              install -d -o lakin -g users /home/lakin/.config/hyprshell
             '';
           };
 

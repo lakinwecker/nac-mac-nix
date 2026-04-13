@@ -80,23 +80,20 @@ in {
   system.activationScripts.hyprConfig = {
     deps = [ "users" ];
     text = ''
-      mkdir -p /home/lakin/.config/hypr
-      mkdir -p /home/lakin/.config/hyprpanel/styles
+      install -d -o lakin -g users /home/lakin/.config
+      install -d -o lakin -g users /home/lakin/.config/hypr
+      install -d -o lakin -g users /home/lakin/.config/hyprpanel
+      install -d -o lakin -g users /home/lakin/.config/hyprpanel/styles
       ln -sf /etc/hypr/hyprland.conf /home/lakin/.config/hypr/hyprland.conf
       ln -sf /etc/hypr/hypridle.conf /home/lakin/.config/hypr/hypridle.conf
       ln -sf /etc/hypr/hyprlock.conf /home/lakin/.config/hypr/hyprlock.conf
-      # Force copy hyprpanel config (overwrite any existing)
-      cp -f /etc/hyprpanel/config.json /home/lakin/.config/hyprpanel/config.json
-      cp -f /etc/hyprpanel/custom.css /home/lakin/.config/hyprpanel/styles/custom.css
-      # User avatar
-      cp -f /etc/avatar.png /home/lakin/.face.icon
-      chown lakin:users /home/lakin/.face.icon
-      # Wallpaper for HyprPanel
-      cp -f /etc/wallpaper.jpg /home/lakin/.config/background
-      chown lakin:users /home/lakin/.config/background
-      # Fix all hyprpanel permissions
-      chown -R lakin:users /home/lakin/.config/hyprpanel
-      chmod -R u+rw /home/lakin/.config/hyprpanel
+      chown -h lakin:users /home/lakin/.config/hypr/hyprland.conf /home/lakin/.config/hypr/hypridle.conf /home/lakin/.config/hypr/hyprlock.conf
+      # Force copy hyprpanel config (overwrite any existing) — install
+      # sets ownership atomically.
+      install -m 0644 -o lakin -g users /etc/hyprpanel/config.json /home/lakin/.config/hyprpanel/config.json
+      install -m 0644 -o lakin -g users /etc/hyprpanel/custom.css /home/lakin/.config/hyprpanel/styles/custom.css
+      install -m 0644 -o lakin -g users /etc/avatar.png /home/lakin/.face.icon
+      install -m 0644 -o lakin -g users /etc/wallpaper.jpg /home/lakin/.config/background
     '';
   };
 }
