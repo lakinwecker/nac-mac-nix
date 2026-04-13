@@ -17,8 +17,8 @@
   "bar.clock.format": "%H:%M:%S",
 
   "bar.customModules.worldclock.tz": ["America/New_York", "UTC", "Europe/Paris"],
-  "bar.customModules.worldclock.format": "%H:%M %Z",
-  "bar.customModules.worldclock.formatDiffDate": "%H:%M %Z",
+  "bar.customModules.worldclock.format": "%H:%M",
+  "bar.customModules.worldclock.formatDiffDate": "%H:%M",
   "bar.customModules.worldclock.divider": " | ",
   "bar.customModules.worldclock.showIcon": false,
 
