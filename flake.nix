@@ -144,7 +144,7 @@
           # Search / filesystem
           ripgrep
           fd
-          du-dust
+          dust
           jq
           # TUI productivity
           lazygit
