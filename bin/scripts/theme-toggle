@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+current=$(gsettings get org.gnome.desktop.interface color-scheme 2>/dev/null || echo "'prefer-dark'")
+
+if [ "$current" = "'prefer-dark'" ]; then
+  scheme="prefer-light"
+  gtk="Adwaita"
+  hypr_active="0xff797593"
+  hypr_inactive="0xffcecacd"
+  label="light"
+else
+  scheme="prefer-dark"
+  gtk="Adwaita-dark"
+  hypr_active="0xffd7827e"
+  hypr_inactive="0xff286983"
+  label="dark"
+fi
+
+gsettings set org.gnome.desktop.interface color-scheme "$scheme"
+gsettings set org.gnome.desktop.interface gtk-theme "$gtk"
+
+if command -v hyprctl >/dev/null 2>&1 && [ -n "${HYPRLAND_INSTANCE_SIGNATURE:-}" ]; then
+  hyprctl keyword general:col.active_border "$hypr_active" >/dev/null
+  hyprctl keyword general:col.inactive_border "$hypr_inactive" >/dev/null
+fi
+
+if command -v notify-send >/dev/null 2>&1; then
+  notify-send -t 1500 "Theme: $label"
+fi

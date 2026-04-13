@@ -16,6 +16,7 @@ let
     "battery"
     "ssh-agent-work"
     "ssh-agent-all"
+    "theme-toggle"
   ];
   scriptEntries = builtins.listToAttrs (map (name: {
     name = "user-bin/${name}";

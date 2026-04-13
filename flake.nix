@@ -180,16 +180,17 @@
 
         hardware.graphics.enable = true;
 
-        programs.dconf.enable = true;
-        programs.firefox = {
+        programs.dconf = {
           enable = true;
-          preferences = {
-            "ui.systemUsesDarkTheme" = 1;
-            "layout.css.prefers-color-scheme.content-override" = 0;
-            "browser.theme.toolbar-theme" = 0;
-            "browser.theme.content-theme" = 0;
-          };
+          profiles.user.databases = [{
+            settings."org/gnome/desktop/interface" = {
+              color-scheme = "prefer-dark";
+              gtk-theme = "Adwaita-dark";
+            };
+          }];
         };
+
+        programs.firefox.enable = true;
 
         qt = {
           enable = true;
@@ -197,13 +198,10 @@
           style = "adwaita-dark";
         };
 
-        environment.sessionVariables = {
-          GTK_THEME = "Adwaita:dark";
-        };
-
         environment.systemPackages = with pkgs; [
           adwaita-icon-theme
           gnome-themes-extra
+          libnotify
         ];
 
         system.activationScripts.userHomeOwnership = {
