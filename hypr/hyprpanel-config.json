@@ -17,13 +17,10 @@
   "bar.clock.format": "%H:%M:%S",
 
   "bar.worldclock.tz": ["America/New_York", "UTC", "Europe/Paris"],
-  "bar.worldclock.format": "%H:%M",
+  "bar.worldclock.format": "%H:%M %Z",
+  "bar.worldclock.formatDiffDate": "%H:%M %Z",
   "bar.worldclock.divider": " | ",
   "bar.worldclock.showIcon": false,
-  "menus.clock.worldclock.enabled": true,
-  "menus.clock.worldclock.format": "%H:%M",
-  "menus.clock.worldclock.showDates": false,
-  "menus.clock.worldclock.tz": ["America/New_York", "UTC", "Europe/Paris"],
 
   "bar.layouts": {
     "*": {
