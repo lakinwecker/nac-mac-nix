@@ -6,7 +6,6 @@
     krita
     neovim
     thunderbird
-    firefox
     signal-desktop
     impala
     iwd

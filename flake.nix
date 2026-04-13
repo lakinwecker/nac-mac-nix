@@ -180,6 +180,32 @@
 
         hardware.graphics.enable = true;
 
+        programs.dconf.enable = true;
+        programs.firefox = {
+          enable = true;
+          preferences = {
+            "ui.systemUsesDarkTheme" = 1;
+            "layout.css.prefers-color-scheme.content-override" = 0;
+            "browser.theme.toolbar-theme" = 0;
+            "browser.theme.content-theme" = 0;
+          };
+        };
+
+        qt = {
+          enable = true;
+          platformTheme = "gnome";
+          style = "adwaita-dark";
+        };
+
+        environment.sessionVariables = {
+          GTK_THEME = "Adwaita:dark";
+        };
+
+        environment.systemPackages = with pkgs; [
+          adwaita-icon-theme
+          gnome-themes-extra
+        ];
+
         system.activationScripts.userHomeOwnership = {
           deps = [ "users" "hyprConfig" "ghosttyConfig" "userBin" ];
           text = ''
