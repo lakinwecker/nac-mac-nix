@@ -163,6 +163,10 @@
           # Databases
           pgcli
           lazysql
+          # Theming
+          adwaita-icon-theme
+          gnome-themes-extra
+          libnotify
         ];
 
         fonts.fontconfig.enable = true;
@@ -197,12 +201,6 @@
           platformTheme = "gnome";
           style = "adwaita-dark";
         };
-
-        environment.systemPackages = with pkgs; [
-          adwaita-icon-theme
-          gnome-themes-extra
-          libnotify
-        ];
 
         system.activationScripts.userHomeOwnership = {
           deps = [ "users" "hyprConfig" "ghosttyConfig" "userBin" ];
