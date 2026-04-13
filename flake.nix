@@ -381,6 +381,22 @@
         services.asusd.enable = true;
         services.supergfxd.enable = true;
 
+        systemd.services.asus-leds = {
+          description = "Set ASUS TUF keyboard RGB";
+          after = [ "asusd.service" ];
+          requires = [ "asusd.service" ];
+          wantedBy = [ "multi-user.target" ];
+          serviceConfig = {
+            Type = "oneshot";
+            RemainAfterExit = true;
+            ExecStart = pkgs.writeShellScript "asus-leds-init" ''
+              ${pkgs.asusctl}/bin/asusctl aura effect static -c 7aa2f7
+              ${pkgs.asusctl}/bin/asusctl leds set low
+              ${pkgs.asusctl}/bin/asusctl aura power-tuf --awake true --keyboard --boot false --sleep false
+            '';
+          };
+        };
+
         # supergfxd opens /etc/supergfxd.conf with O_RDWR | O_CREAT and
         # panics if it can't (with the misleading "The directory ... is
         # missing" message). NixOS's environment.etc would make it a
