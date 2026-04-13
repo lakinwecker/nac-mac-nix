@@ -58,6 +58,9 @@ magic_hex() { head -c 4 "$1" | od -An -tx1 | tr -d ' \n'; }
 
 UKI_MAGIC=$(magic_hex "$TMP/uki.bin")
 echo
+echo "==> UKI size: $(stat -c %s "$TMP/uki.bin") bytes"
+echo "==> UKI first 64 bytes (hex):"
+head -c 64 "$TMP/uki.bin" | od -An -tx1z | head
 echo "==> UKI first 4 bytes: $UKI_MAGIC"
 
 case "$UKI_MAGIC" in
@@ -66,11 +69,15 @@ case "$UKI_MAGIC" in
     "$OBJCOPY" -O binary --only-section=.initrd "$TMP/uki.bin" "$TMP/initrd.img"
     ;;
   28b52ffd)  # zstd magic
-    echo "==> Raw zstd detected, treating entire file as initrd payload"
-    cp "$TMP/uki.bin" "$TMP/initrd.img"
+    echo "==> Raw zstd detected, decompressing"
+    zstd -dc "$TMP/uki.bin" > "$TMP/initrd.img"
     ;;
   1f8b*)  # gzip magic
-    echo "==> Raw gzip detected, treating entire file as initrd payload"
+    echo "==> Raw gzip detected, decompressing"
+    gzip -dc "$TMP/uki.bin" > "$TMP/initrd.img"
+    ;;
+  3037*)  # "07" — cpio newc magic "070701" or "070702"
+    echo "==> Raw cpio detected (no decompression needed)"
     cp "$TMP/uki.bin" "$TMP/initrd.img"
     ;;
   *)
@@ -82,22 +89,19 @@ esac
 INITRD_MAGIC=$(magic_hex "$TMP/initrd.img")
 echo "==> Extracted initrd first 4 bytes: $INITRD_MAGIC"
 
-echo
-echo "==> Extracting cpio listing"
-# NixOS UKI initrds are usually zstd. Try zstd first, fall back to raw.
-if zstd -dc "$TMP/initrd.img" > "$TMP/initrd.cpio" 2>/dev/null; then
-  echo "    (zstd decompression OK)"
-else
-  echo "    (not zstd, using raw)"
-  cp "$TMP/initrd.img" "$TMP/initrd.cpio"
-fi
+cp "$TMP/initrd.img" "$TMP/initrd.cpio"
 
-# NixOS stacks initrds: microcode.cpio + main.cpio concatenated.
-# Extract everything cpio can read, skipping past anything it doesn't.
+echo
+echo "==> cpio table of contents (first 60 entries):"
+cpio -t < "$TMP/initrd.cpio" 2>&1 | head -60 || true
+
+echo
+echo "==> Extracting cpio to $TMP/extract"
 mkdir -p "$TMP/extract"
 cd "$TMP/extract"
-cpio -idm --no-absolute-filenames < "$TMP/initrd.cpio" 2>/dev/null || true
+cpio -idm --no-absolute-filenames < "$TMP/initrd.cpio" 2>&1 || true
 cd - >/dev/null
+echo "==> Extracted file count: $(find "$TMP/extract" -type f 2>/dev/null | wc -l)"
 
 echo
 echo "==> Searching for nvme / vmd in the extracted initrd:"
