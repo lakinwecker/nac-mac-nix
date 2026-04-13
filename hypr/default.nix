@@ -19,7 +19,7 @@ in {
     enable = true;
     settings = {
       default_session = {
-        command = "Hyprland";
+        command = "${hyprland.packages.${pkgs.system}.hyprland}/bin/start-hyprland";
         user = "lakin";
       };
     };
