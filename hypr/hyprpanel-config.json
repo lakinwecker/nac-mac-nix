@@ -16,11 +16,11 @@
 
   "bar.clock.format": "%H:%M:%S",
 
-  "bar.worldclock.tz": ["America/New_York", "UTC", "Europe/Paris"],
-  "bar.worldclock.format": "%H:%M %Z",
-  "bar.worldclock.formatDiffDate": "%H:%M %Z",
-  "bar.worldclock.divider": " | ",
-  "bar.worldclock.showIcon": false,
+  "bar.customModules.worldclock.tz": ["America/New_York", "UTC", "Europe/Paris"],
+  "bar.customModules.worldclock.format": "%H:%M %Z",
+  "bar.customModules.worldclock.formatDiffDate": "%H:%M %Z",
+  "bar.customModules.worldclock.divider": " | ",
+  "bar.customModules.worldclock.showIcon": false,
 
   "bar.layouts": {
     "*": {
