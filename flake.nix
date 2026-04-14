@@ -104,17 +104,27 @@
           enable = true;
           alsa.enable = true;
           pulse.enable = true;
+          wireplumber.enable = true;
         };
+        # Ensure PipeWire picks up Bluetooth audio profiles (A2DP, HFP)
+        environment.etc."wireplumber/bluetooth.lua.d/51-bluez-config.lua".text = ''
+          bluez_monitor.properties = {
+            ["bluez5.enable-sbc-xq"] = true,
+            ["bluez5.enable-msbc"] = true,
+            ["bluez5.enable-hw-volume"] = true,
+            ["bluez5.headset-roles"] = "[ hsp_hs hsp_ag hfp_hg hfp_ag ]",
+          }
+        '';
 
         # ── Music (MPD) ─────────────────────────────────────────────────
         services.mpd = {
           enable = true;
           user = "lakin";
           musicDirectory = "/home/lakin/music";
-          settings.audio_output = {
+          settings.audio_output = [{
             type = "pipewire";
             name = "PipeWire Output";
-          };
+          }];
         };
         systemd.services.mpd.environment = {
           XDG_RUNTIME_DIR = "/run/user/1000";
