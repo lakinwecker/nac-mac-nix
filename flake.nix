@@ -111,12 +111,10 @@
           enable = true;
           user = "lakin";
           musicDirectory = "/home/lakin/music";
-          extraConfig = ''
-            audio_output {
-              type "pipewire"
-              name "PipeWire Output"
-            }
-          '';
+          settings.audio_output = {
+            type = "pipewire";
+            name = "PipeWire Output";
+          };
         };
         systemd.services.mpd.environment = {
           XDG_RUNTIME_DIR = "/run/user/1000";
