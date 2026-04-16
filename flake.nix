@@ -96,6 +96,12 @@
           };
         };
 
+        # Steven Black unified hosts + all extensions (fakenews, gambling, porn, social)
+        networking.stevenblack = {
+          enable = true;
+          block = [ "fakenews" "gambling" "porn" "social" ];
+        };
+
         # lan-mouse KVM — listen on port 4343 (4242 used by nebula)
         networking.firewall.allowedTCPPorts = [ 4343 ];
         networking.firewall.allowedUDPPorts = [ 4343 ];
@@ -243,7 +249,24 @@
           }];
         };
 
-        programs.firefox.enable = true;
+        programs.firefox = {
+          enable = true;
+          policies = {
+            ExtensionSettings = let
+              extension = shortId: uuid: {
+                name = uuid;
+                value = {
+                  install_url = "https://addons.mozilla.org/firefox/downloads/latest/${shortId}/latest.xpi";
+                  installation_mode = "force_installed";
+                };
+              };
+            in builtins.listToAttrs [
+              (extension "ublock-origin" "uBlock0@raymondhill.net")
+              (extension "privacy-badger17" "jid1-MnnxcxisBPnSXQ@jetpack")
+              (extension "darkreader" "addon@darkreader.org")
+            ];
+          };
+        };
 
         qt = {
           enable = true;
