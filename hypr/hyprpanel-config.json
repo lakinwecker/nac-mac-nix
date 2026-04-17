@@ -49,16 +49,16 @@
         "network",
         "bluetooth",
         "battery",
+        "notifications",
         "systray",
         "clock",
-        "worldclock",
-        "notifications"
+        "worldclock"
       ]
     }
   },
   "menus.clock.time.military": true,
   "menus.clock.time.hideSeconds": false,
-  "menus.clock.weather.enabled": true,
+  "menus.clock.weather.enabled": false,
   "menus.clock.weather.location": "Calgary, Alberta",
   "menus.clock.weather.unit": "metric",
   "notifications.position": "bottom right",

@@ -20,7 +20,7 @@
     # Formatters / linters
     stylua
     shfmt
-    nodePackages.prettier
+    prettier
 
     # Tree-sitter CLI
     tree-sitter

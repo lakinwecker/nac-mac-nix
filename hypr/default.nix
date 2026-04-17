@@ -57,10 +57,16 @@ in {
     xdg-desktop-portal-gtk
     libsForQt5.qt5.qtwayland
     kdePackages.qtwayland
+    # HyprPanel recommended deps
+    libgtop
+    dart-sass
+    gvfs
+    gtksourceview3
+    libsoup_3
     # HyprPanel optional deps
     hyprsunset
     pywal
-    swww
+    awww
     matugen
     grimblast
     hyprpicker
@@ -85,6 +91,7 @@ in {
   environment.etc."hypr/hyprlock.conf".source = ./hyprlock.conf;
   environment.etc."wallpaper.jpg".source = hyprWallpaper;
   environment.etc."hyprpanel/config.json".source = ./hyprpanel-config.json;
+  environment.etc."btop/btop.conf".source = ./btop.conf;
   environment.etc."avatar.png".source = ./avatar.png;
 
   system.activationScripts.hyprConfig = {
@@ -94,6 +101,9 @@ in {
       install -d -o lakin -g users /home/lakin/.config/hypr
       install -d -o lakin -g users /home/lakin/.config/hyprpanel
       install -d -o lakin -g users /home/lakin/.config/hyprpanel/styles
+      install -d -o lakin -g users /home/lakin/.config/btop
+      ln -sf /etc/btop/btop.conf /home/lakin/.config/btop/btop.conf
+      chown -h lakin:users /home/lakin/.config/btop/btop.conf
       ln -sf /etc/hypr/hyprland.conf /home/lakin/.config/hypr/hyprland.conf
       ln -sf /etc/hypr/hypridle.conf /home/lakin/.config/hypr/hypridle.conf
       ln -sf /etc/hypr/hyprlock.conf /home/lakin/.config/hypr/hyprlock.conf

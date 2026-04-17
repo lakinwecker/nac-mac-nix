@@ -1,5 +1,5 @@
 {
-  description = "NixOS Surface Pro 9 installer ISO";
+  description = "Lakin's Machines";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
@@ -23,598 +23,53 @@
 
   outputs = { self, nixpkgs, nixos-hardware, disko, hyprland, hyprgrass, ... }:
   let
-    commonModules = [
-      { nixpkgs.hostPlatform = "x86_64-linux"; }
-      ./hypr
-      ./ghostty
-      ./nvim
-      ./fish
-      ./starship
-      ./bin
-      ./zellij
-      ./nebula.nix
-      ./syncthing.nix
-      ({ lib, pkgs, ... }: {
-        nixpkgs.config.allowUnfree = true;
-        hardware.enableRedistributableFirmware = true;
-        users.defaultUserShell = pkgs.fish;
-        hardware.bluetooth = {
-          enable = true;
-          powerOnBoot = true;
-          settings = {
-            General = {
-              FastConnectable = true;
-              Experimental = true;   # enables battery reporting & LE features
-            };
-            Policy = {
-              AutoEnable = true;
-              ReconnectAttempts = 7;
-              ReconnectIntervals = "1,2,4,8,16,32,64";
-            };
-          };
-        };
-        services.blueman.enable = true;
-        services.upower.enable = true;
+    # ── Module lists ────────────────────────────────────────────────
+    commonModules = [ ./common ];
 
-        # Wifi via iwd; wired/everything-else via systemd-networkd.
-        # Use impala or iwctl to manage wifi connections.
-        networking.networkmanager.enable = false;
-        networking.wireless.iwd = {
-          enable = true;
-          settings = {
-            General = {
-              EnableNetworkConfiguration = true;
-              RoamThreshold = "-70";        # roam before signal gets bad
-              RoamThreshold5G = "-76";
-            };
-            Network.EnableIPv6 = true;
-            Settings.AutoConnect = true;
-            Rank = {
-              BandModifier5Ghz = "2.0";     # strongly prefer 5GHz over 2.4GHz
-            };
-          };
-        };
-        networking.useNetworkd = true;
-        systemd.network.enable = true;
-        # DHCP on any ethernet interface by default.
-        systemd.network.networks."10-ethernet" = {
-          matchConfig.Type = "ether";
-          networkConfig = {
-            DHCP = "yes";
-            IPv6AcceptRA = true;
-            MulticastDNS = true;
-          };
-        };
-
-        services.avahi = {
-          enable = true;
-          nssmdns4 = true;
-          denyInterfaces = [ "docker0" "br-+" "veth+" "nebula1" ];
-          publish = {
-            enable = true;
-            addresses = true;
-          };
-        };
-
-        # Steven Black unified hosts + all extensions (fakenews, gambling, porn, social)
-        networking.stevenblack = {
-          enable = true;
-          block = [ "fakenews" "gambling" "porn" "social" ];
-        };
-
-        # lan-mouse KVM — listen on port 4343 (4242 used by nebula)
-        networking.firewall.allowedTCPPorts = [ 4343 ];
-        networking.firewall.allowedUDPPorts = [ 4343 ];
-
-        systemd.user.services.lan-mouse = {
-          description = "lan-mouse KVM";
-          after = [ "graphical-session.target" ];
-          wantedBy = [ "graphical-session.target" ];
-          serviceConfig = {
-            ExecStart = "${pkgs.lan-mouse}/bin/lan-mouse --daemon";
-            Restart = "on-failure";
-            RestartSec = 5;
-          };
-        };
-
-        time.timeZone = "America/Edmonton";
-        time.hardwareClockInLocalTime = true;
-
-        programs.gnupg.agent = {
-          enable = true;
-          pinentryPackage = pkgs.pinentry-curses;
-        };
-
-        security.polkit.enable = true;
-        security.rtkit.enable = true;
-        services.pipewire = {
-          enable = true;
-          alsa.enable = true;
-          pulse.enable = true;
-          wireplumber.enable = true;
-        };
-        # Bluetooth audio — WirePlumber 0.5+ uses JSON config, not Lua
-        environment.etc."wireplumber/wireplumber.conf.d/51-bluez.conf".text = ''
-          monitor.bluez.properties = {
-            bluez5.enable-sbc-xq = true
-            bluez5.enable-msbc = true
-            bluez5.enable-hw-volume = true
-            bluez5.headset-roles = [ hsp_hs hsp_ag hfp_hg hfp_ag ]
-            bluez5.auto-connect = [ hfp_hg a2dp_sink ]
-          }
-        '';
-
-        # ── Music (MPD) ─────────────────────────────────────────────────
-        services.mpd = {
-          enable = true;
-          user = "lakin";
-          musicDirectory = "/home/lakin/music";
-          settings.audio_output = [{
-            type = "pipewire";
-            name = "PipeWire Output";
-          }];
-        };
-        systemd.services.mpd.environment = {
-          XDG_RUNTIME_DIR = "/run/user/1000";
-        };
-
-        # ── Shells ────────────────────────────────────────────────────────
-        programs.bash.enable = true;
-
-        programs.fish = {
-          enable = true;
-          # Registers fish in /etc/shells so it can be a login shell.
-        };
-
-        # programs.nushell is a home-manager option, not a NixOS one.
-        # nushell is installed via environment.systemPackages below.
-
-        # ── SSH ───────────────────────────────────────────────────────────
-        services.openssh = {
-          enable = true;
-          settings = {
-            PasswordAuthentication = false;
-            PermitRootLogin = "no";
-          };
-        };
-
-        # ── Packages ──────────────────────────────────────────────────────
-        environment.systemPackages = with pkgs; [
-          claude-code
-          # Shell extras
-          fish
-          nushell
-          bash
-          keepassxc
-          pass
-          gnupg
-          pinentry-curses
-          # SSH tooling
-          openssh
-          # Hardware / system inspection
-          inxi
-          # Search / filesystem
-          ripgrep
-          fd
-          fzf
-          dust
-          jq
-          # TUI productivity
-          lazygit
-          lazydocker
-          yazi
-          ncmpcpp
-          bluetuith
-          impala
-          glow
-          # GitHub
-          gh
-          gh-dash
-          # Kubernetes
-          kubectl
-          k9s
-          kubernetes-helm
-          # Databases
-          pgcli
-          lazysql
-          # Theming
-          adwaita-icon-theme
-          gnome-themes-extra
-          libnotify
-        ];
-
-        fonts.fontconfig.enable = true;
-        fonts.fontDir.enable = true;
-        fonts.packages = with pkgs; [
-          nerd-fonts.fira-code
-          nerd-fonts.inconsolata
-          nerd-fonts.iosevka
-          nerd-fonts.jetbrains-mono
-          nerd-fonts.ubuntu
-          noto-fonts
-          noto-fonts-color-emoji
-          inconsolata
-          iosevka
-        ];
-
-        hardware.graphics.enable = true;
-
-        programs.dconf = {
-          enable = true;
-          profiles.user.databases = [{
-            settings."org/gnome/desktop/interface" = {
-              color-scheme = "prefer-dark";
-              gtk-theme = "Adwaita-dark";
-            };
-          }];
-        };
-
-        programs.firefox = {
-          enable = true;
-          policies = {
-            ExtensionSettings = let
-              extension = shortId: uuid: {
-                name = uuid;
-                value = {
-                  install_url = "https://addons.mozilla.org/firefox/downloads/latest/${shortId}/latest.xpi";
-                  installation_mode = "force_installed";
-                };
-              };
-            in builtins.listToAttrs [
-              (extension "ublock-origin" "uBlock0@raymondhill.net")
-              (extension "privacy-badger17" "jid1-MnnxcxisBPnSXQ@jetpack")
-              (extension "darkreader" "addon@darkreader.org")
-            ];
-          };
-        };
-
-        qt = {
-          enable = true;
-          platformTheme = "gnome";
-          style = "adwaita-dark";
-        };
-
-        system.activationScripts.userHomeOwnership = {
-          deps = [ "users" "hyprConfig" "ghosttyConfig" "userBin" ];
-          text = ''
-            install -d -o lakin -g users /home/lakin/.config
-            install -d -o lakin -g users /home/lakin/.local
-            install -d -o lakin -g users /home/lakin/.local/share
-            install -d -o lakin -g users /home/lakin/.local/state
-            install -d -o lakin -g users /home/lakin/.cache
-            chown -R lakin:users \
-              /home/lakin/.config \
-              /home/lakin/.local \
-              /home/lakin/.cache \
-              /home/lakin/bin 2>/dev/null || true
-          '';
-        };
-      })
-    ];
-
-    surfaceModules = commonModules ++ [
+    harryModules = commonModules ++ [
       nixos-hardware.nixosModules.microsoft-surface-pro-intel
-      ({ lib, pkgs, ... }: {
-        hardware.microsoft-surface.kernelVersion = "stable";
-        boot.supportedFilesystems.zfs = lib.mkForce false;
-        boot.kernelPatches = [{
-          name = "disable-rust";
-          patch = null;
-          structuredExtraConfig = { RUST = lib.mkForce lib.kernel.no; };
-        }];
-
-        # Type Cover at LUKS prompt — modules matched from running system via lsmod/sysfs
-        boot.initrd.kernelModules = [
-          "pinctrl_tigerlake"
-          "intel_lpss"
-          "intel_lpss_pci"
-          "8250_dw"
-          "crc_itu_t"
-          "surface_aggregator"
-          "surface_aggregator_registry"
-          "surface_aggregator_hub"
-          "surface_hid_core"
-          "surface_hid"
-          "hid_surface"
-          "hid_multitouch"
-          "ithc"
-        ];
-
-        # surface_gpe causes wake failures when Type Cover is closed
-        # during suspend — handle lid via logind instead
-        boot.blacklistedKernelModules = [ "surface_gpe" ];
-
-        services.iptsd.enable = true;
-        hardware.sensor.iio.enable = true;
-
-        services.power-profiles-daemon.enable = false;
-        services.tlp = {
-          enable = true;
-          settings = {
-            CPU_SCALING_GOVERNOR_ON_BAT = "powersave";
-            CPU_SCALING_GOVERNOR_ON_AC = "performance";
-            CPU_ENERGY_PERF_POLICY_ON_BAT = "power";
-            CPU_ENERGY_PERF_POLICY_ON_AC = "performance";
-            PLATFORM_PROFILE_ON_BAT = "low-power";
-            PLATFORM_PROFILE_ON_AC = "performance";
-
-            CPU_BOOST_ON_BAT = 0;
-            CPU_HWP_DYN_BOOST_ON_BAT = 0;
-            RUNTIME_PM_ON_BAT = "auto";
-            USB_AUTOSUSPEND = 1;
-            WIFI_PWR_ON_BAT = "on";
-            PCIE_ASPM_ON_BAT = "powersupersave";
-            NMI_WATCHDOG = 0;
-            SATA_LINKPWR_ON_BAT = "med_power_with_dipm";
-          };
-        };
-        powerManagement.enable = true;
-        powerManagement.powertop.enable = true;
-
-        # SP9 only supports s2idle (Modern Standby) — no S3/deep in firmware.
-        # These params help s2idle actually reach S0ix low-power residency.
-        boot.kernelParams = [
-          "mem_sleep_default=s2idle"
-          "i915.enable_psr=0"       # panel self-refresh can block wake
-          "resume_offset=39068928"
-        ];
-        boot.resumeDevice = "/dev/mapper/cryptroot";
-
-        systemd.sleep.settings.Sleep = {
-          AllowSuspend = "yes";
-          AllowHibernation = "yes";
-          AllowSuspendThenHibernate = "yes";
-          SuspendState = "freeze";
-          HibernateDelaySec = "30min";
-        };
-
-        services.logind.settings.Login = {
-          HandleLidSwitch = "suspend-then-hibernate";
-          HandleLidSwitchExternalPower = "suspend-then-hibernate";
-        };
-
-        # Reload ithc + iptsd after resume — touchpad loses state on hibernate.
-        # post-resume.target is reached after resume completes.
-        systemd.services.surface-touchscreen-resume = {
-          description = "Reload ithc and restart iptsd after resume (Surface Pro 9)";
-          wantedBy = [ "post-resume.target" ];
-          after = [ "post-resume.target" ];
-          serviceConfig = {
-            Type = "oneshot";
-            ExecStart = pkgs.writeShellScript "surface-touchscreen-resume" ''
-              ${pkgs.kmod}/bin/modprobe -r ithc 2>/dev/null || true
-              ${pkgs.kmod}/bin/modprobe ithc 2>/dev/null || true
-              ${pkgs.systemd}/bin/systemctl restart iptsd 2>/dev/null || true
-            '';
-          };
-        };
-
-        # Prevent XHCI (USB 3.0) from triggering instant wake
-        powerManagement.powerDownCommands = ''
-          for dev in XHCI XHC; do
-            if grep -q "$dev.*enabled" /proc/acpi/wakeup; then
-              echo "$dev" > /proc/acpi/wakeup
-            fi
-          done
-        '';
-
-        # Btrfs swapfile for hibernate — set NOCOW before creation
-        system.activationScripts.swapNocow = {
-          text = ''
-            if [ -d /swap ]; then
-              ${pkgs.e2fsprogs}/bin/chattr +C /swap 2>/dev/null || true
-            fi
-          '';
-        };
-        swapDevices = [{ device = "/swap/swapfile"; size = 32 * 1024; }];
-
-        environment.systemPackages = with pkgs; [ powertop lm_sensors ];
-      })
+      ./hosts/harry
     ];
 
-    laptopModules = commonModules ++ [
+    sebbersModules = commonModules ++ [
       nixos-hardware.nixosModules.common-cpu-amd
       nixos-hardware.nixosModules.common-gpu-amd
-      ({ lib, pkgs, ... }: {
-        hardware.amdgpu.initrd.enable = true;
-
-        services.power-profiles-daemon.enable = false;
-        services.tlp = {
-          enable = true;
-          settings = {
-            CPU_SCALING_GOVERNOR_ON_BAT = "powersave";
-            CPU_SCALING_GOVERNOR_ON_AC = "performance";
-            CPU_ENERGY_PERF_POLICY_ON_BAT = "power";
-            CPU_ENERGY_PERF_POLICY_ON_AC = "performance";
-            PLATFORM_PROFILE_ON_BAT = "low-power";
-            PLATFORM_PROFILE_ON_AC = "performance";
-
-            CPU_BOOST_ON_BAT = 0;
-            RUNTIME_PM_ON_BAT = "auto";
-            USB_AUTOSUSPEND = 1;
-            WIFI_PWR_ON_BAT = "on";
-            PCIE_ASPM_ON_BAT = "powersupersave";
-            NMI_WATCHDOG = 0;
-            SATA_LINKPWR_ON_BAT = "med_power_with_dipm";
-          };
-        };
-        powerManagement.powertop.enable = true;
-        environment.systemPackages = with pkgs; [ powertop lm_sensors ];
-      })
+      ./hosts/sebbers
     ];
 
-    asusModules = commonModules ++ [
+    trunkieModules = commonModules ++ [
+      ./hosts/trunkie
+    ];
+
+    roachModules = commonModules ++ [
       nixos-hardware.nixosModules.common-cpu-intel
       nixos-hardware.nixosModules.common-gpu-nvidia-nonprime
       nixos-hardware.nixosModules.common-pc-laptop
       nixos-hardware.nixosModules.common-pc-laptop-ssd
-      ({ lib, pkgs, config, ... }: {
-        # Asus TUF Gaming F16 (FX608JM) — Intel Raptor Lake + NVIDIA RTX
-        services.asusd.enable = true;
-        services.supergfxd.enable = true;
-
-        systemd.services.asus-leds = {
-          description = "Set ASUS TUF keyboard RGB";
-          after = [ "asusd.service" ];
-          requires = [ "asusd.service" ];
-          wantedBy = [ "multi-user.target" ];
-          serviceConfig = {
-            Type = "oneshot";
-            RemainAfterExit = true;
-            ExecStart = pkgs.writeShellScript "asus-leds-init" ''
-              ${pkgs.asusctl}/bin/asusctl aura effect static -c 7aa2f7
-              ${pkgs.asusctl}/bin/asusctl leds set low
-              ${pkgs.asusctl}/bin/asusctl aura power-tuf --awake true --keyboard --boot false --sleep false
-            '';
-          };
-        };
-
-        # supergfxd opens /etc/supergfxd.conf with O_RDWR | O_CREAT and
-        # panics if it can't (with the misleading "The directory ... is
-        # missing" message). NixOS's environment.etc would make it a
-        # symlink to the read-only nix store, which fails the O_RDWR
-        # open. Write it as a real mutable file via an activation
-        # script instead. Format is JSON, schema confirmed against
-        # supergfxctl 5.2.7's GfxConfig struct.
-        system.activationScripts.supergfxdConfig = {
-          deps = [ "etc" ];
-          text = ''
-            cat > /etc/supergfxd.conf <<'JSON'
-            {
-              "mode": "Integrated",
-              "vfio_enable": false,
-              "vfio_save": false,
-              "always_reboot": false,
-              "no_logind": false,
-              "logout_timeout_s": 180,
-              "hotplug_type": "None"
-            }
-            JSON
-            chmod 0644 /etc/supergfxd.conf
-          '';
-        };
-
-        hardware.graphics = {
-          enable = true;
-          enable32Bit = true;
-        };
-
-        hardware.nvidia = {
-          modesetting.enable = true;
-          open = true;
-          nvidiaSettings = true;
-          powerManagement.enable = true;
-          package = config.boot.kernelPackages.nvidiaPackages.stable;
-        };
-        services.xserver.videoDrivers = [ "nvidia" ];
-
-        # Wayland / Hyprland on NVIDIA
-        environment.sessionVariables = {
-          LIBVA_DRIVER_NAME = "nvidia";
-          GBM_BACKEND = "nvidia-drm";
-          __GLX_VENDOR_LIBRARY_NAME = "nvidia";
-          NVD_BACKEND = "direct";
-          MOZ_ENABLE_WAYLAND = "1";
-          ELECTRON_OZONE_PLATFORM_HINT = "auto";
-        };
-        # Systemd-based stage-1 gives an emergency shell on failure
-        # (via systemd.debug-shell / systemd's default behavior) instead
-        # of the scripted initrd's dead-end r/* prompt.
-        boot.initrd.systemd.enable = true;
-
-        # Initrd needs NVMe drivers or the second drive's partlabel
-        # symlinks race and never appear, hanging stage-1 on
-        # "waiting for /dev/disk/by-partlabel/disk-home-luks".
-        boot.initrd.availableKernelModules = [
-          "nvme"
-          "nvme_core"
-          "vmd"        # Intel VMD — often enabled in BIOS on Raptor Lake laptops
-          "xhci_pci"
-          "ahci"
-          "usbhid"
-          "usb_storage"
-          "sd_mod"
-        ];
-        boot.initrd.kernelModules = [ "nvme" "vmd" ];
-
-        boot.extraModprobeConfig = ''
-          options rtw89_pci disable_aspm_l1=y disable_aspm_l1ss=y
-          options rtw89_core disable_ps_mode=y
-        '';
-
-        boot.kernelParams = [
-          "nvidia_drm.modeset=1"
-          "nvidia_drm.fbdev=1"
-          # Disable Intel GPU Panel Self-Refresh. PSR entry during
-          # static screen + PSR exit on input events causes 50–500ms
-          # stutters that look like keyboard+mouse+compositor freezing
-          # together. Single most common Intel-laptop input-stutter fix.
-          "i915.enable_psr=0"
-          # NOTE: previously capped C-states with intel_idle.max_cstate=3
-          # and processor.max_cstate=3, but processor.max_cstate=3 forced
-          # the kernel into ACPI idle fallback (C1_ACPI/C2_ACPI/C3_ACPI)
-          # with exit latencies *worse* than Intel's native C10. Both
-          # removed so intel_idle can use its native, well-characterized
-          # states.
-        ];
-
-        # Distribute hardware IRQs across cores instead of piling on CPU0.
-        # Prevents input stutter when CPU0 is momentarily saturated.
-        services.irqbalance.enable = true;
-
-        # Disable USB autosuspend for HID (input) devices. USB mice and
-        # keyboards don't meaningfully save power from autosuspend, but
-        # the first event after an idle window incurs a 100–500ms wake
-        # penalty that shows up as "mouse froze for a moment."
-        services.udev.extraRules = ''
-          # USB HID (bInterfaceClass 03) — disable autosuspend
-          ACTION=="add", SUBSYSTEM=="usb", ATTR{bInterfaceClass}=="03", TEST=="power/control", ATTR{power/control}="on"
-          # Also target the parent device for class-03 children
-          ACTION=="add", SUBSYSTEM=="usb", ATTR{bDeviceClass}=="00", ATTR{product}=="*Mouse*", TEST=="power/control", ATTR{power/control}="on"
-          ACTION=="add", SUBSYSTEM=="usb", ATTR{bDeviceClass}=="00", ATTR{product}=="*Keyboard*", TEST=="power/control", ATTR{power/control}="on"
-        '';
-
-        services.power-profiles-daemon.enable = false;
-        services.tlp = {
-          enable = true;
-          settings = {
-            CPU_SCALING_GOVERNOR_ON_BAT = "powersave";
-            CPU_SCALING_GOVERNOR_ON_AC = "performance";
-            CPU_ENERGY_PERF_POLICY_ON_BAT = "power";
-            CPU_ENERGY_PERF_POLICY_ON_AC = "performance";
-            PLATFORM_PROFILE_ON_BAT = "low-power";
-            PLATFORM_PROFILE_ON_AC = "performance";
-
-            CPU_BOOST_ON_BAT = 0;
-            CPU_HWP_DYN_BOOST_ON_BAT = 0;
-            CPU_MIN_PERF_ON_BAT = 0;
-            CPU_MAX_PERF_ON_BAT = 40;
-            RUNTIME_PM_ON_BAT = "auto";
-            USB_AUTOSUSPEND = 1;
-            WIFI_PWR_ON_BAT = "off";
-            WIFI_PWR_ON_AC = "off";
-            PCIE_ASPM_ON_BAT = "default";
-            NMI_WATCHDOG = 0;
-            SATA_LINKPWR_ON_BAT = "med_power_with_dipm";
-          };
-        };
-        powerManagement.powertop.enable = false;
-        environment.systemPackages = with pkgs; [ powertop lm_sensors ];
-      })
+      ./hosts/roach
     ];
 
-    desktopModules = commonModules ++ [
-      ({ pkgs, ... }: {
-        hardware.amdgpu.initrd.enable = true;
-        environment.systemPackages = with pkgs; [ lm_sensors ];
-      })
-    ];
-  in {
-    nixosConfigurations.surface-iso = nixpkgs.lib.nixosSystem {
-      specialArgs = { inherit hyprland hyprgrass; };
-      modules = surfaceModules ++ [
+    # ── specialArgs per host ─────────────────────────────────────────
+    defaultSpecialArgs = { inherit hyprland; hyprgrass = null; };
+    harrySpecialArgs = { inherit hyprland hyprgrass; };
+    roachSpecialArgs = defaultSpecialArgs // {
+      hyprHostConfig = ''
+        # Asus TUF F16 — 2560x1600 display, 1.25x scale
+        monitor=eDP-1,preferred,auto,1.25
+        monitor=,preferred,auto,1
+      '';
+      hyprWallpaper = ./hypr/wallpaper-roach.jpg;
+    };
+
+    # ── Helpers ───────────────────────────────────────────────────────
+    mkIso = {
+      hostModules,
+      specialArgs ? defaultSpecialArgs,
+    }: nixpkgs.lib.nixosSystem {
+      inherit specialArgs;
+      modules = hostModules ++ [
         ./iso-packages.nix
-        ({ lib, pkgs, modulesPath, ... }: {
+        ({ modulesPath, ... }: {
           imports = [
             (modulesPath + "/installer/cd-dvd/installation-cd-minimal.nix")
           ];
@@ -646,24 +101,56 @@
       ];
     };
 
-    nixosConfigurations.surface = nixpkgs.lib.nixosSystem {
-      specialArgs = { inherit hyprland hyprgrass; };
-      modules = surfaceModules ++ [
+    mkInstalled = {
+      hostModules,
+      specialArgs ? defaultSpecialArgs,
+      hostname,
+      diskoConfig ? ./disko-config.nix,
+      extraModules ? [],
+    }: nixpkgs.lib.nixosSystem {
+      inherit specialArgs;
+      modules = hostModules ++ [
         disko.nixosModules.disko
-        ./disko-config.nix
+        diskoConfig
         ./iso-packages.nix
-        ({ pkgs, ... }: {
+        ({ ... }: {
           boot.loader.systemd-boot.enable = true;
           boot.loader.efi.canTouchEfiVariables = true;
 
-          networking.hostName = "harry";
+          networking.hostName = hostname;
 
-          system.activationScripts.lanMouseConfig = {
-            deps = [ "users" ];
-            text = ''
-              install -d -o lakin -g users /home/lakin/.config
-              install -d -o lakin -g users /home/lakin/.config/lan-mouse
-              cat > /home/lakin/.config/lan-mouse/config.toml << 'EOF'
+          users.users.lakin = {
+            isNormalUser = true;
+            home = "/home/lakin";
+            createHome = true;
+            extraGroups = [ "wheel" "video" "audio" "docker" ];
+            initialPassword = "changeme";
+          };
+
+          system.stateVersion = "24.11";
+        })
+      ] ++ extraModules;
+    };
+
+  in {
+    nixosConfigurations = {
+      # ── harry (Surface Pro 9) ─────────────────────────────────────
+      harry-iso = mkIso {
+        hostModules = harryModules;
+        specialArgs = harrySpecialArgs;
+      };
+      harry = mkInstalled {
+        hostModules = harryModules;
+        specialArgs = harrySpecialArgs;
+        hostname = "harry";
+        extraModules = [
+          ({ ... }: {
+            system.activationScripts.lanMouseConfig = {
+              deps = [ "users" ];
+              text = ''
+                install -d -o lakin -g users /home/lakin/.config
+                install -d -o lakin -g users /home/lakin/.config/lan-mouse
+                cat > /home/lakin/.config/lan-mouse/config.toml << 'EOF'
 port = 4343
 
 [top]
@@ -672,222 +159,42 @@ ips = ["192.168.50.15"]
 port = 4343
 activate_on_startup = true
 EOF
-              chown lakin:users /home/lakin/.config/lan-mouse/config.toml
-            '';
-          };
-
-          users.users.lakin = {
-            isNormalUser = true;
-            home = "/home/lakin";
-            createHome = true;
-            extraGroups = [ "wheel" "video" "audio" "docker" ];
-            initialPassword = "changeme";
-          };
-
-          system.stateVersion = "24.11";
-        })
-      ];
-    };
-
-    nixosConfigurations.laptop-iso = nixpkgs.lib.nixosSystem {
-      specialArgs = { inherit hyprland; hyprgrass = null; };
-      modules = laptopModules ++ [
-        ./iso-packages.nix
-        ({ lib, pkgs, modulesPath, ... }: {
-          imports = [
-            (modulesPath + "/installer/cd-dvd/installation-cd-minimal.nix")
-          ];
-
-          environment.systemPackages = [ disko.packages.x86_64-linux.disko ];
-
-          users.users.lakin = {
-            isNormalUser = true;
-            home = "/home/lakin";
-            createHome = true;
-            extraGroups = [ "wheel" "video" "audio" "docker" ];
-          };
-
-          system.activationScripts.userDirs = {
-            deps = [ "users" ];
-            text = ''
-              install -d -o lakin -g users /home/lakin/.config
-              install -d -o lakin -g users /home/lakin/.config/hyprpanel
-              install -d -o lakin -g users /home/lakin/.config/hyprshell
-            '';
-          };
-
-          isoImage.squashfsCompression = "gzip -Xcompression-level 1";
-          isoImage.contents = [
-            { source = self; target = "/flake"; }
-            { source = "${self}/INSTALL.md"; target = "/INSTALL.md"; }
-          ];
-        })
-      ];
-    };
-
-    nixosConfigurations.laptop = nixpkgs.lib.nixosSystem {
-      specialArgs = { inherit hyprland; hyprgrass = null; };
-      modules = laptopModules ++ [
-        disko.nixosModules.disko
-        ./disko-config.nix
-        ./iso-packages.nix
-        ({ pkgs, ... }: {
-          boot.loader.systemd-boot.enable = true;
-          boot.loader.efi.canTouchEfiVariables = true;
-
-          networking.hostName = "laptop";
-
-          users.users.lakin = {
-            isNormalUser = true;
-            home = "/home/lakin";
-            createHome = true;
-            extraGroups = [ "wheel" "video" "audio" "docker" ];
-            initialPassword = "changeme";
-          };
-
-          system.stateVersion = "24.11";
-        })
-      ];
-    };
-
-    nixosConfigurations.desktop-iso = nixpkgs.lib.nixosSystem {
-      specialArgs = { inherit hyprland; hyprgrass = null; };
-      modules = desktopModules ++ [
-        ./iso-packages.nix
-        ({ lib, pkgs, modulesPath, ... }: {
-          imports = [
-            (modulesPath + "/installer/cd-dvd/installation-cd-minimal.nix")
-          ];
-
-          environment.systemPackages = [ disko.packages.x86_64-linux.disko ];
-
-          users.users.lakin = {
-            isNormalUser = true;
-            home = "/home/lakin";
-            createHome = true;
-            extraGroups = [ "wheel" "video" "audio" "docker" ];
-          };
-
-          system.activationScripts.userDirs = {
-            deps = [ "users" ];
-            text = ''
-              install -d -o lakin -g users /home/lakin/.config
-              install -d -o lakin -g users /home/lakin/.config/hyprpanel
-              install -d -o lakin -g users /home/lakin/.config/hyprshell
-            '';
-          };
-
-          isoImage.squashfsCompression = "gzip -Xcompression-level 1";
-          isoImage.contents = [
-            { source = self; target = "/flake"; }
-            { source = "${self}/INSTALL.md"; target = "/INSTALL.md"; }
-          ];
-        })
-      ];
-    };
-
-    nixosConfigurations.desktop = nixpkgs.lib.nixosSystem {
-      specialArgs = { inherit hyprland; hyprgrass = null; };
-      modules = desktopModules ++ [
-        disko.nixosModules.disko
-        ./disko-config.nix
-        ./iso-packages.nix
-        ({ pkgs, ... }: {
-          boot.loader.systemd-boot.enable = true;
-          boot.loader.efi.canTouchEfiVariables = true;
-
-          networking.hostName = "desktop";
-
-          users.users.lakin = {
-            isNormalUser = true;
-            home = "/home/lakin";
-            createHome = true;
-            extraGroups = [ "wheel" "video" "audio" "docker" ];
-            initialPassword = "changeme";
-          };
-
-          system.stateVersion = "24.11";
-        })
-      ];
-    };
-
-    nixosConfigurations.asus-tuf-iso = nixpkgs.lib.nixosSystem {
-      specialArgs = {
-        inherit hyprland;
-        hyprgrass = null;
-        hyprHostConfig = ''
-          # Asus TUF F16 — 2560x1600 display, 1.25x scale
-          monitor=eDP-1,preferred,auto,1.25
-          monitor=,preferred,auto,1
-        '';
-        hyprWallpaper = ./hypr/wallpaper-roach.jpg;
+                chown lakin:users /home/lakin/.config/lan-mouse/config.toml
+              '';
+            };
+          })
+        ];
       };
-      modules = asusModules ++ [
-        ./iso-packages.nix
-        ({ lib, pkgs, modulesPath, ... }: {
-          imports = [
-            (modulesPath + "/installer/cd-dvd/installation-cd-minimal.nix")
-          ];
 
-          environment.systemPackages = [ disko.packages.x86_64-linux.disko ];
-
-          users.users.lakin = {
-            isNormalUser = true;
-            home = "/home/lakin";
-            createHome = true;
-            extraGroups = [ "wheel" "video" "audio" "docker" ];
-          };
-
-          system.activationScripts.userDirs = {
-            deps = [ "users" ];
-            text = ''
-              install -d -o lakin -g users /home/lakin/.config
-              install -d -o lakin -g users /home/lakin/.config/hyprpanel
-              install -d -o lakin -g users /home/lakin/.config/hyprshell
-            '';
-          };
-
-          isoImage.squashfsCompression = "gzip -Xcompression-level 1";
-          isoImage.contents = [
-            { source = self; target = "/flake"; }
-            { source = "${self}/INSTALL.md"; target = "/INSTALL.md"; }
-          ];
-        })
-      ];
-    };
-
-    nixosConfigurations.asus-tuf = nixpkgs.lib.nixosSystem {
-      specialArgs = {
-        inherit hyprland;
-        hyprgrass = null;
-        hyprHostConfig = ''
-          # Asus TUF F16 — 2560x1600 display, 1.25x scale
-          monitor=eDP-1,preferred,auto,1.25
-          monitor=,preferred,auto,1
-        '';
-        hyprWallpaper = ./hypr/wallpaper-roach.jpg;
+      # ── sebbers (AMD laptop) ──────────────────────────────────────
+      sebbers-iso = mkIso {
+        hostModules = sebbersModules;
       };
-      modules = asusModules ++ [
-        disko.nixosModules.disko
-        ./disko-config-asus-tuf.nix
-        ./iso-packages.nix
-        ({ pkgs, ... }: {
-          boot.loader.systemd-boot.enable = true;
-          boot.loader.efi.canTouchEfiVariables = true;
+      sebbers = mkInstalled {
+        hostModules = sebbersModules;
+        hostname = "sebbers";
+      };
 
-          networking.hostName = "roach";
+      # ── trunkie (Threadripper desktop) ──────────────────────────
+      trunkie-iso = mkIso {
+        hostModules = trunkieModules;
+      };
+      trunkie = mkInstalled {
+        hostModules = trunkieModules;
+        hostname = "trunkie";
+      };
 
-          users.users.lakin = {
-            isNormalUser = true;
-            home = "/home/lakin";
-            createHome = true;
-            extraGroups = [ "wheel" "video" "audio" "docker" ];
-            initialPassword = "changeme";
-          };
-
-          system.stateVersion = "24.11";
-        })
-      ];
+      # ── roach (Asus TUF F16) ────────────────────────────────────
+      roach-iso = mkIso {
+        hostModules = roachModules;
+        specialArgs = roachSpecialArgs;
+      };
+      roach = mkInstalled {
+        hostModules = roachModules;
+        specialArgs = roachSpecialArgs;
+        hostname = "roach";
+        diskoConfig = ./hosts/roach/disko-config.nix;
+      };
     };
   };
 }
