@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 # Installs a NixOS host config onto a machine.
-# Run from inside the flake directory on the live ISO.
+# Run from inside the flake directory on the live ISO (/iso/flake).
 #
 # Usage:
-#   ./install.sh <host> --disk <disk-id>           # format, mount, install
-#   ./install.sh <host> --disk <disk-id> --wipe     # blkdiscard first
+#   ./install.sh <host> --disk <disk-id>            # format + install
+#   ./install.sh <host> --disk <disk-id> --wipe      # blkdiscard first
 #
 # For roach (dual-drive):
 #   ./install.sh roach --disk <main-id> --home-disk <home-id>
@@ -12,8 +12,6 @@
 #
 # <disk-id> is a /dev/disk/by-id/... path or a bare device like /dev/sda.
 set -euo pipefail
-
-NIX_FLAGS=(--extra-experimental-features 'nix-command flakes')
 
 usage() {
   cat >&2 <<EOF
@@ -110,61 +108,22 @@ if $WIPE; then
   done
 fi
 
-# ── Phase 1: disko (format + mount) ─────────────────────────────────
+# ── Install via disko-install ────────────────────────────────────────
 echo
-echo "==> Phase 1: disko (destroy, format, mount)"
+echo "==> Running disko-install (format + nixos-install)"
 
 DISKO_ARGS=(
-  sudo nix "${NIX_FLAGS[@]}" run github:nix-community/disko --
-  --mode destroy,format,mount
-  --root-mountpoint /mnt
-  --yes-wipe-all-disks
+  sudo disko-install
+  --flake ".#${HOST}"
+  --disk main "$DISK"
 )
 
-# Single-disk hosts use --disk main <device> to override the mkDefault
-if [ -z "$HOME_DISK" ]; then
-  DISKO_ARGS+=(--disk main "$DISK")
+# Roach dual-drive: pass the home disk too
+if [ -n "$HOME_DISK" ]; then
+  DISKO_ARGS+=(--disk home "$HOME_DISK")
 fi
-
-DISKO_ARGS+=(--flake ".#${HOST}")
 
 "${DISKO_ARGS[@]}"
-
-# ── Verify mounts ───────────────────────────────────────────────────
-echo
-echo "==> Verifying mounts"
-
-MNT_FSTYPE="$(findmnt -n -o FSTYPE /mnt || true)"
-if [ "$MNT_FSTYPE" != "btrfs" ]; then
-  echo "ERROR: /mnt is not btrfs (got '$MNT_FSTYPE'). Disko mount failed. Aborting." >&2
-  exit 1
-fi
-
-MNT_BOOT_FSTYPE="$(findmnt -n -o FSTYPE /mnt/boot || true)"
-if [ "$MNT_BOOT_FSTYPE" != "vfat" ]; then
-  echo "ERROR: /mnt/boot is not vfat (got '$MNT_BOOT_FSTYPE'). ESP not mounted. Aborting." >&2
-  exit 1
-fi
-
-if [ -n "$HOME_DISK" ]; then
-  MNT_HOME_FSTYPE="$(findmnt -n -o FSTYPE /mnt/home || true)"
-  if [ "$MNT_HOME_FSTYPE" != "btrfs" ]; then
-    echo "ERROR: /mnt/home is not btrfs (got '$MNT_HOME_FSTYPE'). Home disk not mounted. Aborting." >&2
-    exit 1
-  fi
-fi
-
-echo "  / (btrfs):    $(df -h /mnt      | tail -1 | awk '{print $2" total, "$4" free"}')"
-echo "  /boot (vfat): $(df -h /mnt/boot | tail -1 | awk '{print $2" total, "$4" free"}')"
-[ -n "$HOME_DISK" ] && echo "  /home (btrfs):$(df -h /mnt/home | tail -1 | awk '{print $2" total, "$4" free"}')"
-
-# ── Phase 2: nixos-install ──────────────────────────────────────────
-echo
-echo "==> Phase 2: nixos-install"
-sudo nixos-install \
-  --root /mnt \
-  --flake ".#${HOST}" \
-  --no-root-passwd
 
 # ── Cleanup ─────────────────────────────────────────────────────────
 echo

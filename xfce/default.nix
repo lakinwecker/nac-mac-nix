@@ -14,10 +14,18 @@
     '';
   };
 
+  # Use NetworkManager instead of iwd/networkd for XFCE panel integration.
+  # Priority 49 beats the mkForce (priority 50) in common/networking.nix.
+  networking.networkmanager.enable = lib.mkOverride 49 true;
+  networking.wireless.iwd.enable = lib.mkOverride 49 false;
+  networking.useNetworkd = lib.mkOverride 49 false;
+  systemd.network.enable = lib.mkOverride 49 false;
+
   environment.systemPackages = with pkgs; [
     xfce4-terminal
     xfce4-screenshooter
     xfce4-taskmanager
+    networkmanagerapplet
     pavucontrol
     xclip
   ];

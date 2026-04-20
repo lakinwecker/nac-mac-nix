@@ -84,12 +84,14 @@
       hyprgrass = null;
       ollamaCuda = false;
       xfceWallpaper = ./xfce/wallpaper-cornfield.jpeg;
+      xfceAvatar = ./xfce/avatar-cornfield.jpg;
     };
 
     # ── Helpers ───────────────────────────────────────────────────────
     mkIso = {
       hostModules,
       specialArgs ? defaultSpecialArgs,
+      hostname,
     }: nixpkgs.lib.nixosSystem {
       inherit specialArgs;
       modules = hostModules ++ [
@@ -98,6 +100,8 @@
           imports = [
             (modulesPath + "/installer/cd-dvd/installation-cd-minimal.nix")
           ];
+
+          networking.hostName = hostname;
 
           environment.systemPackages = [ disko.packages.x86_64-linux.disko ];
 
@@ -161,6 +165,7 @@
       harry-iso = mkIso {
         hostModules = harryModules;
         specialArgs = harrySpecialArgs;
+        hostname = "harry";
       };
       harry = mkInstalled {
         hostModules = harryModules;
@@ -192,6 +197,7 @@ EOF
       # ── sebbers (AMD laptop) ──────────────────────────────────────
       sebbers-iso = mkIso {
         hostModules = sebbersModules;
+        hostname = "sebbers";
       };
       sebbers = mkInstalled {
         hostModules = sebbersModules;
@@ -201,6 +207,7 @@ EOF
       # ── trunkie (Threadripper desktop) ──────────────────────────
       trunkie-iso = mkIso {
         hostModules = trunkieModules;
+        hostname = "trunkie";
       };
       trunkie = mkInstalled {
         hostModules = trunkieModules;
@@ -211,6 +218,7 @@ EOF
       roach-iso = mkIso {
         hostModules = roachModules;
         specialArgs = roachSpecialArgs;
+        hostname = "roach";
       };
       roach = mkInstalled {
         hostModules = roachModules;
@@ -223,6 +231,7 @@ EOF
       cornfield-iso = mkIso {
         hostModules = cornfieldModules;
         specialArgs = cornfieldSpecialArgs;
+        hostname = "cornfield";
       };
       cornfield = mkInstalled {
         hostModules = cornfieldModules;
