@@ -78,6 +78,13 @@
       '';
       hyprWallpaper = ./hypr/wallpaper-roach.jpg;
     };
+    sebbersSpecialArgs = defaultSpecialArgs // {
+      hyprHostConfig = ''
+        # AMD laptop — 2560x1600@120Hz display, 1.25x scale
+        monitor=eDP-1,2560x1600@120,auto,1.25
+        monitor=,preferred,auto,1
+      '';
+    };
     cornfieldSpecialArgs = {
       username = "clown";
       hyprland = null;
@@ -197,10 +204,12 @@ EOF
       # ── sebbers (AMD laptop) ──────────────────────────────────────
       sebbers-iso = mkIso {
         hostModules = sebbersModules;
+        specialArgs = sebbersSpecialArgs;
         hostname = "sebbers";
       };
       sebbers = mkInstalled {
         hostModules = sebbersModules;
+        specialArgs = sebbersSpecialArgs;
         hostname = "sebbers";
         diskoConfig = ./hosts/sebbers/disko-config.nix;
       };
