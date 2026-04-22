@@ -23,95 +23,55 @@
 
   outputs = { self, nixpkgs, nixos-hardware, disko, hyprland, hyprgrass, ... }:
   let
-    # ── Module lists ────────────────────────────────────────────────
+    # ── Machine registry ────────────────────────────────────────────
+    machines = import ./machines.nix;
     commonModules = [ ./common ];
+    desktopModule = { hyprland = ./hypr; xfce = ./xfce; gnome = ./gnome; };
 
-    harryModules = commonModules ++ [
-      nixos-hardware.nixosModules.microsoft-surface-pro-intel
-      ./hypr
-      ./hosts/harry
-    ];
+    # Build the NixOS module list for a machine.
+    mkHostModules = name: m:
+      commonModules
+      ++ map (hw: nixos-hardware.nixosModules.${hw}) (m.hardware or [])
+      ++ [ desktopModule.${m.desktop} ]
+      ++ [ ./hosts/${name} ];
 
-    sebbersModules = commonModules ++ [
-      nixos-hardware.nixosModules.common-cpu-amd
-      nixos-hardware.nixosModules.common-gpu-amd
-      ./hypr
-      ./hosts/sebbers
-    ];
+    # Build specialArgs from a machine's registry entry.
+    mkSpecialArgs = _name: m:
+      {
+        username   = m.username or "lakin";
+        hyprland   = if m.desktop == "hyprland" then hyprland else null;
+        hyprgrass  = if (m.hyprgrass or false) then hyprgrass else null;
+        ollamaCuda = m.ollamaCuda or false;
+      }
+      // (if m.desktop == "hyprland" then {
+        hyprHostConfig = m.hyprHostConfig or "";
+        hyprWallpaper  = m.hyprWallpaper or ./hypr/wallpaper.jpg;
+      } else {})
+      // (if m.desktop == "xfce" then {
+        xfceWallpaper = m.xfceWallpaper or null;
+        xfceAvatar    = m.xfceAvatar or null;
+      } else {});
 
-    trunkieModules = commonModules ++ [
-      ./hypr
-      ./hosts/trunkie
-    ];
-
-    roachModules = commonModules ++ [
-      nixos-hardware.nixosModules.common-cpu-intel
-      nixos-hardware.nixosModules.common-gpu-nvidia-nonprime
-      nixos-hardware.nixosModules.common-pc-laptop
-      nixos-hardware.nixosModules.common-pc-laptop-ssd
-      ./hypr
-      ./hosts/roach
-    ];
-
-    cornfieldModules = commonModules ++ [
-      nixos-hardware.nixosModules.common-cpu-intel
-      nixos-hardware.nixosModules.common-pc-laptop
-      nixos-hardware.nixosModules.common-pc-laptop-ssd
-      ./xfce
-      ./hosts/cornfield
-    ];
-
-    sourisModules = commonModules ++ [
-      nixos-hardware.nixosModules.dell-xps-13-9360
-      ./gnome
-      ./hosts/souris
-    ];
-
-    # ── specialArgs per host ─────────────────────────────────────────
-    defaultSpecialArgs = { username = "lakin"; inherit hyprland; hyprgrass = null; ollamaCuda = false; hyprHostConfig = ""; hyprWallpaper = ./hypr/wallpaper.jpg; };
-    harrySpecialArgs = defaultSpecialArgs // { inherit hyprgrass; };
-    roachSpecialArgs = defaultSpecialArgs // {
-      ollamaCuda = true;
-      hyprHostConfig = ''
-        # Asus TUF F16 — 2560x1600 display, 1.25x scale
-        monitor=eDP-1,preferred,auto,1.25
-        monitor=,preferred,auto,1
-
-        # Swap Alt and Super to match Mac-style layout
-        input {
-            kb_options = altwin:swap_lalt_lwin
-        }
-      '';
-      hyprWallpaper = ./hypr/wallpaper-roach.jpg;
-    };
-    sebbersSpecialArgs = defaultSpecialArgs // {
-      hyprHostConfig = ''
-        # AMD laptop — 2560x1600@120Hz display, 1.25x scale
-        monitor=eDP-1,2560x1600@120,auto,1.25
-        monitor=,preferred,auto,1
-
-        # Swap Alt and Super to match Mac-style layout
-        input {
-            kb_options = altwin:swap_lalt_lwin
-        }
-      '';
-    };
-    cornfieldSpecialArgs = {
-      username = "clown";
-      hyprland = null;
-      hyprgrass = null;
-      ollamaCuda = false;
-      xfceWallpaper = ./xfce/wallpaper-cornfield.jpeg;
-      xfceAvatar = ./xfce/avatar-cornfield.jpg;
-    };
-    sourisSpecialArgs = {
-      username = "souris";
-      hyprland = null;
-      hyprgrass = null;
-      ollamaCuda = false;
+    # Generate {<name>-iso, <name>} configs for one machine.
+    mkMachineConfigs = name: m: let
+      hostModules = mkHostModules name m;
+      specialArgs = mkSpecialArgs name m;
+    in {
+      "${name}-iso" = mkIso {
+        inherit hostModules specialArgs;
+        hostname = name;
+      };
+      ${name} = mkInstalled {
+        inherit hostModules specialArgs;
+        hostname     = name;
+        diskoConfig  = m.diskoConfig or ./disko-config.nix;
+        extraModules = m.extraModules or [];
+      };
     };
 
-    # ── Helpers ───────────────────────────────────────────────────────
+    # ── Helpers (unchanged) ─────────────────────────────────────────
+    defaultSpecialArgs = mkSpecialArgs "" { desktop = "hyprland"; };
+
     mkIso = {
       hostModules,
       specialArgs ? defaultSpecialArgs,
@@ -184,99 +144,6 @@
     };
 
   in {
-    nixosConfigurations = {
-      # ── harry (Surface Pro 9) ─────────────────────────────────────
-      harry-iso = mkIso {
-        hostModules = harryModules;
-        specialArgs = harrySpecialArgs;
-        hostname = "harry";
-      };
-      harry = mkInstalled {
-        hostModules = harryModules;
-        specialArgs = harrySpecialArgs;
-        hostname = "harry";
-        extraModules = [
-          ({ username, ... }: {
-            system.activationScripts.lanMouseConfig = {
-              deps = [ "users" ];
-              text = ''
-                install -d -o ${username} -g users /home/${username}/.config
-                install -d -o ${username} -g users /home/${username}/.config/lan-mouse
-                cat > /home/${username}/.config/lan-mouse/config.toml << 'EOF'
-port = 4343
-
-[top]
-hostname = "trunkie.local"
-ips = ["192.168.50.15"]
-port = 4343
-activate_on_startup = true
-EOF
-                chown ${username}:users /home/${username}/.config/lan-mouse/config.toml
-              '';
-            };
-          })
-        ];
-      };
-
-      # ── sebbers (AMD laptop) ──────────────────────────────────────
-      sebbers-iso = mkIso {
-        hostModules = sebbersModules;
-        specialArgs = sebbersSpecialArgs;
-        hostname = "sebbers";
-      };
-      sebbers = mkInstalled {
-        hostModules = sebbersModules;
-        specialArgs = sebbersSpecialArgs;
-        hostname = "sebbers";
-        diskoConfig = ./hosts/sebbers/disko-config.nix;
-      };
-
-      # ── trunkie (Threadripper desktop) ──────────────────────────
-      trunkie-iso = mkIso {
-        hostModules = trunkieModules;
-        hostname = "trunkie";
-      };
-      trunkie = mkInstalled {
-        hostModules = trunkieModules;
-        hostname = "trunkie";
-      };
-
-      # ── roach (Asus TUF F16) ────────────────────────────────────
-      roach-iso = mkIso {
-        hostModules = roachModules;
-        specialArgs = roachSpecialArgs;
-        hostname = "roach";
-      };
-      roach = mkInstalled {
-        hostModules = roachModules;
-        specialArgs = roachSpecialArgs;
-        hostname = "roach";
-        diskoConfig = ./hosts/roach/disko-config.nix;
-      };
-
-      # ── souris (Dell XPS 13 9360) ──────────────────────────────────
-      souris-iso = mkIso {
-        hostModules = sourisModules;
-        specialArgs = sourisSpecialArgs;
-        hostname = "souris";
-      };
-      souris = mkInstalled {
-        hostModules = sourisModules;
-        specialArgs = sourisSpecialArgs;
-        hostname = "souris";
-      };
-
-      # ── cornfield (ThinkPad T460) ──────────────────────────────────
-      cornfield-iso = mkIso {
-        hostModules = cornfieldModules;
-        specialArgs = cornfieldSpecialArgs;
-        hostname = "cornfield";
-      };
-      cornfield = mkInstalled {
-        hostModules = cornfieldModules;
-        specialArgs = cornfieldSpecialArgs;
-        hostname = "cornfield";
-      };
-    };
+    nixosConfigurations = nixpkgs.lib.concatMapAttrs mkMachineConfigs machines;
   };
 }

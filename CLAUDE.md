@@ -10,6 +10,7 @@ Flake-based NixOS configurations for personal machines, plus matching live insta
 | sebbers | AMD laptop | Hyprland | lakin |
 | trunkie | Threadripper desktop | Hyprland | lakin |
 | roach | Asus TUF F16 (Intel + NVIDIA) | Hyprland | lakin |
+| souris | Dell XPS 13 9360 (Kaby Lake) | GNOME | souris |
 | cornfield | ThinkPad T460 (Skylake) | XFCE | clown |
 
 ## Build & Install
@@ -18,22 +19,29 @@ See [docs/build.md](docs/build.md).
 
 ## Architecture
 
-`flake.nix` defines 10 `nixosConfigurations` (5 hosts x {iso, installed}) via `mkIso` and `mkInstalled` helpers.
+`machines.nix` is the **machine registry** — a single attrset keyed by hostname declaring each machine's desktop, hardware modules, username, and any overrides. `flake.nix` imports it and generates all `nixosConfigurations` (N hosts x {iso, installed}) via `mkIso`/`mkInstalled` helpers. To add a machine: add an entry to `machines.nix` + create `hosts/<name>/default.nix`.
 
-### Key parameters
+### Machine registry fields (`machines.nix`)
 
-- `username` — passed via `specialArgs`, defaults to `"lakin"`. Threaded through all modules.
-- `hyprland` / `hyprgrass` / `hyprHostConfig` / `hyprWallpaper` — Hyprland-specific, passed via `specialArgs`.
-- `xfceWallpaper` — XFCE wallpaper, passed via `specialArgs` for cornfield.
-- `ollamaCuda` — enables CUDA ollama on roach.
+- `desktop` — `"hyprland"` | `"xfce"` | `"gnome"` (required)
+- `username` — defaults to `"lakin"`
+- `hardware` — list of `nixos-hardware` module name strings, defaults to `[]`
+- `hyprHostConfig` / `hyprWallpaper` / `hyprgrass` — Hyprland-specific overrides
+- `xfceWallpaper` / `xfceAvatar` — XFCE-specific overrides
+- `ollamaCuda` — enables CUDA ollama
+- `diskoConfig` — path to custom disko layout, defaults to `./disko-config.nix`
+- `dualDrive` — signals `install.sh` to require `--home-disk`
+- `extraModules` — list of extra NixOS modules
 
 ### Directory layout
 
 ```
+machines.nix         Machine registry (one entry per host)
 common/              Shared config (networking, desktop, audio, packages, user)
 hosts/<name>/        Hardware-specific config per machine
-hypr/                Hyprland module (added per-host, not via common/)
-xfce/                XFCE module (cornfield only)
+hypr/                Hyprland desktop module
+xfce/                XFCE desktop module
+gnome/               GNOME desktop module
 ghostty/ nvim/ fish/ Program modules (imported by common/default.nix)
 starship/ bin/ zellij/ ai/
 ```
@@ -41,8 +49,9 @@ starship/ bin/ zellij/ ai/
 ### Module composition
 
 - `commonModules = [ ./common ]` — imports themed sub-modules + program directories (not desktop environment).
-- Desktop environment (`./hypr` or `./xfce`) is added per-host in the host's module list.
-- Each host adds `nixos-hardware` modules + `./hosts/<name>`.
+- Desktop environment (`./hypr`, `./xfce`, or `./gnome`) is selected by the `desktop` field in `machines.nix`.
+- Hardware modules are resolved from string names via `nixos-hardware.nixosModules.${name}`.
+- `specialArgs` are computed per machine from the registry entry by `mkSpecialArgs`.
 - Shared settings go in `common/*.nix`. Hardware-specific settings go in `hosts/<name>/default.nix`.
 
 ## harry (Surface Pro 9) specifics

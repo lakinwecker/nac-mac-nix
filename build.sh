@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-hosts=("harry" "sebbers" "trunkie" "roach" "souris" "cornfield")
+hosts=($(nix eval --raw --extra-experimental-features nix-command \
+  --file machines.nix --apply 'x: builtins.concatStringsSep " " (builtins.attrNames x)'))
 nix_cmd=(nix --extra-experimental-features 'nix-command flakes')
 
 usage() {

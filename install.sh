@@ -6,7 +6,7 @@
 #   ./install.sh <host> --disk <disk-id>            # format + install
 #   ./install.sh <host> --disk <disk-id> --wipe      # blkdiscard first
 #
-# For dual-drive hosts (roach, sebbers):
+# For dual-drive hosts (dualDrive = true in machines.nix):
 #   ./install.sh sebbers --disk <main-id> --home-disk <home-id>
 #   ./install.sh sebbers --disk <main-id> --home-disk <home-id> --wipe
 #
@@ -17,11 +17,12 @@ usage() {
   cat >&2 <<EOF
 Usage: $0 <host> --disk <disk-id> [--home-disk <disk-id>] [--wipe]
 
-Hosts: harry sebbers trunkie roach souris cornfield
+Hosts: $(nix eval --raw --extra-experimental-features nix-command \
+    --file machines.nix --apply 'x: builtins.concatStringsSep " " (builtins.attrNames x)' 2>/dev/null || echo "(run 'nix eval --file machines.nix' to list)")
 
 Options:
   --disk <id>       Primary disk (required). /dev/disk/by-id/... or /dev/sdX
-  --home-disk <id>  Second disk for /home (roach, sebbers)
+  --home-disk <id>  Second disk for /home (dual-drive hosts)
   --wipe            blkdiscard all target disks before formatting
 
 Examples:
@@ -50,8 +51,10 @@ done
 
 [ -n "$DISK" ] || { echo "ERROR: --disk is required." >&2; usage; }
 
-# Dual-drive hosts require --home-disk
-if { [ "$HOST" = "roach" ] || [ "$HOST" = "sebbers" ]; } && [ -z "$HOME_DISK" ]; then
+# Dual-drive hosts require --home-disk (queried from machines.nix)
+dual=$(nix eval --raw --extra-experimental-features nix-command \
+  --file machines.nix --apply "x: if (x.\"$HOST\".dualDrive or false) then \"yes\" else \"no\"" 2>/dev/null || echo "no")
+if [ "$dual" = "yes" ] && [ -z "$HOME_DISK" ]; then
   echo "ERROR: $HOST has a dual-drive layout. Pass --home-disk <id>." >&2
   exit 1
 fi
