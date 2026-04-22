@@ -83,6 +83,11 @@
         # AMD laptop — 2560x1600@120Hz display, 1.25x scale
         monitor=eDP-1,2560x1600@120,auto,1.25
         monitor=,preferred,auto,1
+
+        # Swap Alt and Super to match Mac-style layout
+        input {
+            kb_options = altwin:swap_lalt_lwin
+        }
       '';
     };
     cornfieldSpecialArgs = {
