@@ -23,5 +23,6 @@
     ../zellij
     ../ai
     ../latex
+    ../libreoffice
   ];
 }
