@@ -46,7 +46,7 @@ EOF
   sebbers = {
     # AMD laptop
     desktop = "hyprland";
-    hardware = [ "common-cpu-amd" "common-gpu-amd", "common-pc-laptop", "common-pc-laptop-ssd" ];
+    hardware = [ "common-cpu-amd" "common-gpu-amd" "common-pc-laptop" "common-pc-laptop-ssd" ];
     diskoConfig = ./hosts/sebbers/disko-config.nix;
     dualDrive = true;
     hyprHostConfig = ''
@@ -84,6 +84,23 @@ EOF
       }
     '';
     hyprWallpaper = ./hypr/wallpaper-roach.jpg;
+  };
+
+  shrike = {
+    # Dell XPS 16 9650 (2026, Intel Panther Lake — Core Ultra X9 388H, Arc iGPU)
+    # Temporary install to test before going back to Ubuntu.
+    desktop = "hyprland";
+    hardware = [ "common-cpu-intel" "common-pc-laptop" "common-pc-laptop-ssd" ];
+    hyprHostConfig = ''
+      # Dell XPS 16 — 16" OLED 2880x1800 touch, 1.5x scale
+      monitor=eDP-1,2880x1800@60,auto,1.5
+      monitor=,preferred,auto,1
+
+      # Swap Alt and Super to match Mac-style layout
+      input {
+          kb_options = altwin:swap_lalt_lwin
+      }
+    '';
   };
 
   souris = {

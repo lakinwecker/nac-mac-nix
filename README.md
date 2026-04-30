@@ -10,6 +10,7 @@ Flake-based NixOS configs for my personal machines, plus matching installer ISOs
 | `sebbers` | AMD laptop                                    |
 | `trunkie` | Threadripper desktop                          |
 | `roach`   | Asus TUF Gaming F16 (Intel Raptor Lake + NVIDIA) |
+| `shrike`  | Dell XPS 16 9650 (Intel Panther Lake, Arc iGPU)   |
 
 ## Usage
 
