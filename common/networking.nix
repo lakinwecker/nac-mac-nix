@@ -13,7 +13,11 @@
       Network.EnableIPv6 = true;
       Settings.AutoConnect = true;
       Rank = {
-        BandModifier5Ghz = "2.0";
+        # mt7921e (sebbers) lands on 2.4 GHz with congested neighbours
+        # and exhibits 15% loss / 300ms jitter. Bias hard toward 5 GHz.
+        BandModifier2_4Ghz = "0.3";
+        BandModifier5Ghz = "5.0";
+        BandModifier6Ghz = "6.0";
       };
     };
   };
@@ -28,6 +32,15 @@
       IPv6AcceptRA = true;
       MulticastDNS = true;
     };
+  };
+
+  # ── DNS ────────────────────────────────────────────────────────────
+  # Domains=~. forces resolved to use these globally, overriding the
+  # per-link DNS that iwd/networkd push from DHCP.
+  networking.nameservers = [ "1.1.1.1" "1.0.0.1" "8.8.8.8" ];
+  services.resolved = {
+    enable = true;
+    settings.Resolve.Domains = "~.";
   };
 
   # ── mDNS (Avahi) ───────────────────────────────────────────────────

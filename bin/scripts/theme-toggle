@@ -67,6 +67,28 @@ fi
 # Ghostty auto-follows the color-scheme via xdg-desktop-portal when its
 # config uses `theme = light:X,dark:Y`. No explicit action needed here.
 
+# Hyprpanel — swap the variant config and restart. Hyprpanel rewrites its
+# own config on UI changes, so we copy a fresh variant from /etc each time
+# rather than symlinking.
+hyprpanel_src="/etc/hyprpanel/config-$mode.json"
+hyprpanel_dst="$HOME/.config/hyprpanel/config.json"
+if [ -f "$hyprpanel_src" ] && command -v hyprpanel >/dev/null 2>&1; then
+  install -m 0644 "$hyprpanel_src" "$hyprpanel_dst"
+  # Real process is `gjs ... hyprpanel-wrapped`; pkill -f matches it.
+  # SIGTERM first, then SIGKILL if it doesn't exit. Also clean up any
+  # orphaned helper scripts (e.g. share/scripts/bluetooth.py) that
+  # reparent to init when hyprpanel dies.
+  pkill -TERM -f hyprpanel-wrapped 2>/dev/null || true
+  pkill -TERM -f "hyprpanel-0-unstable.*share/scripts" 2>/dev/null || true
+  for _ in 1 2 3 4 5 6 7 8 9 10; do
+    pgrep -f hyprpanel-wrapped >/dev/null 2>&1 || break
+    sleep 0.2
+  done
+  pkill -KILL -f hyprpanel-wrapped 2>/dev/null || true
+  pkill -KILL -f "hyprpanel-0-unstable.*share/scripts" 2>/dev/null || true
+  setsid -f hyprpanel >/dev/null 2>&1 || (hyprpanel >/dev/null 2>&1 &)
+fi
+
 # Claude Code — settings.json `theme` field. Preserves the `-daltonized`
 # or `-ansi` suffix (e.g. dark-daltonized <-> light-daltonized). New claude
 # sessions pick this up; already-running ones need a relaunch.

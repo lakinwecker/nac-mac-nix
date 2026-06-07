@@ -93,7 +93,8 @@ in {
     btop
     bluez
     bluez-tools
-    blueman
+    overskride
+    bluetuith
     pavucontrol
     power-profiles-daemon
   ];
@@ -108,6 +109,11 @@ in {
     mode = "0755";
   };
 
+  environment.etc."hypr/scripts/screenshot-delayed.sh" = {
+    source = ./scripts/screenshot-delayed.sh;
+    mode = "0755";
+  };
+
   environment.etc."hypr/rofi-tokyonight.rasi".source = ./rofi-tokyonight.rasi;
   environment.etc."hypr/nwg-drawer.css".source = ./nwg-drawer.css;
 
@@ -119,7 +125,8 @@ in {
   environment.etc."hypr/hypridle.conf".source = ./hypridle.conf;
   environment.etc."hypr/hyprlock.conf".source = ./hyprlock.conf;
   environment.etc."wallpaper.jpg".source = hyprWallpaper;
-  environment.etc."hyprpanel/config.json".source = ./hyprpanel-config.json;
+  environment.etc."hyprpanel/config-dark.json".source = ./hyprpanel-config.json;
+  environment.etc."hyprpanel/config-light.json".source = ./hyprpanel-config-light.json;
   environment.etc."btop/btop.conf".source = ./btop.conf;
   environment.etc."avatar.png".source = ./avatar.png;
 
@@ -137,7 +144,15 @@ in {
       ln -sf /etc/hypr/hypridle.conf /home/${username}/.config/hypr/hypridle.conf
       ln -sf /etc/hypr/hyprlock.conf /home/${username}/.config/hypr/hyprlock.conf
       chown -h ${username}:users /home/${username}/.config/hypr/hyprland.conf /home/${username}/.config/hypr/hypridle.conf /home/${username}/.config/hypr/hyprlock.conf
-      install -m 0644 -o ${username} -g users /etc/hyprpanel/config.json /home/${username}/.config/hyprpanel/config.json
+      # Pick the hyprpanel variant matching the current theme mode (set by
+      # theme-toggle). Defaults to dark if state file is absent.
+      mode="dark"
+      if [ -r /home/${username}/.local/state/theme-mode ]; then
+        mode=$(cat /home/${username}/.local/state/theme-mode)
+      fi
+      install -m 0644 -o ${username} -g users \
+        /etc/hyprpanel/config-$mode.json \
+        /home/${username}/.config/hyprpanel/config.json
       install -m 0644 -o ${username} -g users /etc/avatar.png /home/${username}/.face.icon
       install -m 0644 -o ${username} -g users /etc/wallpaper.jpg /home/${username}/.config/background
     '';

@@ -16,7 +16,6 @@
       };
     };
   };
-  services.blueman.enable = true;
   services.upower.enable = true;
 
   # Bluetooth audio — WirePlumber 0.5+ uses JSON config, not Lua
