@@ -13,7 +13,7 @@ Actions:
   --test      Build and activate now, no boot entry (nixos-rebuild test)
   --dry       Dry-run build (evaluation only)
 
-Hosts: harry sebbers trunkie roach cornfield
+Hosts: harry gratch trunkie roach cornfield
   No host given: defaults to all hosts for --iso/--dry,
   or the current hostname for --switch/--boot/--test/--build.
 ```

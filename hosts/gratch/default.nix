@@ -1,4 +1,4 @@
-# AMD laptop — hostname "sebbers"
+# AMD laptop — hostname "gratch"
 { lib, pkgs, username, ... }:
 {
   hardware.amdgpu.initrd.enable = true;

@@ -7,7 +7,7 @@ Flake-based NixOS configurations for personal machines, plus matching live insta
 | Host | Hardware | Desktop | User |
 |------|----------|---------|------|
 | harry | Surface Pro 9 (Intel) | Hyprland | lakin |
-| sebbers | AMD laptop | Hyprland | lakin |
+| gratch | AMD laptop | Hyprland | lakin |
 | trunkie | Threadripper desktop | Hyprland | lakin |
 | roach | Asus TUF F16 (Intel + NVIDIA) | Hyprland | lakin |
 | shrike | Dell XPS 16 9650 (Intel Panther Lake) | Hyprland | lakin |

@@ -32,7 +32,7 @@ Hosts: ${hosts[*]}
 Examples:
   $0 --switch
   $0 --iso roach
-  $0 --dry harry sebbers
+  $0 --dry harry gratch
   $0 --install roach
   $0 --install harry --disk main /dev/disk/by-id/nvme-SAMSUNG_...
   $0 --wipe roach

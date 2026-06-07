@@ -47,11 +47,11 @@ EOF
     ];
   };
 
-  sebbers = {
+  gratch = {
     # AMD laptop
     desktop = "hyprland";
     hardware = [ "common-cpu-amd" "common-gpu-amd" "common-pc-laptop" "common-pc-laptop-ssd" ];
-    diskoConfig = ./hosts/sebbers/disko-config.nix;
+    diskoConfig = ./hosts/gratch/disko-config.nix;
     dualDrive = true;
     hyprDynamicCursorsMode = "tilt";
     hyprHostConfig = ''

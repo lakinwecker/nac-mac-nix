@@ -7,7 +7,7 @@ Flake-based NixOS configs for my personal machines, plus matching installer ISOs
 | Host      | Hardware                                      |
 | --------- | --------------------------------------------- |
 | `harry`   | Surface Pro 9 (Intel)                         |
-| `sebbers` | AMD laptop                                    |
+| `gratch`  | AMD laptop                                    |
 | `trunkie` | Threadripper desktop                          |
 | `roach`   | Asus TUF Gaming F16 (Intel Raptor Lake + NVIDIA) |
 | `shrike`  | Dell XPS 16 9650 (Intel Panther Lake, Arc iGPU)   |

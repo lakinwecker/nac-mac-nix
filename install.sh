@@ -7,8 +7,8 @@
 #   ./install.sh <host> --disk <disk-id> --wipe      # blkdiscard first
 #
 # For dual-drive hosts (dualDrive = true in machines.nix):
-#   ./install.sh sebbers --disk <main-id> --home-disk <home-id>
-#   ./install.sh sebbers --disk <main-id> --home-disk <home-id> --wipe
+#   ./install.sh gratch --disk <main-id> --home-disk <home-id>
+#   ./install.sh gratch --disk <main-id> --home-disk <home-id> --wipe
 #
 # <disk-id> is a /dev/disk/by-id/... path or a bare device like /dev/sda.
 set -euo pipefail

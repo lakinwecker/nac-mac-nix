@@ -23,7 +23,7 @@ needed:
 ./build.sh --install roach
 ```
 
-### harry / sebbers / trunkie
+### harry / gratch / trunkie
 
 The generic `disko-config.nix` defaults to `/dev/nvme0n1`. Pass the real
 by-id path so the installer doesn't depend on NVMe enumeration order:

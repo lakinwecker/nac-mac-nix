@@ -13,7 +13,7 @@
       Network.EnableIPv6 = true;
       Settings.AutoConnect = true;
       Rank = {
-        # mt7921e (sebbers) lands on 2.4 GHz with congested neighbours
+        # mt7921e (gratch) lands on 2.4 GHz with congested neighbours
         # and exhibits 15% loss / 300ms jitter. Bias hard toward 5 GHz.
         BandModifier2_4Ghz = "0.3";
         BandModifier5Ghz = "5.0";
