@@ -17,6 +17,8 @@ let
     "ssh-agent-work"
     "ssh-agent-all"
     "theme-toggle"
+    "toggle-keeb"
+    "rotate-screen"
   ];
   scriptEntries = builtins.listToAttrs (map (name: {
     name = "user-bin/${name}";

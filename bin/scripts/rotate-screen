@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# Cycle screen rotation: normal → 90° → 180° → 270° → normal
+STATE_FILE="/tmp/rotate-screen-state"
+current=$(cat "$STATE_FILE" 2>/dev/null || echo 0)
+next=$(( (current + 1) % 4 ))
+echo "$next" > "$STATE_FILE"
+hyprctl keyword monitor eDP-1,preferred,auto,1,transform,$next

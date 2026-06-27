@@ -81,6 +81,7 @@
   services.logind.settings.Login = {
     HandleLidSwitch = "suspend-then-hibernate";
     HandleLidSwitchExternalPower = "suspend-then-hibernate";
+    HandlePowerKey = "ignore";
   };
 
   # Reload ithc + iptsd after resume — touchpad loses state on hibernate.
@@ -94,6 +95,10 @@
         ${pkgs.kmod}/bin/modprobe -r ithc 2>/dev/null || true
         ${pkgs.kmod}/bin/modprobe ithc 2>/dev/null || true
         ${pkgs.systemd}/bin/systemctl restart iptsd 2>/dev/null || true
+        # Restart iio-hyprland — auto-rotation stops working after suspend
+        ${pkgs.procps}/bin/pkill iio-hyprland 2>/dev/null || true
+        sleep 1
+        su - lakin -c '${pkgs.iio-hyprland}/bin/iio-hyprland eDP-1 &' 2>/dev/null || true
       '';
     };
   };

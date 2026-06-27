@@ -24,6 +24,12 @@
     desktop = "hyprland";
     hardware = [ "microsoft-surface-pro-intel" ];
     hyprgrass = true;
+    hyprHostConfig = ''
+      # Swap Alt and Super to match Mac-style layout
+      input {
+          kb_options = altwin:swap_lalt_lwin
+      }
+    '';
     extraModules = [
       ({ username, ... }: {
         system.activationScripts.lanMouseConfig = {
