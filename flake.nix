@@ -9,26 +9,19 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
     hyprland = {
-      # Tagged release — cacheable. Bump in lockstep with hyprgrass when needed.
-      url = "github:hyprwm/Hyprland/v0.54.3";
+      # Pinned to tagged release — bump in lockstep with hyprgrass/hypr-dynamic-cursors.
+      url = "github:hyprwm/Hyprland/v0.55.4";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     # hyprgrass is Surface-only (touchscreen gestures). Tracks main; the
     # surface configs are the only ones that pass it through to hypr/default.nix.
     hyprgrass = {
-      url = "github:horriblename/hyprgrass";
+      url = "github:horriblename/hyprgrass/d094a3e62f6ecaeb41515982d3e13edefaf8a4e7";
       inputs.hyprland.follows = "hyprland";
     };
-    # Dynamic cursors plugin — shake-to-find by default on every Hyprland host,
-    # plus opt-in tilt/rotate/stretch simulation modes via machines.nix.
-    # Pinned to 57e14ed (2026-03-09) — the commit immediately before PR #128
-    # "use new rendering like hl" (b736d6, 2026-03-29). That refactor targets
-    # post-v0.54.3 hyprland (renames g_pHyprOpenGL->m_renderData to
-    # g_pHyprRenderer->m_renderData and changes IPassElement::draw() signature),
-    # neither of which match our pinned hyprland v0.54.3. Bump in lockstep
-    # whenever hyprland is bumped.
     hypr-dynamic-cursors = {
-      url = "github:VirtCode/hypr-dynamic-cursors/57e14edd0ae265b01828e466e287e96eb1e84dd3";
+      # Pinned to 0.55.4-compatible commit — bump in lockstep with hyprland.
+      url = "github:VirtCode/hypr-dynamic-cursors/da447486c84e0be81f2cdd208af1ef92469f0a88";
       inputs.hyprland.follows = "hyprland";
     };
   };

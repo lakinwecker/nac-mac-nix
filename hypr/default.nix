@@ -37,7 +37,9 @@ in {
   };
 
   environment.etc."hypr/plugins/hyprgrass.so" = lib.mkIf hyprgrassEnabled {
-    source = "${hyprgrass.packages.${pkgs.system}.default}/lib/libhyprgrass.so";
+    source = "${(hyprgrass.packages.${pkgs.system}.default.overrideAttrs (old: {
+      buildInputs = (old.buildInputs or []) ++ [ pkgs.lua ];
+    }))}/lib/libhyprgrass.so";
   };
 
   environment.etc."hypr/plugins/hypr-dynamic-cursors.so".source =
@@ -75,7 +77,7 @@ in {
     iio-hyprland
     # Must-have utilities
     xdg-desktop-portal-gtk
-    libsForQt5.qt5.qtwayland
+    qt5.qtwayland
     kdePackages.qtwayland
     # HyprPanel recommended deps
     libgtop

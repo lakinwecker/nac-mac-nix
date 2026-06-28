@@ -4,6 +4,7 @@ set -euo pipefail
 hosts=($(nix eval --raw --extra-experimental-features nix-command \
   --file machines.nix --apply 'x: builtins.concatStringsSep " " (builtins.attrNames x)'))
 nix_cmd=(nix --extra-experimental-features 'nix-command flakes')
+inhibit=(systemd-inhibit --what=idle:sleep --who=build.sh --why "NixOS build in progress")
 
 usage() {
   cat >&2 <<EOF
@@ -326,32 +327,32 @@ for host in "${targets[@]}"; do
   case "$action" in
     --iso)
       echo "Building ${host}-iso..."
-      "${nix_cmd[@]}" build \
+      "${inhibit[@]}" "${nix_cmd[@]}" build \
         ".#nixosConfigurations.${host}-iso.config.system.build.isoImage" \
         -o "result-${host}"
       echo "Done: result-${host}/"
       ;;
     --build)
       echo "Building ${host} toplevel..."
-      "${nix_cmd[@]}" build \
+      "${inhibit[@]}" "${nix_cmd[@]}" build \
         ".#nixosConfigurations.${host}.config.system.build.toplevel"
       echo "Done: ./result"
       ;;
     --switch)
       echo "Switching ${host}..."
-      sudo nixos-rebuild switch --flake ".#${host}"
+      "${inhibit[@]}" sudo nixos-rebuild switch --flake ".#${host}"
       ;;
     --boot)
       echo "Setting ${host} for next boot..."
-      sudo nixos-rebuild boot --flake ".#${host}"
+      "${inhibit[@]}" sudo nixos-rebuild boot --flake ".#${host}"
       ;;
     --test)
       echo "Testing ${host} (activate without boot entry)..."
-      sudo nixos-rebuild test --flake ".#${host}"
+      "${inhibit[@]}" sudo nixos-rebuild test --flake ".#${host}"
       ;;
     --dry)
       echo "Dry-run evaluating ${host}..."
-      "${nix_cmd[@]}" build \
+      "${inhibit[@]}" "${nix_cmd[@]}" build \
         ".#nixosConfigurations.${host}.config.system.build.toplevel" \
         --dry-run
       echo "OK: ${host}"

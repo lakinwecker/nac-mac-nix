@@ -28,6 +28,10 @@
       # Swap Alt and Super to match Mac-style layout
       input {
           kb_options = altwin:swap_lalt_lwin
+
+          tablet {
+              output = eDP-1
+          }
       }
     '';
     extraModules = [
