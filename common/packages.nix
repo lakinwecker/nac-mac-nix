@@ -24,10 +24,16 @@
     fzf
     dust
     jq
+    # Archives
+    zip
+    unzip
+    # Docs
+    zathura
     # TUI productivity
     lazygit
     lazydocker
     yazi
+    superfile
     ncmpcpp
     bluetuith
     impala

@@ -24,9 +24,17 @@
       url = "github:VirtCode/hypr-dynamic-cursors/da447486c84e0be81f2cdd208af1ef92469f0a88";
       inputs.hyprland.follows = "hyprland";
     };
+    # Official Hyprland plugin set (provides hyprexpo for workspace overview).
+    # hyprland-plugins doesn't tag releases — pinned to 3e38db9 (2026-04-12),
+    # the commit that sits between hyprland v0.54.3 (2026-03-27) and v0.55.0
+    # (2026-05-09), so it targets the v0.54.x line. Bump in lockstep with hyprland.
+    hyprland-plugins = {
+      url = "github:hyprwm/hyprland-plugins/3e38db916aaecba0a7c7698c6df0c68acb89f312";
+      inputs.hyprland.follows = "hyprland";
+    };
   };
 
-  outputs = { self, nixpkgs, nixos-hardware, disko, hyprland, hyprgrass, hypr-dynamic-cursors, ... }:
+  outputs = { self, nixpkgs, nixos-hardware, disko, hyprland, hyprgrass, hypr-dynamic-cursors, hyprland-plugins, ... }:
   let
     # ── Machine registry ────────────────────────────────────────────
     machines = import ./machines.nix;
@@ -53,6 +61,7 @@
         hyprWallpaper  = m.hyprWallpaper or ./hypr/wallpaper.jpg;
         hyprDynamicCursors     = hypr-dynamic-cursors;
         hyprDynamicCursorsMode = m.hyprDynamicCursorsMode or "none";
+        hyprlandPlugins        = hyprland-plugins;
       } else {})
       // (if m.desktop == "xfce" then {
         xfceWallpaper = m.xfceWallpaper or null;

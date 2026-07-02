@@ -1,5 +1,5 @@
 # Force rebuild
-{ pkgs, lib, username, hyprland, hyprgrass ? null, hyprDynamicCursors, hyprHostConfig ? "", hyprWallpaper ? ./wallpaper.jpg, hyprDynamicCursorsMode ? "none", ... }:
+{ pkgs, lib, username, hyprland, hyprgrass ? null, hyprDynamicCursors, hyprlandPlugins, hyprHostConfig ? "", hyprWallpaper ? ./wallpaper.jpg, hyprDynamicCursorsMode ? "none", ... }:
 let
   hyprgrassEnabled = hyprgrass != null;
   # Shake-to-find is on by default for every Hyprland host. `mode` (tilt /
@@ -16,6 +16,20 @@ let
             # Lower than the 6.0 default — triggers magnification sooner.
             threshold = 4.0
         }
+    }
+  '';
+  # hyprexpo provides the workspace-overview ("expo") view. The plugin registers
+  # the `hyprexpo-gesture` keyword which hooks into Hyprland's trackpad gesture
+  # system — set in hyprland.conf to bind 3-finger swipe-up to expo.
+  hyprexpoConfig = ''
+    plugin = /etc/hypr/plugins/hyprexpo.so
+
+    plugin:hyprexpo {
+        columns = 3
+        gap_size = 15
+        bg_col = rgb(111111)
+        workspace_method = center current
+        gesture_distance = 300
     }
   '';
 in {
@@ -44,6 +58,9 @@ in {
 
   environment.etc."hypr/plugins/hypr-dynamic-cursors.so".source =
     "${hyprDynamicCursors.packages.${pkgs.system}.default}/lib/libhypr-dynamic-cursors.so";
+
+  environment.etc."hypr/plugins/hyprexpo.so".source =
+    "${hyprlandPlugins.packages.${pkgs.system}.hyprexpo}/lib/libhyprexpo.so";
 
   services.greetd = {
     enable = true;
@@ -123,6 +140,7 @@ in {
     builtins.readFile ./hyprland.conf
     + lib.optionalString hyprgrassEnabled (builtins.readFile ./hyprgrass.conf)
     + "\n# hypr-dynamic-cursors plugin\n" + dynamicCursorsConfig
+    + "\n# hyprexpo plugin\n" + hyprexpoConfig
     + "\n# Per-host overrides\n" + hyprHostConfig;
   environment.etc."hypr/hypridle.conf".source = ./hypridle.conf;
   environment.etc."hypr/hyprlock.conf".source = ./hyprlock.conf;
