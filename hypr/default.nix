@@ -51,7 +51,7 @@ let
         columns = 3
         gap_size = 15
         bg_col = rgb(111111)
-        workspace_method = center current
+        workspace_method = first 1
         gesture_distance = 300
     }
   '';
