@@ -1,5 +1,5 @@
 # Force rebuild
-{ pkgs, lib, username, hyprland, hyprgrass ? null, hyprDynamicCursors, hyprlandPlugins, hyprHostConfig ? "", hyprWallpaper ? ./wallpaper.jpg, hyprDynamicCursorsMode ? "none", hyprIdleTimeouts ? {}, ... }:
+{ pkgs, lib, username, hyprland, hyprgrass ? null, hyprDynamicCursors, hyprexpo-src, hyprHostConfig ? "", hyprWallpaper ? ./wallpaper.jpg, hyprDynamicCursorsMode ? "none", hyprIdleTimeouts ? {}, ... }:
 let
   hyprgrassEnabled = hyprgrass != null;
   idle = {
@@ -40,6 +40,21 @@ let
   '';
   # Shake-to-find is on by default for every Hyprland host. `mode` (tilt /
   # rotate / stretch / none) is opt-in per-host via machines.nix.
+  hyprexpo = pkgs.callPackage hyprexpo-src {
+    inherit (hyprland.packages.${pkgs.system}) hyprland;
+    inherit (pkgs) hyprlandPlugins;
+  };
+  hyprexpoConfig = ''
+    plugin = /etc/hypr/plugins/hyprexpo.so
+
+    plugin:hyprexpo {
+        columns = 3
+        gap_size = 15
+        bg_col = rgb(111111)
+        workspace_method = center current
+        gesture_distance = 300
+    }
+  '';
   dynamicCursorsConfig = ''
     plugin = /etc/hypr/plugins/hypr-dynamic-cursors.so
 
@@ -52,20 +67,6 @@ let
             # Lower than the 6.0 default — triggers magnification sooner.
             threshold = 4.0
         }
-    }
-  '';
-  # hyprexpo provides the workspace-overview ("expo") view. The plugin registers
-  # the `hyprexpo-gesture` keyword which hooks into Hyprland's trackpad gesture
-  # system — set in hyprland.conf to bind 3-finger swipe-up to expo.
-  hyprexpoConfig = ''
-    plugin = /etc/hypr/plugins/hyprexpo.so
-
-    plugin:hyprexpo {
-        columns = 3
-        gap_size = 15
-        bg_col = rgb(111111)
-        workspace_method = center current
-        gesture_distance = 300
     }
   '';
 in {
@@ -96,7 +97,7 @@ in {
     "${hyprDynamicCursors.packages.${pkgs.system}.default}/lib/libhypr-dynamic-cursors.so";
 
   environment.etc."hypr/plugins/hyprexpo.so".source =
-    "${hyprlandPlugins.packages.${pkgs.system}.hyprexpo}/lib/libhyprexpo.so";
+    "${hyprexpo}/lib/libhyprexpo.so";
 
   services.greetd = {
     enable = true;
@@ -175,8 +176,8 @@ in {
   environment.etc."hypr/hyprland.conf".text =
     builtins.readFile ./hyprland.conf
     + lib.optionalString hyprgrassEnabled (builtins.readFile ./hyprgrass.conf)
-    + "\n# hypr-dynamic-cursors plugin\n" + dynamicCursorsConfig
     + "\n# hyprexpo plugin\n" + hyprexpoConfig
+    + "\n# hypr-dynamic-cursors plugin\n" + dynamicCursorsConfig
     + "\n# Per-host overrides\n" + hyprHostConfig;
   environment.etc."hypr/hypridle.conf".text = hypridleConf;
   environment.etc."hypr/hyprlock.conf".source = ./hyprlock.conf;
