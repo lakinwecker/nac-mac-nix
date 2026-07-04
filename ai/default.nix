@@ -8,5 +8,6 @@
   environment.systemPackages = with pkgs; [
     (if ollamaCuda then ollama-cuda else ollama-cpu)
     python3Packages.huggingface-hub
+    rtk
   ];
 }

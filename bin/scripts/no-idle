@@ -16,4 +16,4 @@ cleanup() {
 killall hypridle 2>/dev/null || true
 trap cleanup EXIT
 
-systemd-inhibit --what=idle:sleep --who="no-idle" --why="Running: $*" "$@"
+systemd-inhibit --what=idle --who="no-idle" --why="Running: $*" "$@"

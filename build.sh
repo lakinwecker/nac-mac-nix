@@ -4,7 +4,7 @@ set -euo pipefail
 hosts=($(nix eval --raw --extra-experimental-features nix-command \
   --file machines.nix --apply 'x: builtins.concatStringsSep " " (builtins.attrNames x)'))
 nix_cmd=(nix --extra-experimental-features 'nix-command flakes')
-inhibit=(systemd-inhibit --what=idle:sleep --who=build.sh --why "NixOS build in progress")
+inhibit=(systemd-inhibit --what=idle --who=build.sh --why "NixOS build in progress")
 
 usage() {
   cat >&2 <<EOF
