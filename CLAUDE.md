@@ -27,7 +27,7 @@ See [docs/build.md](docs/build.md).
 - `desktop` — `"hyprland"` | `"xfce"` | `"gnome"` (required)
 - `username` — defaults to `"lakin"`
 - `hardware` — list of `nixos-hardware` module name strings, defaults to `[]`
-- `hyprHostConfig` / `hyprWallpaper` / `hyprgrass` — Hyprland-specific overrides
+- `hyprHostConfig` / `hyprWallpaper` / `hyprgrass` / `hyprIdleTimeouts` — Hyprland-specific overrides
 - `xfceWallpaper` / `xfceAvatar` — XFCE-specific overrides
 - `ollamaCuda` — enables CUDA ollama
 - `diskoConfig` — path to custom disko layout, defaults to `./disko-config.nix`

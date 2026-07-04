@@ -62,6 +62,7 @@
         hyprDynamicCursors     = hypr-dynamic-cursors;
         hyprDynamicCursorsMode = m.hyprDynamicCursorsMode or "none";
         hyprlandPlugins        = hyprland-plugins;
+        hyprIdleTimeouts       = m.hyprIdleTimeouts or {};
       } else {})
       // (if m.desktop == "xfce" then {
         xfceWallpaper = m.xfceWallpaper or null;

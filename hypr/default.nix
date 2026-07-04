@@ -1,7 +1,43 @@
 # Force rebuild
-{ pkgs, lib, username, hyprland, hyprgrass ? null, hyprDynamicCursors, hyprlandPlugins, hyprHostConfig ? "", hyprWallpaper ? ./wallpaper.jpg, hyprDynamicCursorsMode ? "none", ... }:
+{ pkgs, lib, username, hyprland, hyprgrass ? null, hyprDynamicCursors, hyprlandPlugins, hyprHostConfig ? "", hyprWallpaper ? ./wallpaper.jpg, hyprDynamicCursorsMode ? "none", hyprIdleTimeouts ? {}, ... }:
 let
   hyprgrassEnabled = hyprgrass != null;
+  idle = {
+    dim       = hyprIdleTimeouts.dim or 181;
+    lock      = hyprIdleTimeouts.lock or 300;
+    dpms      = hyprIdleTimeouts.dpms or 600;
+    suspend   = hyprIdleTimeouts.suspend or 900;
+  };
+  hypridleConf = ''
+    general {
+        lock_cmd = pidof hyprlock || hyprlock
+        before_sleep_cmd = loginctl lock-session
+        after_sleep_cmd = hyprctl dispatch dpms on
+    }
+
+    listener {
+        timeout = ${toString idle.dim}
+        on-timeout = sh -c 'brightnessctl get > /tmp/.brightness-before-dim && brightnessctl set 10%'
+        on-resume = sh -c 'test -f /tmp/.brightness-before-dim && brightnessctl set $(cat /tmp/.brightness-before-dim) || brightnessctl set 100%'
+    }
+
+    listener {
+        timeout = ${toString idle.lock}
+        on-timeout = loginctl lock-session
+    }
+
+    listener {
+        timeout = ${toString idle.dpms}
+        on-timeout = hyprctl dispatch dpms off
+        on-resume = hyprctl dispatch dpms on
+    }
+  '' + lib.optionalString (idle.suspend > 0) ''
+
+    listener {
+        timeout = ${toString idle.suspend}
+        on-timeout = systemctl suspend
+    }
+  '';
   # Shake-to-find is on by default for every Hyprland host. `mode` (tilt /
   # rotate / stretch / none) is opt-in per-host via machines.nix.
   dynamicCursorsConfig = ''
@@ -142,7 +178,7 @@ in {
     + "\n# hypr-dynamic-cursors plugin\n" + dynamicCursorsConfig
     + "\n# hyprexpo plugin\n" + hyprexpoConfig
     + "\n# Per-host overrides\n" + hyprHostConfig;
-  environment.etc."hypr/hypridle.conf".source = ./hypridle.conf;
+  environment.etc."hypr/hypridle.conf".text = hypridleConf;
   environment.etc."hypr/hyprlock.conf".source = ./hyprlock.conf;
   environment.etc."wallpaper.jpg".source = hyprWallpaper;
   environment.etc."hyprpanel/config-dark.json".source = ./hyprpanel-config.json;

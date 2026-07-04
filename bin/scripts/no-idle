@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+# Run a command with idle inhibition — no dim, lock, or screen-off while it runs.
+# Usage: no-idle make -j$(nproc)
+set -euo pipefail
+
+if [ $# -eq 0 ]; then
+  echo "Usage: no-idle <command> [args...]" >&2
+  exit 1
+fi
+
+cleanup() {
+  hypridle &
+  disown
+}
+
+killall hypridle 2>/dev/null || true
+trap cleanup EXIT
+
+systemd-inhibit --what=idle:sleep --who="no-idle" --why="Running: $*" "$@"

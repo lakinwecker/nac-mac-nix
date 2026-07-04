@@ -19,6 +19,7 @@ let
     "theme-toggle"
     "toggle-keeb"
     "rotate-screen"
+    "no-idle"
   ];
   scriptEntries = builtins.listToAttrs (map (name: {
     name = "user-bin/${name}";
