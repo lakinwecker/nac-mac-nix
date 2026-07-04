@@ -7,14 +7,15 @@
   hardware.enableRedistributableFirmware = true;
 
   # ── Shell ───────────────────────────────────────────────────────────
-  users.defaultUserShell = pkgs.fish;
+  users.defaultUserShell = pkgs.nushell;
   programs.bash.enable = true;
   programs.fish = {
     enable = true;
     # Registers fish in /etc/shells so it can be a login shell.
   };
   # programs.nushell is a home-manager option, not a NixOS one.
-  # nushell is installed via environment.systemPackages in packages.nix.
+  # Register nushell in /etc/shells so it can be a login shell.
+  environment.shells = [ pkgs.nushell ];
 
   # ── Locale / time ──────────────────────────────────────────────────
   time.timeZone = "America/Edmonton";

@@ -68,3 +68,14 @@ starship/ bin/ zellij/ ai/
 - ISO builds use `gzip -Xcompression-level 1` for faster (larger) images during dev.
 - `iso-packages.nix` is shared between installer and installed configs.
 - lan-mouse listens on TCP/UDP **4343** (4242 is taken by nebula).
+
+## Verifying changes — do NOT run full builds
+
+Do not run `nix build .#nixosConfigurations.<host>.config.system.build.toplevel` or `nixos-rebuild build` to verify edits. These pull in kernels, hyprland, mesa, etc. and can pin all CPUs for tens of minutes when the cache misses. The user runs the real rebuild themselves.
+
+For syntax/eval checks, use one of:
+- `nix eval .#nixosConfigurations.<host>.config.system.build.toplevel.drvPath` — evaluates the module tree without building anything.
+- `nix flake check --no-build` — evaluates all outputs.
+- `nix-instantiate --parse <file.nix>` — pure parse check for a single file.
+
+If a real build is genuinely required, ask first.
