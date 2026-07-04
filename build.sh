@@ -18,6 +18,12 @@ Build actions (take zero or more hosts):
   --test     [host]     Build and activate now, no boot entry
   --dry      [host...]  Dry-run build (evaluation only)
 
+Modifiers (for build actions):
+  --update              Refresh flake.lock (nix flake update) before building.
+                        Prefix any build action, e.g. --update --switch.
+                        The lockfile is shared, so it updates once regardless
+                        of how many hosts you pass. Commit flake.lock yourself.
+
 Installer actions (take one host, run from a live ISO):
   --install  <host> [--disk <name> <device>]...
       Wipe disks and install NixOS. For hosts with disks hardcoded in their
@@ -32,6 +38,8 @@ Hosts: ${hosts[*]}
 
 Examples:
   $0 --switch
+  $0 --update --switch          # update inputs, then switch this machine
+  $0 --update --switch gratch   # update inputs, then switch gratch
   $0 --iso roach
   $0 --dry harry gratch
   $0 --install roach
@@ -295,7 +303,31 @@ do_wipe() {
 
 [ $# -ge 1 ] || usage
 
+# --update is a modifier, not an action: refresh flake.lock before building.
+# Pull it out wherever it appears so the rest of parsing is unchanged.
+do_update=0
+kept_args=()
+for arg in "$@"; do
+  if [ "$arg" = "--update" ]; then
+    do_update=1
+  else
+    kept_args+=("$arg")
+  fi
+done
+set -- ${kept_args[@]+"${kept_args[@]}"}
+
+[ $# -ge 1 ] || usage
+
 action="$1"; shift
+
+case "$action" in
+  --install|--wipe)
+    if [ "$do_update" -eq 1 ]; then
+      echo "--update cannot be combined with $action" >&2
+      exit 1
+    fi
+    ;;
+esac
 
 case "$action" in
   --install) do_install "$@"; exit 0 ;;
@@ -321,6 +353,11 @@ if [ ${#targets[@]} -eq 0 ]; then
       targets=("$(current_host)")
       ;;
   esac
+fi
+
+if [ "$do_update" -eq 1 ]; then
+  echo "==> Updating flake inputs (nix flake update)"
+  "${nix_cmd[@]}" flake update
 fi
 
 for host in "${targets[@]}"; do
