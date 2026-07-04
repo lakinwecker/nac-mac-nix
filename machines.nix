@@ -94,7 +94,8 @@ EOF
     ollamaCuda = true;
     hyprHostConfig = ''
       # Asus TUF F16 — 2560x1600 display, 1.25x scale
-      monitor=eDP-1,preferred,auto,1.25
+      monitor=eDP-1,preferred,1920x0,1.25
+      monitor=HDMI-A-2,1920x1080@60,0x0,1
       monitor=,preferred,auto,1
 
       # Swap Alt and Super to match Mac-style layout (laptop keyboard only)
