@@ -53,6 +53,7 @@
         hyprland   = if m.desktop == "hyprland" then hyprland else null;
         hyprgrass  = if (m.hyprgrass or false) then hyprgrass else null;
         ollamaCuda = m.ollamaCuda or false;
+        devTools   = m.devTools or true;
       }
       // (if m.desktop == "hyprland" then {
         hyprHostConfig = m.hyprHostConfig or "";

@@ -55,7 +55,8 @@
     };
   };
 
-  environment.systemPackages = with pkgs; [ powertop lm_sensors ];
+  # e2fsprogs provides fsck.ext4; ddrescue for imaging failing drives.
+  environment.systemPackages = with pkgs; [ powertop lm_sensors e2fsprogs ddrescue ];
 
   # ── Syncthing: only run on AC power ──────────────────────────────────
   # Remove from auto-start targets — power guard and udev manage it

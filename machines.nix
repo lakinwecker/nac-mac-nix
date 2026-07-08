@@ -15,6 +15,9 @@
 #   xfceWallpaper  path to wallpaper, default: null
 #   xfceAvatar     path to avatar, default: null
 #   ollamaCuda     enable CUDA ollama, default: false
+#   devTools       install dev/CLI kitchen sink (k8s, DBs, nvim, ollama,
+#                  latex, TUI tooling). Default: true. Set false for a
+#                  trimmed "normal user" machine.
 #   diskoConfig    path to disko-config.nix, default: ./disko-config.nix
 #   dualDrive      true if install needs --home-disk, default: false
 #   extraModules   list of extra NixOS modules, default: []
@@ -134,10 +137,11 @@ EOF
   };
 
   souris = {
-    # Dell XPS 13 9360 (Kaby Lake)
+    # Dell XPS 13 9370 (2018, 8th-gen Kaby Lake R, rose gold) — Anita's laptop
     desktop = "gnome";
-    username = "souris";
-    hardware = [ "dell-xps-13-9360" ];
+    username = "anita";
+    hardware = [ "dell-xps-13-9370" ];
+    devTools = false;   # normal-user machine, skip the dev kitchen sink
   };
 
   cornfield = {

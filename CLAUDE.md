@@ -11,7 +11,7 @@ Flake-based NixOS configurations for personal machines, plus matching live insta
 | trunkie | Threadripper desktop | Hyprland | lakin |
 | roach | Asus TUF F16 (Intel + NVIDIA) | Hyprland | lakin |
 | shrike | Dell XPS 16 9650 (Intel Panther Lake) | Hyprland | lakin |
-| souris | Dell XPS 13 9360 (Kaby Lake) | GNOME | souris |
+| souris | Dell XPS 13 9370 (Kaby Lake R) | GNOME | anita |
 | cornfield | ThinkPad T460 (Skylake) | XFCE | clown |
 
 ## Build & Install

@@ -7,6 +7,8 @@
   hardware.enableRedistributableFirmware = true;
 
   # ── Shell ───────────────────────────────────────────────────────────
+  # Normal priority (beats the bash module's mkDefault). Per-host overrides
+  # (e.g. souris → fish) must use lib.mkForce.
   users.defaultUserShell = pkgs.nushell;
   programs.bash.enable = true;
   programs.fish = {

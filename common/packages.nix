@@ -1,8 +1,6 @@
-{ pkgs, ... }:
+{ pkgs, lib, devTools ? true, ... }:
 {
   environment.systemPackages = with pkgs; [
-    claude-code
-    bun
     # Shell extras
     fish
     nushell
@@ -12,6 +10,9 @@
     pass
     gnupg
     pinentry-curses
+    # Version control / net (were pulled in via nvim before it was gated)
+    git
+    curl
     # SSH tooling
     openssh
     # Hardware / system inspection
@@ -29,15 +30,25 @@
     unzip
     # Docs
     zathura
+    glow
+    # File managers
+    yazi
+    superfile
+    # Theming
+    adwaita-icon-theme
+    gnome-themes-extra
+    libnotify
+  ]
+  # Dev / power-user kitchen sink — skipped on trimmed machines.
+  ++ lib.optionals devTools [
+    claude-code
+    bun
     # TUI productivity
     lazygit
     lazydocker
-    yazi
-    superfile
     ncmpcpp
     bluetuith
     impala
-    glow
     # GitHub
     gh
     gh-dash
@@ -48,9 +59,5 @@
     # Databases
     pgcli
     lazysql
-    # Theming
-    adwaita-icon-theme
-    gnome-themes-extra
-    libnotify
   ];
 }

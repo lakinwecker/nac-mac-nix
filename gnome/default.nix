@@ -1,8 +1,8 @@
 { pkgs, lib, username, ... }:
 {
   services.xserver.enable = true;
-  services.xserver.desktopManager.gnome.enable = true;
-  services.xserver.displayManager.gdm.enable = true;
+  services.desktopManager.gnome.enable = true;
+  services.displayManager.gdm.enable = true;
 
   # GNOME requires NetworkManager.
   # Priority 49 beats the mkForce (priority 50) in common/networking.nix.
@@ -13,7 +13,10 @@
 
   environment.systemPackages = with pkgs; [
     gimp
+    thunderbird
     gnome-tweaks
+    mpv     # video player (totem is excluded below)
+    loupe   # GNOME image/photo viewer
   ];
 
   # Remove GNOME bloat
