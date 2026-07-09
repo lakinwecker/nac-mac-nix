@@ -13,6 +13,13 @@
   services.mpd.enable = lib.mkForce false;                    # music daemon
   systemd.user.services.lan-mouse.enable = lib.mkForce false; # desktop KVM
 
+  # Cap Nix build parallelism so it doesn't pin this quad-core (i5/i7-8xxxU):
+  # one derivation at a time, up to 4 threads each. Lives in the host module,
+  # so it applies to BOTH the souris installer ISO (install-time builds) and
+  # the installed system (update-system rebuilds).
+  nix.settings.max-jobs = 1;
+  nix.settings.cores = 4;
+
   boot.initrd.systemd.enable = true;
   boot.initrd.availableKernelModules = [
     "xhci_pci" "ahci" "nvme" "usb_storage" "sd_mod"
