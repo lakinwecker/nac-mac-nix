@@ -4,7 +4,15 @@ let
   iconName   = "rose-pine-dawn";
   cursorName = "BreezeX-RosePineDawn-Linux";     # light variant from rose-pine-cursor
   wallpaper  = ./wallpapers/rose-pine/birb.png;  # CC0, see wallpapers/rose-pine/LICENSE
-  gtk4css    = "${pkgs.rose-pine-gtk-theme}/share/themes/${themeName}/gtk-4.0/gtk.css";
+  # nixpkgs' rose-pine-gtk-theme skips the upstream Moon gnome-shell theme;
+  # re-add it so User Themes can style the top bar. Upstream ships no light
+  # (Dawn) shell theme, so the panel is Moon (dark) while apps stay Dawn.
+  rosePineTheme = pkgs.rose-pine-gtk-theme.overrideAttrs (old: {
+    postInstall = (old.postInstall or "") + ''
+      cp -r $src/gnome_shell/moon/gnome-shell $out/share/themes/rose-pine-moon/gnome-shell
+    '';
+  });
+  gtk4css    = "${rosePineTheme}/share/themes/${themeName}/gtk-4.0/gtk.css";
 in
 {
   services.xserver.enable = true;
@@ -23,12 +31,13 @@ in
     gnome-tweaks
     mpv     # video player (totem is excluded below)
     loupe   # GNOME image/photo viewer
-    # Rosé Pine Dawn theming (Thunderbird is enabled via programs.thunderbird below)
-    rose-pine-gtk-theme
+    # Rosé Pine theming (Thunderbird is enabled via programs.thunderbird below)
+    rosePineTheme
     rose-pine-icon-theme
     rose-pine-cursor
-    # Hides the overview dash (see dconf below)
+    # GNOME Shell extensions: hide the overview dash + apply the shell theme
     gnomeExtensions.just-perfection
+    gnomeExtensions.user-themes
   ];
 
   # Remove GNOME bloat
@@ -86,10 +95,18 @@ in
       # overview. Anita wants the window picker + search, not the dock.
       "org/gnome/shell" = {
         disable-user-extensions = false;
-        enabled-extensions = [ "just-perfection-desktop@just-perfection" ];
+        enabled-extensions = [
+          "just-perfection-desktop@just-perfection"
+          "user-theme@gnome-shell-extensions.gcampax.github.com"
+        ];
       };
       "org/gnome/shell/extensions/just-perfection" = {
         dash = false;
+      };
+      # Top bar / shell theme. Upstream Rosé Pine ships only a Moon (dark)
+      # gnome-shell theme, so the panel is dark while apps stay Dawn (light).
+      "org/gnome/shell/extensions/user-theme" = {
+        name = "rose-pine-moon";
       };
     };
   }];
