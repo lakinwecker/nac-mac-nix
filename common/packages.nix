@@ -1,4 +1,4 @@
-{ pkgs, lib, devTools ? true, ... }:
+{ pkgs, ... }:
 {
   environment.systemPackages = with pkgs; [
     # Shell extras
@@ -38,26 +38,5 @@
     adwaita-icon-theme
     gnome-themes-extra
     libnotify
-  ]
-  # Dev / power-user kitchen sink — skipped on trimmed machines.
-  ++ lib.optionals devTools [
-    claude-code
-    bun
-    # TUI productivity
-    lazygit
-    lazydocker
-    ncmpcpp
-    bluetuith
-    impala
-    # GitHub
-    gh
-    gh-dash
-    # Kubernetes
-    kubectl
-    k9s
-    kubernetes-helm
-    # Databases
-    pgcli
-    lazysql
   ];
 }

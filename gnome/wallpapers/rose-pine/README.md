@@ -4,4 +4,4 @@
 - **License:** CC0 1.0 Universal (public domain dedication) — see [LICENSE](./LICENSE).
 
 `birb.png` is used as the GNOME desktop background on **souris** (Anita's laptop),
-paired with the Rosé Pine Moon theme.
+paired with the Rosé Pine Dawn theme.

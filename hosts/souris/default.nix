@@ -38,6 +38,12 @@
   ];
   boot.kernelModules = [ "kvm-intel" ];
 
+  # Disable the touchscreen (Anita doesn't want it). libinput ignores any
+  # device tagged as a touchscreen; touchpad and pen are unaffected.
+  services.udev.extraRules = ''
+    ACTION=="add|change", ENV{ID_INPUT_TOUCHSCREEN}=="1", ENV{LIBINPUT_IGNORE_DEVICE}="1"
+  '';
+
   services.power-profiles-daemon.enable = false;
   services.tlp = {
     enable = true;

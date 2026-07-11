@@ -146,11 +146,9 @@ in {
     matugen
     grimblast
     hyprpicker
-    btop
     bluez
     bluez-tools
     overskride
-    bluetuith
     pavucontrol
     power-profiles-daemon
   ];

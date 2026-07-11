@@ -20,6 +20,7 @@
     ../starship
     ../bin
     ../libreoffice
+    ../cli-tools
   ]
   # Dev-only modules: LazyVim, zellij, ollama (ai/), texlive (latex/).
   # Skipped on trimmed machines (devTools = false).

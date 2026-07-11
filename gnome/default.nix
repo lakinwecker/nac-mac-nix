@@ -1,8 +1,8 @@
 { pkgs, lib, username, ... }:
 let
-  themeName  = "rose-pine-moon";
-  iconName   = "rose-pine-moon";
-  cursorName = "BreezeX-RosePine-Linux";        # dark variant from rose-pine-cursor
+  themeName  = "rose-pine-dawn";
+  iconName   = "rose-pine-dawn";
+  cursorName = "BreezeX-RosePineDawn-Linux";     # light variant from rose-pine-cursor
   wallpaper  = ./wallpapers/rose-pine/birb.png;  # CC0, see wallpapers/rose-pine/LICENSE
   gtk4css    = "${pkgs.rose-pine-gtk-theme}/share/themes/${themeName}/gtk-4.0/gtk.css";
 in
@@ -20,11 +20,10 @@ in
 
   environment.systemPackages = with pkgs; [
     gimp
-    thunderbird
     gnome-tweaks
     mpv     # video player (totem is excluded below)
     loupe   # GNOME image/photo viewer
-    # Rosé Pine Moon theming
+    # Rosé Pine Dawn theming (Thunderbird is enabled via programs.thunderbird below)
     rose-pine-gtk-theme
     rose-pine-icon-theme
     rose-pine-cursor
@@ -40,14 +39,35 @@ in
     totem
   ];
 
-  # ── Rosé Pine Moon ──────────────────────────────────────────────────
+  # ── Firefox: Rosé Pine Dawn (light) theme (souris only) ─────────────
+  # Force-installs the AMO theme (merges with common/desktop.nix's
+  # uBlock/Privacy Badger/Dark Reader) and sets it as the active theme.
+  programs.firefox.policies.ExtensionSettings."{f2b68b20-da4c-4b95-af7e-430bb8d3d6ce}" = {
+    install_url = "https://addons.mozilla.org/firefox/downloads/latest/rose-pine-dawn-light-theme/latest.xpi";
+    installation_mode = "force_installed";
+  };
+  programs.firefox.preferences."extensions.activeThemeID" = "{f2b68b20-da4c-4b95-af7e-430bb8d3d6ce}";
+
+  # ── Thunderbird: Rosé Pine Dawn theme (souris only) ─────────────────
+  # programs.thunderbird installs a policy-aware Thunderbird; force-install
+  # the ATN theme and set it active.
+  programs.thunderbird = {
+    enable = true;
+    policies.ExtensionSettings."mrfallen45@gmail.com" = {
+      install_url = "https://addons.thunderbird.net/thunderbird/downloads/file/1023044/rose_pine_dawn-1.0-tb.xpi";
+      installation_mode = "force_installed";
+    };
+    preferences."extensions.activeThemeID" = "mrfallen45@gmail.com";
+  };
+
+  # ── Rosé Pine Dawn ──────────────────────────────────────────────────
   # These override the Adwaita-dark defaults from common/desktop.nix.
   # mkBefore places this database ahead of common's in the user profile,
   # so it wins on the shared keys (gtk-theme, color-scheme).
   programs.dconf.profiles.user.databases = lib.mkBefore [{
     settings = {
       "org/gnome/desktop/interface" = {
-        color-scheme = "prefer-dark";   # Moon is a dark flavor
+        color-scheme = "prefer-light";  # Dawn is a light flavor
         gtk-theme    = themeName;
         icon-theme   = iconName;
         cursor-theme = cursorName;

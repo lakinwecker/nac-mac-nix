@@ -15,9 +15,10 @@
 #   xfceWallpaper  path to wallpaper, default: null
 #   xfceAvatar     path to avatar, default: null
 #   ollamaCuda     enable CUDA ollama, default: false
-#   devTools       install dev/CLI kitchen sink (k8s, DBs, nvim, ollama,
-#                  latex, TUI tooling). Default: true. Set false for a
-#                  trimmed "normal user" machine.
+#   devTools       install the heavier dev modules (nvim/LazyVim, zellij,
+#                  ollama, latex). Default: true. Set false for a trimmed
+#                  machine. Note: CLI tools (git TUIs, k8s, DBs, btop, …)
+#                  live in ../cli-tools and are installed everywhere.
 #   diskoConfig    path to disko-config.nix, default: ./disko-config.nix
 #   dualDrive      true if install needs --home-disk, default: false
 #   extraModules   list of extra NixOS modules, default: []
