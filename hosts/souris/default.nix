@@ -8,6 +8,18 @@
   # Default login shell (overrides common's nushell).
   users.defaultUserShell = lib.mkForce pkgs.fish;
 
+  # Secondary admin account for remote maintenance (Lakin). SSH is key-only
+  # (see common/networking.nix); sudo uses the initial password below.
+  users.users.lakin = {
+    isNormalUser = true;
+    description = "Lakin";
+    extraGroups = [ "wheel" "networkmanager" ];
+    initialPassword = "changeme";
+    openssh.authorizedKeys.keys = [
+      "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGsOUCxG23HTAUPwpH03MyXRhrio7J6yUj6gID3fd9dl lakin@sebbers"
+    ];
+  };
+
   # Strip personal-infra services that ship in common but don't belong here.
   # (nebula + syncthing are intentionally kept.)
   services.mpd.enable = lib.mkForce false;                    # music daemon
