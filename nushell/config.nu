@@ -31,6 +31,13 @@ alias gd = git diff
 alias gs = git status
 alias gm = git mergetool
 
+# pass, pointed at the lichess sysadmin store
+def --wrapped lipass [...rest] {
+  with-env {PASSWORD_STORE_DIR: ($env.HOME | path join personal-repos lichess-org sysadmin pass)} {
+    ^pass ...$rest
+  }
+}
+
 # Prompt & jump
 source ~/.config/nushell/starship.nu
 source ~/.config/nushell/zoxide.nu
