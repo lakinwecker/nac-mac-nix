@@ -1,5 +1,5 @@
 # Force rebuild
-{ pkgs, lib, username, hyprland, hyprgrass ? null, hyprDynamicCursors, hyprexpo-src, hyprHostConfig ? "", hyprWallpaper ? ./wallpaper.jpg, hyprDynamicCursorsMode ? "none", hyprIdleTimeouts ? {}, ... }:
+{ pkgs, lib, username, hyprland, hyprgrass ? null, hyprDynamicCursors, hyprexpo-src, hyprHostConfig ? "", hyprWallpaper ? ./wallpaper.jpg, hyprDynamicCursorsMode ? "none", hyprIdleTimeouts ? {}, hyprSuspendOnAc ? true, ... }:
 let
   hyprgrassEnabled = hyprgrass != null;
   idle = {
@@ -35,9 +35,16 @@ let
 
     listener {
         timeout = ${toString idle.suspend}
-        on-timeout = systemctl suspend
+        on-timeout = ${suspendCmd}
     }
   '';
+  # When hyprSuspendOnAc is false, only idle-suspend on battery: skip the
+  # suspend if any mains adapter reports online (i.e. AC is plugged in).
+  # Lid-close suspend is handled by logind and is unaffected by this.
+  suspendCmd =
+    if hyprSuspendOnAc
+    then "systemctl suspend"
+    else "sh -c 'grep -lq 1 /sys/class/power_supply/*/online 2>/dev/null || systemctl suspend'";
   # Shake-to-find is on by default for every Hyprland host. `mode` (tilt /
   # rotate / stretch / none) is opt-in per-host via machines.nix.
   hyprexpo = pkgs.callPackage hyprexpo-src {

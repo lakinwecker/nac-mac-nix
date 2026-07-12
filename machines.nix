@@ -97,6 +97,9 @@ EOF
     dualDrive = true;
     ollamaCuda = true;
     hyprIdleTimeouts = { dim = 360; lock = 600; dpms = 1200; };
+    # Don't idle-suspend when on AC power (lid open). Battery still suspends;
+    # lid-close still suspends via logind. hypridle still dims/locks/dpms.
+    hyprSuspendOnAc = false;
     hyprHostConfig = ''
       # Asus TUF F16 — 2560x1600 display, 1.25x scale
       monitor=eDP-1,preferred,1920x0,1.25

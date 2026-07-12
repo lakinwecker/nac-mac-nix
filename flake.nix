@@ -62,6 +62,7 @@
         hyprDynamicCursorsMode = m.hyprDynamicCursorsMode or "none";
         inherit hyprexpo-src;
         hyprIdleTimeouts       = m.hyprIdleTimeouts or {};
+        hyprSuspendOnAc        = m.hyprSuspendOnAc or true;
       } else {})
       // (if m.desktop == "xfce" then {
         xfceWallpaper = m.xfceWallpaper or null;
