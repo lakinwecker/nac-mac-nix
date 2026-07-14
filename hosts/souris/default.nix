@@ -32,6 +32,22 @@
   nix.settings.max-jobs = 1;
   nix.settings.cores = 4;
 
+  # ── Memory (only 8 GB, so she hits limits) ─────────────────────────
+  # Compressed RAM swap (zstd). No disk swap on this host, so this is the
+  # only swap — gives real headroom before anything gets killed.
+  zramSwap = {
+    enable = true;
+    algorithm = "zstd";
+    memoryPercent = 100;   # zram device up to 100% of RAM; compression makes it hold more
+  };
+  # zram is fast, so lean on it before the machine gets tight.
+  boot.kernel.sysctl."vm.swappiness" = 150;
+
+  # Protect GIMP from earlyoom (enabled in common/default.nix): when memory
+  # runs low, kill something else (usually the browser) rather than her
+  # in-progress image edits. Matches gimp, gimp-2.10, gimp-3.0, etc.
+  services.earlyoom.extraArgs = [ "--avoid" "^gimp" ];
+
   boot.initrd.systemd.enable = true;
   boot.initrd.availableKernelModules = [
     "xhci_pci" "ahci" "nvme" "usb_storage" "sd_mod"

@@ -4,14 +4,9 @@ let
   iconName   = "rose-pine-dawn";
   cursorName = "BreezeX-RosePineDawn-Linux";     # light variant from rose-pine-cursor
   wallpaper  = ./wallpapers/rose-pine/birb.png;  # CC0, see wallpapers/rose-pine/LICENSE
-  # nixpkgs' rose-pine-gtk-theme skips the upstream Moon gnome-shell theme;
-  # re-add it so User Themes can style the top bar. Upstream ships no light
-  # (Dawn) shell theme, so the panel is Moon (dark) while apps stay Dawn.
-  rosePineTheme = pkgs.rose-pine-gtk-theme.overrideAttrs (old: {
-    postInstall = (old.postInstall or "") + ''
-      cp -r $src/gnome_shell/moon/gnome-shell $out/share/themes/rose-pine-moon/gnome-shell
-    '';
-  });
+  # rose-pine-gtk-theme + GNOME Shell themes (Moon, and a Dawn recolor of it).
+  # See ./rose-pine-theme.nix for the palette remap.
+  rosePineTheme = pkgs.callPackage ./rose-pine-theme.nix { };
   gtk4css    = "${rosePineTheme}/share/themes/${themeName}/gtk-4.0/gtk.css";
 in
 {
@@ -82,6 +77,10 @@ in
         cursor-theme = cursorName;
         accent-color = "pink";          # GNOME 47+ libadwaita accent; ignored if unsupported
       };
+      # Show minimize/maximize window buttons (GNOME defaults to close only).
+      "org/gnome/desktop/wm/preferences" = {
+        button-layout = "appmenu:minimize,maximize,close";
+      };
       "org/gnome/desktop/background" = {
         picture-uri      = "file://${wallpaper}";
         picture-uri-dark = "file://${wallpaper}";
@@ -103,8 +102,9 @@ in
       "org/gnome/shell/extensions/just-perfection" = {
         dash = false;
       };
-      # Top bar / shell theme. Upstream Rosé Pine ships only a Moon (dark)
-      # gnome-shell theme, so the panel is dark while apps stay Dawn (light).
+      # Top bar / shell theme. Moon (dark) is the default — Anita's pick. The
+      # Dawn (light) recolor (see rosePineTheme override) is also installed;
+      # switch to "rose-pine-dawn" in Tweaks → Appearance → Shell.
       "org/gnome/shell/extensions/user-theme" = {
         name = "rose-pine-moon";
       };
