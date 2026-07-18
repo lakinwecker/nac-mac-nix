@@ -24,6 +24,7 @@
     fd
     fzf
     dust
+    tree      # classic; `eza --tree` (installed) is the Rust equivalent
     jq
     # Archives
     zip

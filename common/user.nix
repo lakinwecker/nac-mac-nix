@@ -3,6 +3,9 @@
   # ── Nix settings ────────────────────────────────────────────────────
   nixpkgs.hostPlatform = "x86_64-linux";
   nix.settings.experimental-features = [ "nix-command" "flakes" ];
+  # Trust wheel users for Nix (extra substituters, remote builders, --option,
+  # nix copy, …). Merges with Nix's own "root" entry.
+  nix.settings.trusted-users = [ "root" "@wheel" ];
   nixpkgs.config.allowUnfree = true;
   hardware.enableRedistributableFirmware = true;
 

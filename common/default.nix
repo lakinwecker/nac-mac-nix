@@ -21,6 +21,7 @@
     ../bin
     ../libreoffice
     ../cli-tools
+    ../tools
   ]
   # Dev-only modules: LazyVim, zellij, ollama (ai/), texlive (latex/).
   # Skipped on trimmed machines (devTools = false).
