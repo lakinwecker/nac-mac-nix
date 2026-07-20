@@ -27,9 +27,11 @@ See [docs/build.md](docs/build.md).
 - `desktop` — `"hyprland"` | `"xfce"` | `"gnome"` (required)
 - `username` — defaults to `"lakin"`
 - `hardware` — list of `nixos-hardware` module name strings, defaults to `[]`
-- `hyprHostConfig` / `hyprWallpaper` / `hyprgrass` / `hyprIdleTimeouts` — Hyprland-specific overrides
+- `hyprHostConfig` / `hyprWallpaper` / `hyprgrass` / `hyprIdleTimeouts` / `hyprSuspendOnAc` / `hyprDynamicCursorsMode` — Hyprland-specific overrides
+- `hyprlandChannel` — `"stable"` (default, v0.55.4, has hyprexpo + hyprgrass) | `"next"` (v0.56.0 + portal v1.4.0 for lan-mouse's libei input capture; no hyprexpo, and `hyprgrass = true` throws). Moves Hyprland, portal, and plugin pins in lockstep.
 - `xfceWallpaper` / `xfceAvatar` — XFCE-specific overrides
 - `ollamaCuda` — enables CUDA ollama
+- `devTools` — heavier dev modules (nvim, zellij, ollama, latex), defaults to `true`
 - `diskoConfig` — path to custom disko layout, defaults to `./disko-config.nix`
 - `dualDrive` — signals `install.sh` to require `--home-disk`
 - `extraModules` — list of extra NixOS modules

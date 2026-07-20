@@ -19,10 +19,18 @@
       url = "github:horriblename/hyprgrass/d094a3e62f6ecaeb41515982d3e13edefaf8a4e7";
       inputs.hyprland.follows = "hyprland";
     };
+    hyprland-next = {
+      url = "github:hyprwm/Hyprland/v0.56.0";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     hypr-dynamic-cursors = {
       # Pinned to 0.55.4-compatible commit — bump in lockstep with hyprland.
       url = "github:VirtCode/hypr-dynamic-cursors/da447486c84e0be81f2cdd208af1ef92469f0a88";
       inputs.hyprland.follows = "hyprland";
+    };
+    hypr-dynamic-cursors-next = {
+      url = "github:VirtCode/hypr-dynamic-cursors/5ef778ea151deb3573383d13d6e1cf7eed7336e1";
+      inputs.hyprland.follows = "hyprland-next";
     };
     # Community-maintained hyprexpo fork (workspace overview). Pinned to v0.55.4
     # release — bump in lockstep with hyprland.
@@ -32,12 +40,27 @@
     };
   };
 
-  outputs = { self, nixpkgs, nixos-hardware, disko, hyprland, hyprgrass, hypr-dynamic-cursors, hyprexpo-src, ... }:
+  outputs = { self, nixpkgs, nixos-hardware, disko, hyprland, hyprland-next, hyprgrass, hypr-dynamic-cursors, hypr-dynamic-cursors-next, hyprexpo-src, ... }:
   let
     # ── Machine registry ────────────────────────────────────────────
     machines = import ./machines.nix;
     commonModules = [ ./common ];
     desktopModule = { hyprland = ./hypr; xfce = ./xfce; gnome = ./gnome; };
+
+    hyprlandChannels = {
+      stable = {
+        hyprland = hyprland;
+        hyprgrass = hyprgrass;
+        hyprDynamicCursors = hypr-dynamic-cursors;
+        hyprexpoSrc = hyprexpo-src;
+      };
+      next = {
+        hyprland = hyprland-next;
+        hyprgrass = throw "hyprgrass has no pin compatible with the 'next' Hyprland channel; keep this host on 'stable' or add a hyprgrass-next input.";
+        hyprDynamicCursors = hypr-dynamic-cursors-next;
+        hyprexpoSrc = null;
+      };
+    };
 
     # Build the NixOS module list for a machine.
     mkHostModules = name: m:
@@ -48,19 +71,19 @@
 
     # Build specialArgs from a machine's registry entry.
     mkSpecialArgs = _name: m:
-      {
+      let channel = hyprlandChannels.${m.hyprlandChannel or "stable"};
+      in {
         username   = m.username or "lakin";
-        hyprland   = if m.desktop == "hyprland" then hyprland else null;
-        hyprgrass  = if (m.hyprgrass or false) then hyprgrass else null;
+        hyprland   = if m.desktop == "hyprland" then channel.hyprland else null;
+        hyprgrass  = if (m.hyprgrass or false) then channel.hyprgrass else null;
         ollamaCuda = m.ollamaCuda or false;
         devTools   = m.devTools or true;
       }
       // (if m.desktop == "hyprland" then {
         hyprHostConfig = m.hyprHostConfig or "";
         hyprWallpaper  = m.hyprWallpaper or ./hypr/wallpaper.jpg;
-        hyprDynamicCursors     = hypr-dynamic-cursors;
         hyprDynamicCursorsMode = m.hyprDynamicCursorsMode or "none";
-        inherit hyprexpo-src;
+        inherit (channel) hyprDynamicCursors hyprexpoSrc;
         hyprIdleTimeouts       = m.hyprIdleTimeouts or {};
         hyprSuspendOnAc        = m.hyprSuspendOnAc or true;
       } else {})

@@ -5,6 +5,20 @@
 #   desktop        "hyprland" | "xfce" | "gnome"
 #   username       default: "lakin"
 #   hardware       list of nixos-hardware module name strings, default: []
+#   hyprlandChannel
+#                  Which Hyprland pin set to build against: "stable" (default)
+#                  or "next". The channel moves Hyprland, its portal, and the
+#                  plugin pins together, which is why it is one field rather
+#                  than a version plus separate plugin toggles.
+#                    stable — Hyprland v0.55.4; hyprexpo, hypr-dynamic-cursors
+#                             and hyprgrass all available.
+#                    next   — Hyprland v0.56.0 + xdg-desktop-portal-hyprland
+#                             v1.4.0, which supplies the input-capture portal
+#                             (libei) that lan-mouse uses in place of its
+#                             layer-shell capture. No hyprexpo: it does not
+#                             compile against 0.56 and upstream is dead. No
+#                             hyprgrass pin either — "next" with
+#                             hyprgrass = true throws.
 #   hyprgrass      enable touch gestures (Surface), default: false
 #   hyprHostConfig hyprland monitor/input config string, default: ""
 #   hyprWallpaper  path to wallpaper, default: ./hypr/wallpaper.jpg
@@ -12,6 +26,16 @@
 #                  hypr-dynamic-cursors simulation mode (shake-to-find is
 #                  always on). One of "none" | "tilt" | "rotate" | "stretch"
 #                  (stretch = comic squash/stretch). Default: "none".
+#   hyprIdleTimeouts
+#                  hypridle listener timeouts in seconds. Keys dim / lock /
+#                  dpms / suspend, each overridable on its own; defaults are
+#                  181 / 300 / 600 / 900. suspend = 0 drops the suspend
+#                  listener entirely. Default: {} (all four defaults).
+#   hyprSuspendOnAc
+#                  idle-suspend while on mains power, default: true. false
+#                  makes the suspend listener skip when any power supply
+#                  reports online, so the host still idle-suspends on battery.
+#                  Dim/lock/dpms and logind's lid-close suspend are unaffected.
 #   xfceWallpaper  path to wallpaper, default: null
 #   xfceAvatar     path to avatar, default: null
 #   ollamaCuda     enable CUDA ollama, default: false
@@ -67,6 +91,7 @@ EOF
     hardware = [ "common-cpu-amd" "common-gpu-amd" "common-pc-laptop" "common-pc-laptop-ssd" ];
     diskoConfig = ./hosts/gratch/disko-config.nix;
     dualDrive = true;
+    hyprlandChannel = "next";
     hyprDynamicCursorsMode = "tilt";
     hyprHostConfig = ''
       # AMD laptop — 2560x1600@120Hz display, 1.25x scale

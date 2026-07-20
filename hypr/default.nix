@@ -1,7 +1,8 @@
 # Force rebuild
-{ pkgs, lib, username, hyprland, hyprgrass ? null, hyprDynamicCursors, hyprexpo-src, hyprHostConfig ? "", hyprWallpaper ? ./wallpaper.jpg, hyprDynamicCursorsMode ? "none", hyprIdleTimeouts ? {}, hyprSuspendOnAc ? true, ... }:
+{ pkgs, lib, username, hyprland, hyprgrass ? null, hyprDynamicCursors, hyprexpoSrc, hyprHostConfig ? "", hyprWallpaper ? ./wallpaper.jpg, hyprDynamicCursorsMode ? "none", hyprIdleTimeouts ? {}, hyprSuspendOnAc ? true, ... }:
 let
   hyprgrassEnabled = hyprgrass != null;
+  hyprexpoEnabled = hyprexpoSrc != null;
   idle = {
     dim       = hyprIdleTimeouts.dim or 181;
     lock      = hyprIdleTimeouts.lock or 300;
@@ -47,9 +48,10 @@ let
     else "sh -c 'grep -lq 1 /sys/class/power_supply/*/online 2>/dev/null || systemctl suspend'";
   # Shake-to-find is on by default for every Hyprland host. `mode` (tilt /
   # rotate / stretch / none) is opt-in per-host via machines.nix.
-  hyprexpo = pkgs.callPackage hyprexpo-src {
-    inherit (hyprland.packages.${pkgs.system}) hyprland;
-    inherit (pkgs) hyprlandPlugins;
+  hyprlandPackage = hyprland.packages.${pkgs.system}.hyprland;
+  hyprexpo = pkgs.callPackage hyprexpoSrc {
+    hyprland = hyprlandPackage;
+    hyprlandPlugins = pkgs.hyprlandPlugins.override { hyprland = hyprlandPackage; };
   };
   hyprexpoConfig = ''
     plugin = /etc/hypr/plugins/hyprexpo.so
@@ -61,6 +63,10 @@ let
         workspace_method = first 1
         gesture_distance = 300
     }
+
+    # hyprexpo overview. Routed via exec because the direct dispatcher/hyprexpo-gesture
+    # don't fire from a swipe on some touchpads (roach), though they work from the CLI.
+    gesture = 3, up, dispatcher, exec, hyprctl dispatch hyprexpo:expo toggle
   '';
   dynamicCursorsConfig = ''
     plugin = /etc/hypr/plugins/hypr-dynamic-cursors.so
@@ -91,6 +97,7 @@ in {
     config = {
       common.default = [ "hyprland" "gtk" ];
       hyprland.default = [ "hyprland" "gtk" ];
+      hyprland."org.freedesktop.impl.portal.InputCapture" = [ "hyprland" ];
     };
   };
 
@@ -103,8 +110,9 @@ in {
   environment.etc."hypr/plugins/hypr-dynamic-cursors.so".source =
     "${hyprDynamicCursors.packages.${pkgs.system}.default}/lib/libhypr-dynamic-cursors.so";
 
-  environment.etc."hypr/plugins/hyprexpo.so".source =
-    "${hyprexpo}/lib/libhyprexpo.so";
+  environment.etc."hypr/plugins/hyprexpo.so" = lib.mkIf hyprexpoEnabled {
+    source = "${hyprexpo}/lib/libhyprexpo.so";
+  };
 
   services.greetd = {
     enable = true;
@@ -181,7 +189,7 @@ in {
   environment.etc."hypr/hyprland.conf".text =
     builtins.readFile ./hyprland.conf
     + lib.optionalString hyprgrassEnabled (builtins.readFile ./hyprgrass.conf)
-    + "\n# hyprexpo plugin\n" + hyprexpoConfig
+    + lib.optionalString hyprexpoEnabled ("\n# hyprexpo plugin\n" + hyprexpoConfig)
     + "\n# hypr-dynamic-cursors plugin\n" + dynamicCursorsConfig
     + "\n# Per-host overrides\n" + hyprHostConfig;
   environment.etc."hypr/hypridle.conf".text = hypridleConf;
