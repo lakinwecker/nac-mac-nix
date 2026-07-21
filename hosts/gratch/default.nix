@@ -1,6 +1,8 @@
 # AMD laptop — hostname "gratch"
 { lib, pkgs, username, ... }:
 {
+  imports = [ ./mt7922-firmware.nix ];  # pin MT7922 wifi firmware (mt76#987 idle-disconnect)
+
   hardware.amdgpu.initrd.enable = true;
 
   # ── Kernel power params ────────────────────────────────────────────

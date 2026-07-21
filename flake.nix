@@ -85,6 +85,7 @@
         hyprDynamicCursorsMode = m.hyprDynamicCursorsMode or "none";
         inherit (channel) hyprDynamicCursors hyprexpoSrc;
         hyprIdleTimeouts       = m.hyprIdleTimeouts or {};
+        hyprPanelFontSize      = m.hyprPanelFontSize or "0.9rem";
         hyprSuspendOnAc        = m.hyprSuspendOnAc or true;
       } else {})
       // (if m.desktop == "xfce" then {

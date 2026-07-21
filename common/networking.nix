@@ -12,6 +12,12 @@
       };
       Network.EnableIPv6 = true;
       Settings.AutoConnect = true;
+      # Stop iwd's periodic background scans while connected. On mt7921(e)
+      # these scans intermittently deauth/re-associate the link ("by local
+      # choice"), which tears down the nebula tunnel when the machine is idle
+      # (gratch/roach became unreachable until a keypress). Directed roam
+      # scans (RoamThreshold) still happen when signal actually drops.
+      Scan.DisablePeriodicScan = true;
       Rank = {
         # mt7921e (gratch) lands on 2.4 GHz with congested neighbours
         # and exhibits 15% loss / 300ms jitter. Bias hard toward 5 GHz.

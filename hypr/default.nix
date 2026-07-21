@@ -1,8 +1,17 @@
 # Force rebuild
-{ pkgs, lib, username, hyprland, hyprgrass ? null, hyprDynamicCursors, hyprexpoSrc, hyprHostConfig ? "", hyprWallpaper ? ./wallpaper.jpg, hyprDynamicCursorsMode ? "none", hyprIdleTimeouts ? {}, hyprSuspendOnAc ? true, ... }:
+{ pkgs, lib, username, hyprland, hyprgrass ? null, hyprDynamicCursors, hyprexpo-src, hyprHostConfig ? "", hyprWallpaper ? ./wallpaper.jpg, hyprDynamicCursorsMode ? "none", hyprIdleTimeouts ? {}, hyprSuspendOnAc ? true, hyprPanelFontSize ? "0.9rem", ... }:
 let
   hyprgrassEnabled = hyprgrass != null;
-  hyprexpoEnabled = hyprexpoSrc != null;
+  # HyprPanel's top-bar font size, overridable per host (e.g. smaller on
+  # high-DPI/scaled displays). Baked into both theme variants so the
+  # theme-toggle copy keeps it too.
+  mkHyprpanelConfig = name: src:
+    pkgs.runCommand name { nativeBuildInputs = [ pkgs.jq ]; } ''
+      jq --arg fs ${lib.escapeShellArg hyprPanelFontSize} \
+        '.["theme.font.size"] = $fs' ${src} > $out
+    '';
+  hyprpanelDark  = mkHyprpanelConfig "hyprpanel-config-dark.json"  ./hyprpanel-config.json;
+  hyprpanelLight = mkHyprpanelConfig "hyprpanel-config-light.json" ./hyprpanel-config-light.json;
   idle = {
     dim       = hyprIdleTimeouts.dim or 181;
     lock      = hyprIdleTimeouts.lock or 300;
@@ -195,8 +204,8 @@ in {
   environment.etc."hypr/hypridle.conf".text = hypridleConf;
   environment.etc."hypr/hyprlock.conf".source = ./hyprlock.conf;
   environment.etc."wallpaper.jpg".source = hyprWallpaper;
-  environment.etc."hyprpanel/config-dark.json".source = ./hyprpanel-config.json;
-  environment.etc."hyprpanel/config-light.json".source = ./hyprpanel-config-light.json;
+  environment.etc."hyprpanel/config-dark.json".source = hyprpanelDark;
+  environment.etc."hyprpanel/config-light.json".source = hyprpanelLight;
   environment.etc."btop/btop.conf".source = ./btop.conf;
   environment.etc."avatar.png".source = ./avatar.png;
 
