@@ -5,6 +5,12 @@
 
   hardware.amdgpu.initrd.enable = true;
 
+  # Cap Nix build parallelism. Defaults (max-jobs=auto=16 × cores=16) massively
+  # oversubscribe the 16 threads and freeze the desktop. 3 jobs × 4 threads =
+  # 12 threads, leaving 4 for Hyprland. (60 GB RAM, so memory isn't the limit.)
+  nix.settings.max-jobs = 3;
+  nix.settings.cores = 4;
+
   # ── Kernel power params ────────────────────────────────────────────
   boot.kernelParams = [
     "amd_pstate=active"
