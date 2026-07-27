@@ -1,7 +1,8 @@
 # Force rebuild
-{ pkgs, lib, username, hyprland, hyprgrass ? null, hyprDynamicCursors, hyprexpo-src, hyprHostConfig ? "", hyprWallpaper ? ./wallpaper.jpg, hyprDynamicCursorsMode ? "none", hyprIdleTimeouts ? {}, hyprSuspendOnAc ? true, hyprPanelFontSize ? "0.9rem", ... }:
+{ pkgs, lib, username, hyprland, hyprgrass ? null, hyprDynamicCursors, hyprexpoSrc, hyprHostConfig ? "", hyprWallpaper ? ./wallpaper.jpg, hyprDynamicCursorsMode ? "none", hyprIdleTimeouts ? {}, hyprSuspendOnAc ? true, hyprPanelFontSize ? "0.9rem", ... }:
 let
   hyprgrassEnabled = hyprgrass != null;
+  hyprexpoEnabled = hyprexpoSrc != null;
   # HyprPanel's top-bar font size, overridable per host (e.g. smaller on
   # high-DPI/scaled displays). Baked into both theme variants so the
   # theme-toggle copy keeps it too.
