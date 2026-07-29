@@ -1,0 +1,87 @@
+imports = []
+
+[general]
+font-sans = "FiraCode Nerd Font"
+font-mono = "FiraCode Nerd Font"
+tearing-mode = false
+
+[bar]
+scale = 0.75
+location = "top"
+exclusive = true
+layer = "top"
+bg = "bg-surface"
+border-location = "none"
+rounding = "none"
+button-label-weight = "semibold"
+
+[[bar.layout]]
+monitor = "*"
+show = true
+left = [
+    "dashboard",
+    "hyprland-workspaces",
+    "window-title",
+]
+center = ["media"]
+right = [
+    "volume",
+    "network",
+    "bluetooth",
+    "battery",
+    "notifications",
+    "systray",
+    "clock",
+    "world-clock",
+]
+
+[styling]
+theme-provider = "wayle"
+
+[modules]
+custom = []
+
+[modules.hyprland-workspaces]
+min-workspace-count = 10
+monitor-specific = false
+display-mode = "label"
+
+[modules.window-title]
+
+[modules.media]
+label-max-length = 35
+
+[modules.volume]
+
+[modules.network]
+
+[modules.bluetooth]
+
+[modules.battery]
+
+[modules.notifications]
+popup-position = "bottom-right"
+blocklist = ["discord", "slack"]
+
+[modules.systray]
+
+[modules.clock]
+format = "%H:%M:%S"
+dropdown-show-seconds = true
+
+[modules.world-clock]
+format = "{{ tz('America/New_York','%H:%M') }} | {{ tz('UTC','%H:%M') }} | {{ tz('Europe/Paris','%H:%M') }}"
+
+[modules.dashboard]
+
+[osd]
+enabled = true
+position = "bottom"
+
+[wallpaper]
+engine-enabled = true
+
+[[wallpaper.monitors]]
+name = "eDP-1"
+fit-mode = "fill"
+wallpaper = "/etc/wallpaper.jpg"

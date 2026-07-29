@@ -1,18 +1,17 @@
 # Force rebuild
-{ pkgs, lib, username, hyprland, hyprgrass ? null, hyprDynamicCursors, hyprexpoSrc, hyprHostConfig ? "", hyprWallpaper ? ./wallpaper.jpg, hyprDynamicCursorsMode ? "none", hyprIdleTimeouts ? {}, hyprSuspendOnAc ? true, hyprPanelFontSize ? "0.9rem", ... }:
+{ pkgs, lib, username, hyprland, hyprgrass ? null, hyprDynamicCursors, hyprexpoSrc, hyprHostConfig ? "", hyprWallpaper ? ./wallpaper.jpg, hyprDynamicCursorsMode ? "none", hyprIdleTimeouts ? {}, hyprSuspendOnAc ? true, ... }:
 let
   hyprgrassEnabled = hyprgrass != null;
   hyprexpoEnabled = hyprexpoSrc != null;
-  # HyprPanel's top-bar font size, overridable per host (e.g. smaller on
-  # high-DPI/scaled displays). Baked into both theme variants so the
-  # theme-toggle copy keeps it too.
-  mkHyprpanelConfig = name: src:
-    pkgs.runCommand name { nativeBuildInputs = [ pkgs.jq ]; } ''
-      jq --arg fs ${lib.escapeShellArg hyprPanelFontSize} \
-        '.["theme.font.size"] = $fs' ${src} > $out
+  # Wayle bar config: one shared base (layout + modules + osd + wallpaper)
+  # concatenated with a per-mode [styling.palette] block to produce the two
+  # theme variants. theme-toggle swaps the whole file + `wayle panel restart`.
+  mkWayleConfig = name: palette:
+    pkgs.runCommand name { } ''
+      cat ${./wayle/base.toml} ${palette} > $out
     '';
-  hyprpanelDark  = mkHyprpanelConfig "hyprpanel-config-dark.json"  ./hyprpanel-config.json;
-  hyprpanelLight = mkHyprpanelConfig "hyprpanel-config-light.json" ./hyprpanel-config-light.json;
+  wayleDark  = mkWayleConfig "wayle-config-dark.toml"  ./wayle/palette-dark.toml;
+  wayleLight = mkWayleConfig "wayle-config-light.toml" ./wayle/palette-light.toml;
   idle = {
     dim       = hyprIdleTimeouts.dim or 181;
     lock      = hyprIdleTimeouts.lock or 300;
@@ -142,7 +141,7 @@ in {
     hyprlock
     hypridle
     hyprpolkitagent
-    hyprpanel
+    wayle
     playerctl
     brightnessctl
     wl-clipboard
@@ -158,13 +157,8 @@ in {
     xdg-desktop-portal-gtk
     qt5.qtwayland
     kdePackages.qtwayland
-    # HyprPanel recommended deps
-    libgtop
-    dart-sass
+    # General desktop utilities
     gvfs
-    gtksourceview3
-    libsoup_3
-    # HyprPanel optional deps
     hyprsunset
     pywal
     awww
@@ -205,8 +199,8 @@ in {
   environment.etc."hypr/hypridle.conf".text = hypridleConf;
   environment.etc."hypr/hyprlock.conf".source = ./hyprlock.conf;
   environment.etc."wallpaper.jpg".source = hyprWallpaper;
-  environment.etc."hyprpanel/config-dark.json".source = hyprpanelDark;
-  environment.etc."hyprpanel/config-light.json".source = hyprpanelLight;
+  environment.etc."wayle/config-dark.toml".source = wayleDark;
+  environment.etc."wayle/config-light.toml".source = wayleLight;
   environment.etc."btop/btop.conf".source = ./btop.conf;
   environment.etc."avatar.png".source = ./avatar.png;
 
@@ -215,8 +209,7 @@ in {
     text = ''
       install -d -o ${username} -g users /home/${username}/.config
       install -d -o ${username} -g users /home/${username}/.config/hypr
-      install -d -o ${username} -g users /home/${username}/.config/hyprpanel
-      install -d -o ${username} -g users /home/${username}/.config/hyprpanel/styles
+      install -d -o ${username} -g users /home/${username}/.config/wayle
       install -d -o ${username} -g users /home/${username}/.config/btop
       ln -sf /etc/btop/btop.conf /home/${username}/.config/btop/btop.conf
       chown -h ${username}:users /home/${username}/.config/btop/btop.conf
@@ -224,15 +217,15 @@ in {
       ln -sf /etc/hypr/hypridle.conf /home/${username}/.config/hypr/hypridle.conf
       ln -sf /etc/hypr/hyprlock.conf /home/${username}/.config/hypr/hyprlock.conf
       chown -h ${username}:users /home/${username}/.config/hypr/hyprland.conf /home/${username}/.config/hypr/hypridle.conf /home/${username}/.config/hypr/hyprlock.conf
-      # Pick the hyprpanel variant matching the current theme mode (set by
+      # Pick the wayle variant matching the current theme mode (set by
       # theme-toggle). Defaults to dark if state file is absent.
       mode="dark"
       if [ -r /home/${username}/.local/state/theme-mode ]; then
         mode=$(cat /home/${username}/.local/state/theme-mode)
       fi
       install -m 0644 -o ${username} -g users \
-        /etc/hyprpanel/config-$mode.json \
-        /home/${username}/.config/hyprpanel/config.json
+        /etc/wayle/config-$mode.toml \
+        /home/${username}/.config/wayle/config.toml
       install -m 0644 -o ${username} -g users /etc/avatar.png /home/${username}/.face.icon
       install -m 0644 -o ${username} -g users /etc/wallpaper.jpg /home/${username}/.config/background
     '';
