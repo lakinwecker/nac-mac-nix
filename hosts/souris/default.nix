@@ -60,6 +60,15 @@
     ACTION=="add|change", ENV{ID_INPUT_TOUCHSCREEN}=="1", ENV{LIBINPUT_IGNORE_DEVICE}="1"
   '';
 
+  # Intel VA-API HW video decode (UHD 620); without iHD, Firefox software-decodes.
+  hardware.graphics.extraPackages = with pkgs; [ intel-media-driver ];
+  environment.sessionVariables.LIBVA_DRIVER_NAME = "iHD";
+  programs.firefox.preferences = {
+    "media.ffmpeg.vaapi.enabled" = true;
+    "media.rdd-ffmpeg.enabled" = true;
+    "gfx.webrender.all" = true;
+  };
+
   services.power-profiles-daemon.enable = false;
   services.tlp = {
     enable = true;
@@ -79,6 +88,8 @@
   environment.systemPackages = with pkgs; [
     powertop
     lm_sensors
+    libva-utils      # vainfo
+    intel-gpu-tools  # intel_gpu_top
     (writeShellScriptBin "update-system" ''
       set -euo pipefail
       # Where this config repo is checked out on souris. If you clone it
