@@ -79,9 +79,16 @@
       CPU_ENERGY_PERF_POLICY_ON_AC = "performance";
       CPU_BOOST_ON_AC = 1;
       CPU_BOOST_ON_BAT = 0;
+      # ath10k power-save times out key installs (-110); keep the radio awake.
+      WIFI_PWR_ON_AC = "off";
+      WIFI_PWR_ON_BAT = "off";
     };
   };
   services.thermald.enable = true;
+
+  # QCA6174/ath10k needs a real regdom; world (0x0) breaks DFS 5GHz throughput.
+  hardware.wirelessRegulatoryDatabase = true;
+  boot.extraModprobeConfig = ''options cfg80211 ieee80211_regdom=CA'';
 
   # `update-system` — the one command Anita runs after editing
   # anita-installed-programs.nix. Rebuilds souris from the config repo.
@@ -90,6 +97,8 @@
     lm_sensors
     libva-utils      # vainfo
     intel-gpu-tools  # intel_gpu_top
+    iw               # wifi diagnostics
+    pciutils         # lspci
     (writeShellScriptBin "update-system" ''
       set -euo pipefail
       # Where this config repo is checked out on souris. If you clone it
