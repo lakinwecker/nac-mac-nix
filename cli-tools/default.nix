@@ -28,6 +28,5 @@
     # TUI misc
     ncmpcpp
     bluetuith
-    impala
   ];
 }

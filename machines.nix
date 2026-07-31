@@ -21,9 +21,6 @@
 #                             hyprgrass = true throws.
 #   hyprgrass      enable touch gestures (Surface), default: false
 #   hyprHostConfig hyprland monitor/input config string, default: ""
-#   hyprPanelFontSize
-#                  HyprPanel top-bar font size (rem). Default: "0.9rem".
-#                  Shrink on scaled/high-DPI displays.
 #   hyprWallpaper  path to wallpaper, default: ./hypr/wallpaper.jpg
 #   hyprDynamicCursorsMode
 #                  hypr-dynamic-cursors simulation mode (shake-to-find is
@@ -96,7 +93,6 @@ EOF
     dualDrive = true;
     hyprlandChannel = "next";
     hyprDynamicCursorsMode = "tilt";
-    hyprPanelFontSize = "0.8rem";   # 0.9 too big, 0.75 slightly small at 1.25x scale
     # Don't idle-suspend when on AC power. Battery still suspends; lid-close
     # still suspends via logind. hypridle still dims/locks/dpms (screen off).
     hyprSuspendOnAc = false;

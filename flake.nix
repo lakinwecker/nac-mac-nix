@@ -85,7 +85,6 @@
         hyprDynamicCursorsMode = m.hyprDynamicCursorsMode or "none";
         inherit (channel) hyprDynamicCursors hyprexpoSrc;
         hyprIdleTimeouts       = m.hyprIdleTimeouts or {};
-        hyprPanelFontSize      = m.hyprPanelFontSize or "0.9rem";
         hyprSuspendOnAc        = m.hyprSuspendOnAc or true;
       } else {})
       // (if m.desktop == "xfce" then {
@@ -134,7 +133,7 @@
             isNormalUser = true;
             home = "/home/${username}";
             createHome = true;
-            extraGroups = [ "wheel" "video" "audio" "docker" ];
+            extraGroups = [ "wheel" "video" "audio" "docker" "networkmanager" ];
           };
 
           system.activationScripts.userDirs = {
@@ -167,7 +166,27 @@
         ./iso-packages.nix
         ({ username, ... }: {
           boot.loader.systemd-boot.enable = true;
+          # The ESP is only 511 MB and each generation costs ~75 MB (kernel +
+          # initrd), so cap retained generations — without this it keeps every
+          # generation and eventually fills /boot mid-switch ("No space left").
+          boot.loader.systemd-boot.configurationLimit = 5;
           boot.loader.efi.canTouchEfiVariables = true;
+
+          # Graphical boot splash. Plymouth runs on whatever initrd the host
+          # uses (systemd-initrd where enabled, classic otherwise); the quiet
+          # params + low console log level suppress the text scroll so the
+          # splash isn't stepped on. kernelParams merges with per-host params.
+          boot.plymouth.enable = true;
+          boot.kernelParams = [ "quiet" "splash" "rd.udev.log_level=3" "udev.log_priority=3" ];
+          boot.consoleLogLevel = 0;
+          boot.initrd.verbose = false;
+
+          # Shutdown-hang mitigation. A user-session unit sometimes fails to
+          # stop, and the default 90s stop timeout (hit potentially twice)
+          # leaves reboot wedged for minutes. Cap it so a stuck unit is killed
+          # in 15s and the machine actually powers down.
+          systemd.settings.Manager.DefaultTimeoutStopSec = "15s";
+          systemd.user.settings.Manager.DefaultTimeoutStopSec = "15s";
 
           networking.hostName = hostname;
 
@@ -175,7 +194,7 @@
             isNormalUser = true;
             home = "/home/${username}";
             createHome = true;
-            extraGroups = [ "wheel" "video" "audio" "docker" ];
+            extraGroups = [ "wheel" "video" "audio" "docker" "networkmanager" ];
             initialPassword = "changeme";
           };
 

@@ -78,10 +78,8 @@ format = "{{ tz('America/New_York','%H:%M') }} | {{ tz('UTC','%H:%M') }} | {{ tz
 enabled = true
 position = "bottom"
 
+# awww (exec-once in hyprland.conf) owns the wallpaper on every monitor and
+# host. Leave Wayle's engine off so the two don't fight, and so trunkie (no
+# eDP-1 connector) doesn't need a per-host monitor override.
 [wallpaper]
-engine-enabled = true
-
-[[wallpaper.monitors]]
-name = "eDP-1"
-fit-mode = "fill"
-wallpaper = "/etc/wallpaper.jpg"
+engine-enabled = false

@@ -7,8 +7,6 @@
     neovim
     thunderbird
     signal-desktop
-    impala
-    iwd
     qogir-icon-theme
     fontconfig
     # Dev tools

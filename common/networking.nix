@@ -1,48 +1,25 @@
 { lib, pkgs, username, ... }:
 {
-  # ── Wifi (iwd) ──────────────────────────────────────────────────────
-  networking.networkmanager.enable = lib.mkForce false;
-  networking.wireless.iwd = {
-    enable = true;
-    settings = {
-      General = {
-        EnableNetworkConfiguration = true;
-        RoamThreshold = "-70";
-        RoamThreshold5G = "-76";
-      };
-      Network.EnableIPv6 = true;
-      Settings.AutoConnect = true;
-      # Stop iwd's periodic background scans while connected. On mt7921(e)
-      # these scans intermittently deauth/re-associate the link ("by local
-      # choice"), which tears down the nebula tunnel when the machine is idle
-      # (gratch/roach became unreachable until a keypress). Directed roam
-      # scans (RoamThreshold) still happen when signal actually drops.
-      Scan.DisablePeriodicScan = true;
-      Rank = {
-        # mt7921e (gratch) lands on 2.4 GHz with congested neighbours
-        # and exhibits 15% loss / 300ms jitter. Bias hard toward 5 GHz.
-        BandModifier2_4Ghz = "0.3";
-        BandModifier5Ghz = "5.0";
-        BandModifier6Ghz = "6.0";
-      };
-    };
-  };
+  # ── Networking (NetworkManager) ─────────────────────────────────────
+  # NetworkManager is the single stack across every machine: the Wayland
+  # bar (Wayle), the XFCE panel, and GNOME all read NM over D-Bus, and NM
+  # manages both wifi (wpa_supplicant) and wired links. nmtui/nmcli are the
+  # TUI/CLI front-ends.
+  #
+  # This replaced an iwd + systemd-networkd setup. The old iwd tuning —
+  # mt7921e 2.4GHz band-biasing and DisablePeriodicScan (which stopped
+  # periodic scans from deauthing the link and tearing down nebula while
+  # idle) — did not carry over. If that hardware regresses, revisit the
+  # NM/wpa_supplicant equivalents (connection.bgscan, band hints).
+  networking.networkmanager.enable = true;
 
-  # ── Wired (systemd-networkd) ────────────────────────────────────────
-  networking.useNetworkd = true;
-  systemd.network.enable = true;
-  systemd.network.networks."10-ethernet" = {
-    matchConfig.Type = "ether";
-    networkConfig = {
-      DHCP = "yes";
-      IPv6AcceptRA = true;
-      MulticastDNS = true;
-    };
-  };
+  # nebula owns the mesh tun; keep NM's hands off it.
+  networking.networkmanager.unmanaged = [ "interface-name:nebula1" ];
 
   # ── DNS ────────────────────────────────────────────────────────────
-  # Domains=~. forces resolved to use these globally, overriding the
-  # per-link DNS that iwd/networkd push from DHCP.
+  # Route NM's per-link DNS through systemd-resolved so the global
+  # Domains=~. override still wins over whatever DHCP hands out.
+  networking.networkmanager.dns = "systemd-resolved";
   networking.nameservers = [ "1.1.1.1" "1.0.0.1" "8.8.8.8" ];
   services.resolved = {
     enable = true;
