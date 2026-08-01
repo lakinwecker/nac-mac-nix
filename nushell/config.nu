@@ -31,6 +31,13 @@ alias gd = git diff
 alias gs = git status
 alias gm = git mergetool
 
+# pass, pointed at my personal store
+def --wrapped lwpass [...rest] {
+  with-env {PASSWORD_STORE_DIR: ($env.HOME | path join passwords pass)} {
+    ^pass ...$rest
+  }
+}
+
 # pass, pointed at the lichess sysadmin store
 def --wrapped lipass [...rest] {
   with-env {PASSWORD_STORE_DIR: ($env.HOME | path join personal-repos lichess-org sysadmin pass)} {

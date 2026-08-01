@@ -66,6 +66,26 @@
   # (e2fsprogs, ddrescue, etc. now come from ../tools, installed everywhere.)
   environment.systemPackages = with pkgs; [ powertop lm_sensors ];
 
+  # ── secretspec: default to the pass provider ───────────────────────
+  # Make bare `pass` use the real store (what lwpass points at).
+  environment.sessionVariables.PASSWORD_STORE_DIR = "/home/${username}/passwords/pass";
+
+  # store_dir: the real store is ~/passwords/pass, not ~/.password-store.
+  environment.etc."secretspec/config.toml".text = ''
+    [defaults]
+    provider = "pass://?store_dir=/home/${username}/passwords/pass"
+    profile = "default"
+  '';
+
+  system.activationScripts.secretspecConfig = {
+    deps = [ "users" ];
+    text = ''
+      install -d -o ${username} -g users /home/${username}/.config/secretspec
+      ln -sf /etc/secretspec/config.toml /home/${username}/.config/secretspec/config.toml
+      chown -h ${username}:users /home/${username}/.config/secretspec/config.toml
+    '';
+  };
+
   # ── Syncthing: only run on AC power ──────────────────────────────────
   # Remove from auto-start targets — power guard and udev manage it
   systemd.services.syncthing.wantedBy = lib.mkForce [];

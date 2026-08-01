@@ -26,6 +26,7 @@
     dust
     tree      # classic; `eza --tree` (installed) is the Rust equivalent
     jq
+    scc       # code line counter
     # Archives
     zip
     unzip

@@ -100,6 +100,8 @@ in {
     portalPackage = hyprland.packages.${pkgs.system}.xdg-desktop-portal-hyprland;
   };
 
+  programs.steam.enable = true;
+
   xdg.portal = {
     enable = true;
     extraPortals = [ pkgs.xdg-desktop-portal-gtk ];
@@ -148,7 +150,10 @@ in {
     wtype
     grim
     slurp
+    imagemagick   # rounded-corner alpha mask for screenshots
+    libwebp       # cwebp
     wf-recorder
+    wl-screenrec  # VAAPI-encoded capture; keeps recording off the CPU
     python3
     socat
     wvkbd
@@ -182,8 +187,8 @@ in {
     mode = "0755";
   };
 
-  environment.etc."hypr/scripts/screenshot-delayed.sh" = {
-    source = ./scripts/screenshot-delayed.sh;
+  environment.etc."hypr/scripts/screenshot.sh" = {
+    source = ./scripts/screenshot.sh;
     mode = "0755";
   };
 
@@ -198,6 +203,9 @@ in {
     + "\n# Per-host overrides\n" + hyprHostConfig;
   environment.etc."hypr/hypridle.conf".text = hypridleConf;
   environment.etc."hypr/hyprlock.conf".source = ./hyprlock.conf;
+
+  # hyprlock does pam_start("hyprlock"); without this it has no auth backend.
+  security.pam.services.hyprlock = { };
   environment.etc."wallpaper.jpg".source = hyprWallpaper;
   environment.etc."wayle/config-dark.toml".source = wayleDark;
   environment.etc."wayle/config-light.toml".source = wayleLight;
