@@ -8,6 +8,13 @@ let
   '';
 in
 {
+  # Backing binaries for config.nu's aliases and the zoxide/starship inits.
+  environment.systemPackages = with pkgs; [
+    eza
+    bat
+    zoxide
+  ];
+
   environment.etc."nushell-user/config.nu".source = ./config.nu;
   environment.etc."nushell-user/env.nu".source = ./env.nu;
   environment.etc."nushell-user/starship.nu".source = starshipNu;

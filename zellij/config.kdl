@@ -1,2 +1,7 @@
 default_shell "nu"
 pane_frames false
+
+// Matches ghostty's TokyoNight Day/Storm pair. With both set, zellij follows
+// the terminal's light/dark report (mode 2031) and theme-toggle can push.
+theme_dark "tokyo-night-storm"
+theme_light "tokyo-night-light"

@@ -26,6 +26,9 @@ let
     value = { source = ./scripts/${name}; };
   }) scripts);
 in {
+  # The pony* wrappers shell out to ponysay.
+  environment.systemPackages = with pkgs; [ ponysay ];
+
   environment.etc = scriptEntries;
 
   system.activationScripts.userBin = {
