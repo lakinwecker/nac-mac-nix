@@ -15,6 +15,7 @@
     gh-dash
     # Docker
     lazydocker
+    dive      # inspect image layers
     # Dev runtimes / AI
     claude-code
     bun

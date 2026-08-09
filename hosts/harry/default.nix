@@ -81,7 +81,6 @@
   services.logind.settings.Login = {
     HandleLidSwitch = "suspend-then-hibernate";
     HandleLidSwitchExternalPower = "suspend-then-hibernate";
-    HandlePowerKey = "ignore";
   };
 
   # Reload ithc + iptsd after resume — touchpad loses state on hibernate.

@@ -22,7 +22,7 @@ let
     general {
         lock_cmd = pidof hyprlock || hyprlock
         before_sleep_cmd = loginctl lock-session
-        after_sleep_cmd = hyprctl dispatch dpms on
+        after_sleep_cmd = sh -c 'hyprctl dispatch dpms on; wayle panel show'
     }
 
     listener {
@@ -38,8 +38,8 @@ let
 
     listener {
         timeout = ${toString idle.dpms}
-        on-timeout = hyprctl dispatch dpms off
-        on-resume = hyprctl dispatch dpms on
+        on-timeout = sh -c 'wayle panel hide; hyprctl dispatch dpms off'
+        on-resume = sh -c 'hyprctl dispatch dpms on; wayle panel show'
     }
   '' + lib.optionalString (idle.suspend > 0) ''
 
@@ -190,6 +190,17 @@ in {
   environment.etc."hypr/scripts/screenshot.sh" = {
     source = ./scripts/screenshot.sh;
     mode = "0755";
+  };
+
+  environment.etc."hypr/scripts/power-menu.sh" = {
+    source = ./scripts/power-menu.sh;
+    mode = "0755";
+  };
+
+  # Power key opens the rofi menu via hyprland.conf; a long press still poweroffs.
+  services.logind.settings.Login = {
+    HandlePowerKey = lib.mkDefault "ignore";
+    HandlePowerKeyLongPress = lib.mkDefault "poweroff";
   };
 
   environment.etc."hypr/rofi-tokyonight.rasi".source = ./rofi-tokyonight.rasi;
