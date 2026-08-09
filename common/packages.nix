@@ -11,7 +11,7 @@
     gnupg
     pinentry-curses
     # Version control / net (were pulled in via nvim before it was gated)
-    git
+    # git itself comes from ../git (programs.git)
     curl
     # SSH tooling
     openssh

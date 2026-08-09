@@ -15,6 +15,7 @@
     ./packages.nix
     ./user.nix
     ../ghostty
+    ../git
     ../fish
     ../nushell
     ../starship

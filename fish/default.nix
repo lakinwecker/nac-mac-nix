@@ -5,7 +5,6 @@
     bat
     starship
     ponysay
-    difftastic
     zoxide
   ];
 
