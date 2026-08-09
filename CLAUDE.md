@@ -45,7 +45,7 @@ hosts/<name>/        Hardware-specific config per machine
 hypr/                Hyprland desktop module
 xfce/                XFCE desktop module
 gnome/               GNOME desktop module
-ghostty/ nvim/ fish/ Program modules (imported by common/default.nix)
+ghostty/ nvim/ git/  Program modules (imported by common/default.nix)
 starship/ bin/ zellij/ ai/
 ```
 

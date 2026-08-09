@@ -2,7 +2,6 @@
 {
   environment.systemPackages = with pkgs; [
     # Shell extras
-    fish
     nushell
     bash
     direnv

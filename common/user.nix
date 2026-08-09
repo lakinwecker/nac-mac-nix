@@ -19,10 +19,6 @@
   # (e.g. souris → fish) must use lib.mkForce.
   users.defaultUserShell = pkgs.nushell;
   programs.bash.enable = true;
-  programs.fish = {
-    enable = true;
-    # Registers fish in /etc/shells so it can be a login shell.
-  };
   # programs.nushell is a home-manager option, not a NixOS one.
   # Register nushell in /etc/shells so it can be a login shell.
   environment.shells = [ pkgs.nushell ];

@@ -16,7 +16,6 @@
     ./user.nix
     ../ghostty
     ../git
-    ../fish
     ../nushell
     ../starship
     ../bin

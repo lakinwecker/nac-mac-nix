@@ -1,2 +1,2 @@
-default_shell "fish"
+default_shell "nu"
 pane_frames false

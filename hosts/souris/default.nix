@@ -5,7 +5,9 @@
   # (anita-installed-programs.nix, next to machines.nix).
   imports = [ ../../anita-installed-programs.nix ];
 
-  # Default login shell (overrides common's nushell).
+  # Default login shell (overrides common's nushell). fish lives only here now
+  # — the shared fish module was dropped, so this is stock fish, no custom rc.
+  programs.fish.enable = true;
   users.defaultUserShell = lib.mkForce pkgs.fish;
 
   # Secondary admin account for remote maintenance (Lakin). SSH is key-only
