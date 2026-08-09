@@ -38,9 +38,13 @@
       url = "github:sandwichfarm/hyprexpo/v0.55.4";
       flake = false;
     };
+    hyprexpo-src-next = {
+      url = "github:sandwichfarm/hyprexpo/v0.56.0";
+      flake = false;
+    };
   };
 
-  outputs = { self, nixpkgs, nixos-hardware, disko, hyprland, hyprland-next, hyprgrass, hypr-dynamic-cursors, hypr-dynamic-cursors-next, hyprexpo-src, ... }:
+  outputs = { self, nixpkgs, nixos-hardware, disko, hyprland, hyprland-next, hyprgrass, hypr-dynamic-cursors, hypr-dynamic-cursors-next, hyprexpo-src, hyprexpo-src-next, ... }:
   let
     # ── Machine registry ────────────────────────────────────────────
     machines = import ./machines.nix;
@@ -58,7 +62,7 @@
         hyprland = hyprland-next;
         hyprgrass = throw "hyprgrass has no pin compatible with the 'next' Hyprland channel; keep this host on 'stable' or add a hyprgrass-next input.";
         hyprDynamicCursors = hypr-dynamic-cursors-next;
-        hyprexpoSrc = null;
+        hyprexpoSrc = hyprexpo-src-next;
       };
     };
 

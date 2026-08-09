@@ -260,6 +260,23 @@
         "type": "github"
       }
     },
+    "hyprexpo-src-next": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1784713713,
+        "narHash": "sha256-DVAU2SPebRtbi4qyC492MZt1RZtFCT9IN6du1Pck79A=",
+        "owner": "sandwichfarm",
+        "repo": "hyprexpo",
+        "rev": "6caa38e4a19c44faf0312356c110f6c21d8ca627",
+        "type": "github"
+      },
+      "original": {
+        "owner": "sandwichfarm",
+        "ref": "v0.56.0",
+        "repo": "hyprexpo",
+        "type": "github"
+      }
+    },
     "hyprgraphics": {
       "inputs": {
         "hyprutils": [
@@ -1003,6 +1020,7 @@
         "hypr-dynamic-cursors": "hypr-dynamic-cursors",
         "hypr-dynamic-cursors-next": "hypr-dynamic-cursors-next",
         "hyprexpo-src": "hyprexpo-src",
+        "hyprexpo-src-next": "hyprexpo-src-next",
         "hyprgrass": "hyprgrass",
         "hyprland": "hyprland",
         "hyprland-next": "hyprland-next",

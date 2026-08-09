@@ -15,9 +15,9 @@
 #                    next   — Hyprland v0.56.0 + xdg-desktop-portal-hyprland
 #                             v1.4.0, which supplies the input-capture portal
 #                             (libei) that lan-mouse uses in place of its
-#                             layer-shell capture. No hyprexpo: it does not
-#                             compile against 0.56 and upstream is dead. No
-#                             hyprgrass pin either — "next" with
+#                             layer-shell capture. hyprexpo and
+#                             hypr-dynamic-cursors are pinned to matching 0.56
+#                             builds. No hyprgrass pin — "next" with
 #                             hyprgrass = true throws.
 #   hyprgrass      enable touch gestures (Surface), default: false
 #   hyprHostConfig hyprland monitor/input config string, default: ""

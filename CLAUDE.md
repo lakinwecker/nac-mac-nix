@@ -28,7 +28,7 @@ See [docs/build.md](docs/build.md).
 - `username` — defaults to `"lakin"`
 - `hardware` — list of `nixos-hardware` module name strings, defaults to `[]`
 - `hyprHostConfig` / `hyprWallpaper` / `hyprgrass` / `hyprIdleTimeouts` / `hyprSuspendOnAc` / `hyprDynamicCursorsMode` — Hyprland-specific overrides
-- `hyprlandChannel` — `"stable"` (default, v0.55.4, has hyprexpo + hyprgrass) | `"next"` (v0.56.0 + portal v1.4.0 for lan-mouse's libei input capture; no hyprexpo, and `hyprgrass = true` throws). Moves Hyprland, portal, and plugin pins in lockstep.
+- `hyprlandChannel` — `"stable"` (default, v0.55.4, has hyprexpo + hyprgrass) | `"next"` (v0.56.0 + portal v1.4.0 for lan-mouse's libei input capture; has hyprexpo, but `hyprgrass = true` throws). Moves Hyprland, portal, and plugin pins in lockstep.
 - `xfceWallpaper` / `xfceAvatar` — XFCE-specific overrides
 - `ollamaCuda` — enables CUDA ollama
 - `devTools` — heavier dev modules (nvim, zellij, ollama, latex), defaults to `true`
