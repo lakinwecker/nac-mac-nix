@@ -42,9 +42,15 @@ theme-provider = "wayle"
 custom = []
 
 [modules.hyprland-workspaces]
-min-workspace-count = 10
+min-workspace-count = 14
 monitor-specific = false
 display-mode = "label"
+
+[modules.hyprland-workspaces.workspace-map]
+11 = { label = "c" }
+12 = { label = "g" }
+13 = { label = "s" }
+14 = { label = "*" }
 
 [modules.window-title]
 
