@@ -26,9 +26,8 @@
     "ithc"
   ];
 
-  # surface_gpe causes wake failures when Type Cover is closed
-  # during suspend — handle lid via logind instead
-  boot.blacklistedKernelModules = [ "surface_gpe" ];
+  # No surface_gpe blacklist: it never binds here anyway. DMI sys_vendor is
+  # " Microsoft Corporation" (leading space) and the driver uses DMI_EXACT_MATCH.
 
   services.iptsd.enable = true;
   hardware.sensor.iio.enable = true;
@@ -60,47 +59,45 @@
   powerManagement.enable = true;
   powerManagement.powertop.enable = true;
 
-  # ── Sleep / hibernate ──────────────────────────────────────────────
+  # ── Sleep ──────────────────────────────────────────────────────────
   # SP9 only supports s2idle (Modern Standby) — no S3/deep in firmware.
-  # These params help s2idle actually reach S0ix low-power residency.
+  # Hibernate is deliberately not configured; see docs/suspend-harry.md.
   boot.kernelParams = [
     "mem_sleep_default=s2idle"
     "i915.enable_psr=0"       # panel self-refresh can block wake
-    "resume_offset=39068928"
+    # Without this the Thunderbolt hotplug bridge (00:07.0) claims an I/O window
+    # containing the ACPI PM1/GPE0 blocks; they read all-ones after s2idle and
+    # the SCI storms. Check nesting in /proc/ioports before changing.
+    "pci=hpiosize=0"
   ];
-  boot.resumeDevice = "/dev/mapper/cryptroot";
 
   systemd.sleep.settings.Sleep = {
     AllowSuspend = "yes";
-    AllowHibernation = "yes";
-    AllowSuspendThenHibernate = "yes";
     SuspendState = "freeze";
-    HibernateDelaySec = "30min";
   };
 
   services.logind.settings.Login = {
-    HandleLidSwitch = "suspend-then-hibernate";
-    HandleLidSwitchExternalPower = "suspend-then-hibernate";
+    HandleLidSwitch = "suspend";
+    HandleLidSwitchExternalPower = "suspend";
   };
 
-  # Reload ithc + iptsd after resume — touchpad loses state on hibernate.
-  systemd.services.surface-touchscreen-resume = {
-    description = "Reload ithc and restart iptsd after resume (Surface Pro 9)";
-    wantedBy = [ "post-resume.target" ];
-    after = [ "post-resume.target" ];
-    serviceConfig = {
-      Type = "oneshot";
-      ExecStart = pkgs.writeShellScript "surface-touchscreen-resume" ''
-        ${pkgs.kmod}/bin/modprobe -r ithc 2>/dev/null || true
-        ${pkgs.kmod}/bin/modprobe ithc 2>/dev/null || true
-        ${pkgs.systemd}/bin/systemctl restart iptsd 2>/dev/null || true
-        # Restart iio-hyprland — auto-rotation stops working after suspend
-        ${pkgs.procps}/bin/pkill iio-hyprland 2>/dev/null || true
-        sleep 1
-        su - lakin -c '${pkgs.iio-hyprland}/bin/iio-hyprland eDP-1 &' 2>/dev/null || true
-      '';
-    };
-  };
+  # Default is HybridSleep, which needs a hibernate image we don't have.
+  services.upower.criticalPowerAction = "PowerOff";
+
+  # Reload ithc + iptsd after resume — touchscreen loses state across sleep.
+  # Use resumeCommands, not a unit on post-resume.target: that target does not
+  # exist in nixpkgs, so the old unit never ran on any boot.
+  powerManagement.resumeCommands = ''
+    ${pkgs.kmod}/bin/modprobe -r ithc 2>/dev/null || true
+    ${pkgs.kmod}/bin/modprobe ithc 2>/dev/null || true
+    for unit in $(${pkgs.systemd}/bin/systemctl list-units --plain --no-legend 'iptsd@*' | ${pkgs.gawk}/bin/awk '{print $1}'); do
+      ${pkgs.systemd}/bin/systemctl restart "$unit" 2>/dev/null || true
+    done
+    # Restart iio-hyprland — auto-rotation stops working after suspend
+    ${pkgs.procps}/bin/pkill iio-hyprland 2>/dev/null || true
+    ${pkgs.coreutils}/bin/sleep 1
+    ${pkgs.util-linux}/bin/runuser -u lakin -- ${pkgs.iio-hyprland}/bin/iio-hyprland eDP-1 &
+  '';
 
   # Prevent XHCI (USB 3.0) from triggering instant wake
   powerManagement.powerDownCommands = ''
@@ -111,7 +108,7 @@
     done
   '';
 
-  # ── Swap (hibernate) ───────────────────────────────────────────────
+  # ── Swap ───────────────────────────────────────────────────────────
   # Btrfs swapfile — set NOCOW before creation
   system.activationScripts.swapNocow = {
     text = ''

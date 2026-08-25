@@ -77,10 +77,10 @@ starship/ bin/ zellij/ ai/
 ## harry (Surface Pro 9) specifics
 
 - Type Cover at LUKS prompt needs `pinctrl_tigerlake`, `intel_lpss*`, `surface_aggregator*`, `surface_hid*`, `hid_multitouch`, `ithc` in `boot.initrd.kernelModules`. Don't remove without testing.
-- `surface_gpe` is blacklisted (wake failures with Type Cover closed).
-- Firmware only supports s2idle. `mem_sleep_default=s2idle` and `i915.enable_psr=0` are load-bearing.
-- Hibernate: btrfs swapfile at `/swap/swapfile` with `resume_offset=39068928`. Recompute offset if swapfile changes.
-- `surface-touchscreen-resume` service reloads ithc after hibernate. Don't drop it.
+- Firmware only supports s2idle. `mem_sleep_default=s2idle`, `i915.enable_psr=0` and `pci=hpiosize=0` are load-bearing — see [docs/suspend-harry.md](docs/suspend-harry.md) for why the last one matters and which plausible-looking fixes don't work.
+- `surface_gpe` never binds on this hardware (firmware writes `sys_vendor` with a leading space; the driver uses `DMI_EXACT_MATCH`). Blacklisting it changes nothing either way.
+- Hibernate is not configured. Lid is plain `suspend`.
+- ithc/iptsd/iio-hyprland are reloaded after resume via `powerManagement.resumeCommands`. This was formerly a `surface-touchscreen-resume` systemd unit bound to `post-resume.target` — **that target does not exist in nixpkgs**, so the unit never ran on any boot. Don't reintroduce `post-resume.target`; `powerManagement.resumeCommands` (merged `types.lines`, runs in `sleep-actions.service` preStop) is the wired-up option.
 
 ## Hyprland Lua config
 
