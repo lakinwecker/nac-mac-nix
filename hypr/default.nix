@@ -66,7 +66,7 @@ let
     plugin = /etc/hypr/plugins/hyprexpo.so
 
     plugin:hyprexpo {
-        columns = 3
+        columns = 4
         gap_size = 15
         bg_col = rgb(111111)
         workspace_method = first 1
