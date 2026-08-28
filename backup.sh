@@ -110,6 +110,24 @@ secret() {
 
 part_dev() { echo "/dev/disk/by-partlabel/$1"; }
 
+# The physical disks behind the pool, e.g. "sdb". Used to measure read
+# throughput during verify; /proc/diskstats is keyed by disk name.
+pool_backing_disks() {
+  local label dev disk
+  for label in "$PART0" "$PART1"; do
+    dev=$(readlink -f "$(part_dev "$label")" 2>/dev/null) || continue
+    disk=$(lsblk -no PKNAME "$dev" 2>/dev/null | head -n1)
+    [ -n "$disk" ] && echo "$disk"
+  done
+}
+
+pool_sectors_read() {
+  local re
+  re=$(pool_backing_disks | paste -sd'|' -)
+  [ -n "$re" ] || { echo 0; return; }
+  awk -v re="^($re)\$" '$3 ~ re { r += $6 } END { print r+0 }' /proc/diskstats
+}
+
 # Checked before any destructive work. A tool missing halfway through would
 # leave one disk partitioned and the other untouched.
 require_cmds() {
@@ -400,7 +418,7 @@ cmd_verify() {
   # entire point: a file whose bytes were corrupted in transit keeps its size
   # and mtime, so the default quick check would call it identical. -n writes
   # nothing, so this is safe to run against a pool you are relying on.
-  local args=(-aHAXn --checksum --numeric-ids --out-format=%n --info=progress2)
+  local args=(-aHAXn --checksum --numeric-ids --out-format=%n)
   local pat
   for pat in ${SYNC_EXCLUDES+"${SYNC_EXCLUDES[@]}"} ${extra+"${extra[@]}"}; do
     args+=(--exclude "$pat")
@@ -418,20 +436,48 @@ cmd_verify() {
   echo "    Differing files print as they are found -- a quiet run is a clean one."
   echo
 
-  # tee so progress and mismatches are visible live rather than only at the
-  # end. set +e because pipefail would otherwise abort on rsync's exit 24,
-  # and because the status wanted is rsync's, not tee's.
+  # rsync's own --info=progress2 counts *transferred* bytes, which in a dry
+  # run stay near zero however far along it is. Report bytes read off the
+  # pool instead: that is the work actually being done. It goes to stderr so
+  # it stays out of the tee'd log.
+  local start_sectors start_time total_gib
+  start_sectors=$(pool_sectors_read)
+  start_time=$(date +%s)
+  total_gib=$(df --output=used -k "$POOL_MOUNT" 2>/dev/null | tail -n1 \
+              | awk '{printf "%.0f", $1/1048576}')
+
+  (
+    while :; do
+      sleep 20
+      sectors=$(( $(pool_sectors_read) - start_sectors ))
+      elapsed=$(( $(date +%s) - start_time ))
+      [ "$elapsed" -gt 0 ] || continue
+      awk -v s="$sectors" -v e="$elapsed" -v t="${total_gib:-0}" 'BEGIN {
+        gib  = s * 512 / 1073741824
+        rate = s * 512 / e / 1048576
+        if (t > 0)
+          printf "\r  read %.1f / ~%d GiB (%d%%)  %.0f MiB/s  elapsed %dm      ",
+                 gib, t, gib * 100 / t, rate, e / 60
+        else
+          printf "\r  read %.1f GiB  %.0f MiB/s  elapsed %dm      ", gib, rate, e / 60
+      }' >&2
+    done
+  ) &
+  local monitor=$!
+
+  # set +e because pipefail would otherwise abort on rsync's exit 24, and
+  # because the status wanted is rsync's, not tee's.
   set +e
   sudo rsync "${args[@]}" "${src%/}/" "$dest/" 2>&1 | tee "$log"
   rc=${PIPESTATUS[0]}
   set -e
 
-  # --info=progress2 writes carriage-return status onto the same stream as the
-  # file list, so split on \r and drop the status lines before counting.
-  # Directory entries appear too; only files matter here.
-  tr '\r' '\n' < "$log" \
-    | grep -vE '^[[:space:]]*[0-9,]+[[:space:]]+[0-9]+%' \
-    | grep -ve '/$' -e '^$' > "$diffs_log" || true
+  kill "$monitor" 2>/dev/null || true
+  wait "$monitor" 2>/dev/null || true
+  printf '\r%*s\r' 78 '' >&2
+
+  # Directory entries always appear in the output; only files matter here.
+  grep -ve '/$' -e '^$' "$log" > "$diffs_log" || true
   local diffs
   diffs=$(wc -l < "$diffs_log")
 
