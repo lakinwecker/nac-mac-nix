@@ -44,7 +44,6 @@
 #                  machine. Note: CLI tools (git TUIs, k8s, DBs, btop, …)
 #                  live in ../cli-tools and are installed everywhere.
 #   diskoConfig    path to disko-config.nix, default: ./disko-config.nix
-#   dualDrive      true if install needs --home-disk, default: false
 #   extraModules   list of extra NixOS modules, default: []
 {
   harry = {
@@ -90,7 +89,6 @@ EOF
     desktop = "hyprland";
     hardware = [ "common-cpu-amd" "common-gpu-amd" "common-pc-laptop" "common-pc-laptop-ssd" ];
     diskoConfig = ./hosts/gratch/disko-config.nix;
-    dualDrive = true;
     hyprlandChannel = "next";
     hyprDynamicCursorsMode = "tilt";
     # Don't idle-suspend when on AC power. Battery still suspends; lid-close
@@ -115,6 +113,25 @@ EOF
     desktop = "hyprland";
     hardware = [ "common-cpu-amd" "common-gpu-amd" "common-pc" "common-pc-ssd" ];
     diskoConfig = ./hosts/trunkie/disko-config.nix;
+    # HDMI-A-1 is shared with a KVM, so it disappears whenever the switch hands
+    # it to the other machine. Its mode is bound to a name here because the
+    # re-enable keybind has to repeat the mode string verbatim — keeping the two
+    # in sync by hand is how they drift.
+    hyprHostConfig = let hdmiMode = "3840x2160@120,0x0,1.25"; in ''
+      # 4K landscape panel (KVM-shared) — 1.25x scale, 3072x1728 logical at 0x0
+      monitor=HDMI-A-1,${hdmiMode}
+      # 1440p panel rotated 270deg, standing to the right of the 4K
+      monitor=DP-1,2560x1440@164,3072x-420,1,transform,3
+
+      workspace = 1, monitor:HDMI-A-1, default:true
+
+      # KVM switch: F9 drops the shared 4K when it hands over to the other
+      # machine, F10 brings it back. Disabling it explicitly is what makes
+      # Hyprland reflow the windows instead of stranding them on a panel that
+      # is no longer displaying this host.
+      bind=CTRLSUPERSHIFT,F9,exec,hyprctl keyword monitor HDMI-A-1,disabled
+      bind=CTRLSUPERSHIFT,F10,exec,hyprctl keyword monitor HDMI-A-1,${hdmiMode}
+    '';
   };
 
   roach = {
@@ -122,7 +139,6 @@ EOF
     desktop = "hyprland";
     hardware = [ "common-cpu-intel" "common-gpu-nvidia-nonprime" "common-pc-laptop" "common-pc-laptop-ssd" ];
     diskoConfig = ./hosts/roach/disko-config.nix;
-    dualDrive = true;
     ollamaCuda = true;
     hyprIdleTimeouts = { dim = 360; lock = 600; dpms = 1200; };
     # Don't idle-suspend when on AC power (lid open). Battery still suspends;
