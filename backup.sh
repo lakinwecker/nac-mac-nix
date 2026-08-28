@@ -66,6 +66,9 @@ Data:
         Compare <source> against the pool by content hash, writing nothing.
         Lists every file whose bytes differ or that never arrived. Clean
         output means the copy is byte-for-byte correct.
+        <source> may be a subtree of $SYNC_SOURCE, which is compared against
+        the matching place in the pool -- useful for checking the data you
+        care about without reading everything.
   snapshot [<name>]
         Take a read-only btrfs snapshot of $SUBVOL.
         Name defaults to ${SUBVOL}-<timestamp>.
@@ -132,6 +135,22 @@ require_cmds() {
   echo "  Arch:   sudo pacman -S --needed $uniq" >&2
   echo "  NixOS:  add to environment.systemPackages" >&2
   exit 1
+}
+
+# Maps a source path to the matching location inside the pool, so a subtree
+# can be synced or verified on its own: /home/lakin/backups compares against
+# <pool>/trunkie-home/backups rather than against the subvolume root.
+pool_dest() {
+  local src="${1%/}" base="${SYNC_SOURCE%/}" rel
+  if [ "$src" = "$base" ]; then
+    echo "$POOL_MOUNT/$SUBVOL"
+    return
+  fi
+  case "$src/" in
+    "$base"/*) rel="${src#"$base"/}"; echo "$POOL_MOUNT/$SUBVOL/$rel" ;;
+    *) echo "ERROR: $src is not under $base; cannot place it in the pool." >&2
+       exit 1 ;;
+  esac
 }
 
 require_open() {
@@ -340,14 +359,17 @@ cmd_sync() {
   done
   $dry && args+=(--dry-run)
 
-  echo "==> rsync ${src%/}/ -> $POOL_MOUNT/$SUBVOL/"
+  local dest; dest=$(pool_dest "$src")
+  sudo mkdir -p "$dest"
+
+  echo "==> rsync ${src%/}/ -> $dest/"
   $dry && echo "    (dry run)"
 
   # Exit 24 means source files disappeared mid-run. On a live home directory
   # that is normal -- browser caches rewrite themselves constantly -- and it
   # is not a failure. Anything else is.
   local rc=0
-  sudo rsync "${args[@]}" "${src%/}/" "$POOL_MOUNT/$SUBVOL/" || rc=$?
+  sudo rsync "${args[@]}" "${src%/}/" "$dest/" || rc=$?
   case "$rc" in
     0)  echo "Sync complete." ;;
     24) echo "Sync complete. Some source files vanished mid-run (rsync 24);" \
@@ -384,14 +406,17 @@ cmd_verify() {
     args+=(--exclude "$pat")
   done
 
+  local dest; dest=$(pool_dest "$src")
+  [ -d "$dest" ] || { echo "ERROR: $dest does not exist in the pool." >&2; exit 1; }
+
   local log rc=0
   log=$(mktemp -t backup-verify-XXXXXX.log)
-  echo "==> Comparing ${src%/}/ against $POOL_MOUNT/$SUBVOL/ by content hash"
+  echo "==> Comparing ${src%/}/ against $dest/ by content hash"
   echo "    This reads both sides in full and takes a while."
   # SC2024: the redirect runs as the invoking user, not root -- which is
   # correct, because mktemp created $log owned by that user.
   # shellcheck disable=SC2024
-  sudo rsync "${args[@]}" "${src%/}/" "$POOL_MOUNT/$SUBVOL/" >"$log" 2>&1 || rc=$?
+  sudo rsync "${args[@]}" "${src%/}/" "$dest/" >"$log" 2>&1 || rc=$?
 
   # Directory entries always appear in the output; only files matter here.
   local diffs
