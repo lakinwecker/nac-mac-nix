@@ -1,5 +1,7 @@
 # Threadripper 1950X desktop — hostname "trunkie"
-# 4-disk btrfs RAID1: root mirror (2x224G NVMe+SATA) + home mirror (2x ~2T NVMe)
+# 4-disk btrfs RAID1 (see hosts/trunkie/disko-config.nix):
+#   root mirror  Force MP500 224G (onboard M.2) + Intel SSDSC2CW240A3 224G (SATA)
+#   home mirror  ADATA SX8200 Pro 1.9T + 2TB NVMe, both on the DIMM.2 riser
 { pkgs, lib, ... }:
 {
   hardware.amdgpu.initrd.enable = true;
