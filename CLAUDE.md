@@ -18,6 +18,17 @@ Flake-based NixOS configurations for personal machines, plus matching live insta
 
 See [docs/build.md](docs/build.md).
 
+## Backup
+
+`backup.sh` builds and drives trunkie's backup pool (2x4TB btrfs RAID1 over
+LUKS) and wraps the restic repo that mirrors it to OVH object storage. See
+[docs/backup.md](docs/backup.md).
+
+## trunkie migration
+
+trunkie is being rebuilt from Arch to NixOS. Disk layout, pre-install steps,
+and what is backed up where: [docs/trunkie-plan.md](docs/trunkie-plan.md).
+
 ## Architecture
 
 `machines.nix` is the **machine registry** — a single attrset keyed by hostname declaring each machine's desktop, hardware modules, username, and any overrides. `flake.nix` imports it and generates all `nixosConfigurations` (N hosts x {iso, installed}) via `mkIso`/`mkInstalled` helpers. To add a machine: add an entry to `machines.nix` + create `hosts/<name>/default.nix`.
@@ -33,7 +44,6 @@ See [docs/build.md](docs/build.md).
 - `ollamaCuda` — enables CUDA ollama
 - `devTools` — heavier dev modules (nvim, zellij, ollama, latex), defaults to `true`
 - `diskoConfig` — path to custom disko layout, defaults to `./disko-config.nix`
-- `dualDrive` — signals `install.sh` to require `--home-disk`
 - `extraModules` — list of extra NixOS modules
 
 ### Directory layout
