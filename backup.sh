@@ -400,7 +400,7 @@ cmd_verify() {
   # entire point: a file whose bytes were corrupted in transit keeps its size
   # and mtime, so the default quick check would call it identical. -n writes
   # nothing, so this is safe to run against a pool you are relying on.
-  local args=(-aHAXn --checksum --numeric-ids --out-format=%n)
+  local args=(-aHAXn --checksum --numeric-ids --out-format=%n --info=progress2)
   local pat
   for pat in ${SYNC_EXCLUDES+"${SYNC_EXCLUDES[@]}"} ${extra+"${extra[@]}"}; do
     args+=(--exclude "$pat")
@@ -409,18 +409,31 @@ cmd_verify() {
   local dest; dest=$(pool_dest "$src")
   [ -d "$dest" ] || { echo "ERROR: $dest does not exist in the pool." >&2; exit 1; }
 
-  local log rc=0
+  local log diffs_log rc=0
   log=$(mktemp -t backup-verify-XXXXXX.log)
-  echo "==> Comparing ${src%/}/ against $dest/ by content hash"
-  echo "    This reads both sides in full and takes a while."
-  # SC2024: the redirect runs as the invoking user, not root -- which is
-  # correct, because mktemp created $log owned by that user.
-  # shellcheck disable=SC2024
-  sudo rsync "${args[@]}" "${src%/}/" "$dest/" >"$log" 2>&1 || rc=$?
+  diffs_log="${log%.log}-diffs.log"
 
-  # Directory entries always appear in the output; only files matter here.
+  echo "==> Comparing ${src%/}/ against $dest/ by content hash"
+  echo "    Reads both sides in full; expect hours for a whole home directory."
+  echo "    Differing files print as they are found -- a quiet run is a clean one."
+  echo
+
+  # tee so progress and mismatches are visible live rather than only at the
+  # end. set +e because pipefail would otherwise abort on rsync's exit 24,
+  # and because the status wanted is rsync's, not tee's.
+  set +e
+  sudo rsync "${args[@]}" "${src%/}/" "$dest/" 2>&1 | tee "$log"
+  rc=${PIPESTATUS[0]}
+  set -e
+
+  # --info=progress2 writes carriage-return status onto the same stream as the
+  # file list, so split on \r and drop the status lines before counting.
+  # Directory entries appear too; only files matter here.
+  tr '\r' '\n' < "$log" \
+    | grep -vE '^[[:space:]]*[0-9,]+[[:space:]]+[0-9]+%' \
+    | grep -ve '/$' -e '^$' > "$diffs_log" || true
   local diffs
-  diffs=$(grep -cve '/$' -e '^$' "$log" || true)
+  diffs=$(wc -l < "$diffs_log")
 
   echo
   if [ "$rc" -ne 0 ] && [ "$rc" -ne 24 ]; then
@@ -429,12 +442,12 @@ cmd_verify() {
   fi
   if [ "$diffs" -eq 0 ]; then
     echo "OK: every file matches by content hash."
-    rm -f "$log"
+    rm -f "$log" "$diffs_log"
   else
     echo "MISMATCH: $diffs file(s) differ or are missing from the pool."
-    echo "Full list: $log"
+    echo "Full list: $diffs_log"
     echo
-    grep -ve '/$' -e '^$' "$log" | head -20 | sed 's/^/  /'
+    head -20 "$diffs_log" | sed 's/^/  /'
     [ "$diffs" -gt 20 ] && echo "  ... $((diffs - 20)) more"
     exit 1
   fi
