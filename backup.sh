@@ -36,6 +36,11 @@ SYNC_SOURCE=${SYNC_SOURCE:-/home/lakin}
 read -r -a SYNC_EXCLUDES <<<"${SYNC_EXCLUDES:-.cache/ .local/share/Trash/}"
 
 # ── Password-store entries ───────────────────────────────────────────
+# The real store is ~/passwords/pass, not pass's default ~/.password-store.
+# An already-exported PASSWORD_STORE_DIR wins, which is what makes this work
+# unchanged on machines that set it as a session variable.
+PASSWORD_STORE_DIR=${PASSWORD_STORE_DIR:-$HOME/passwords/pass}
+
 PASS_LUKS=${PASS_LUKS:-lakin.ca/luks/trunkie-backup-pool}
 PASS_S3_KEY=${PASS_S3_KEY:-lakin.ca/ovh/s3-backups/access-key}
 PASS_S3_SECRET=${PASS_S3_SECRET:-lakin.ca/ovh/s3-backups/secret-key}
@@ -92,19 +97,21 @@ Offsite:
         from the password store. e.g. $0 restic snapshots
 
 Environment overrides: PART0 PART1 POOL_LABEL POOL_MOUNT SUBVOL SYNC_SOURCE
-                       PASS_LUKS PASS_S3_KEY PASS_S3_SECRET PASS_RESTIC
-                       RESTIC_REPO OVH_REGION
+                       PASSWORD_STORE_DIR PASS_LUKS PASS_S3_KEY
+                       PASS_S3_SECRET PASS_RESTIC RESTIC_REPO OVH_REGION
 EOF
   exit 1
 }
 
 # ── Helpers ──────────────────────────────────────────────────────────
 
-# lwpass is a fish abbreviation, so it is absent from a bash script's PATH.
-# Prefer a real binary if one ever appears; then bare pass; then let fish
-# resolve the abbreviation. Last resort is typing it: on a live ISO there is
-# no password store at all, because the store lives in the /home this script
-# is being used to restore.
+# lwpass is a nushell function (nushell/config.nu), so it is absent from a
+# bash script's PATH. Prefer a real binary if one ever appears; then bare
+# pass, pointed at the real store; then let fish resolve it, on the one
+# machine that still has fish. Every attempt is guarded, because a missing
+# shell must fall through rather than abort. Last resort is typing it: on a
+# live ISO there is no password store at all, because the store lives in the
+# /home this script is being used to restore.
 #
 # Command substitution strips the trailing newline, which matters: the LUKS
 # passphrase is the bare string, so a piped secret must match a typed one.
@@ -116,7 +123,7 @@ secret() {
     out=$(lwpass show "$1" 2>/dev/null) || out=""
   fi
   if [ -z "$out" ] && command -v pass >/dev/null 2>&1; then
-    out=$(pass show "$1" 2>/dev/null) || out=""
+    out=$(PASSWORD_STORE_DIR="$PASSWORD_STORE_DIR" pass show "$1" 2>/dev/null) || out=""
   fi
   if [ -z "$out" ] && command -v fish >/dev/null 2>&1; then
     out=$(fish -c "lwpass show $1" 2>/dev/null) || out=""
