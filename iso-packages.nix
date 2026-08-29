@@ -33,6 +33,9 @@
     curl
     jq
     tree-sitter
+    # backup.sh: restoring /home from the pool during an install.
+    # cryptsetup and btrfs-progs already come from the installer profile.
+    rsync
     # KVM
     lan-mouse
   ];

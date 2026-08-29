@@ -60,6 +60,7 @@ size — these are 512e disks, and the larger sector is a real throughput gain.
 ./backup.sh open              # unlock + mount at /mnt/backup
 ./backup.sh snapshot          # freeze the current state FIRST
 ./backup.sh sync              # rsync /home/lakin into the pool
+./backup.sh restore           # rsync the pool back out onto /home/lakin
 ./backup.sh verify            # compare by content hash
 ./backup.sh status            # membership, usage, last scrub
 ./backup.sh close             # unmount + lock before unplugging
@@ -128,6 +129,37 @@ named in the host's config and `install.sh` passes explicit `--disk` paths, so
 the pool is safe by construction — but a mistyped by-id path is precisely the
 mistake that would eat it, and pulling one cable removes the possibility.
 
+Now that the pool lives on internal SATA there is no cable to pull, so read the
+`--disk` arguments back before confirming. The pool disks are the two
+`ata-ST4000VN006-3CW104_*` entries; neither should ever appear.
+
+### restore
+
+The reverse of `sync`. Easiest after the first boot, from a TTY, before logging
+into the desktop — nothing has written into `~/.config` yet:
+
+```sh
+sudo ./backup.sh open
+sudo ./backup.sh restore
+sudo ./backup.sh close
+```
+
+`restore` never deletes: the files it would delete are whatever the fresh
+install just created, which is not what restoring a home directory means. Pass
+`--mirror` to opt into `--delete-during`.
+
+It then chowns the target — `/home/lakin` implies `lakin:users`. The pool stores
+the old system's numeric uids, and a rebuilt system need not hand the account
+the same one. `--owner user:group` overrides, `--no-chown` skips it.
+
+Like `sync` and `verify`, the target may be a subtree: `restore
+/home/lakin/backups` pulls only that directory, from the matching place in the
+pool.
+
+Running it from the live ISO also works — `rsync` ships on the installer, and
+`install.sh` has to be re-run with `disko --mode mount` to get the target back
+under `/mnt` first, since it unmounts everything when it finishes.
+
 ## Secrets
 
 | Entry | Holds |
@@ -139,6 +171,11 @@ mistake that would eat it, and pulling one cable removes the possibility.
 
 Override the entry names with `PASS_LUKS`, `PASS_S3_KEY`, `PASS_S3_SECRET`, and
 `PASS_RESTIC`.
+
+Secrets are resolved by trying `lwpass`, then bare `pass`, then `lwpass` via
+`fish`, and finally by prompting on the terminal. The prompt is what makes the
+script usable from a live ISO, where there is no password store at all —
+because the store lives in the `/home` being restored.
 
 The restic password cannot be recovered or reset — losing it loses the offsite
 repository. It is read from the password store, which is decrypted by a GPG

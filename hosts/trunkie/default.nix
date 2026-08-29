@@ -1,10 +1,14 @@
 # Threadripper 1950X desktop — hostname "trunkie"
-# 4-disk btrfs RAID1 (see hosts/trunkie/disko-config.nix):
-#   root mirror  Force MP500 224G (onboard M.2) + Intel SSDSC2CW240A3 224G (SATA)
-#   home mirror  ADATA SX8200 Pro 1.9T + 2TB NVMe, both on the DIMM.2 riser
+# 3-disk layout (see hosts/trunkie/disko-config.nix):
+#   root         WD SN550 931G (onboard M.2), unmirrored
+#   home mirror  ADATA SX8200 Pro 1.9T + WD Black SN770 1.8T, on the DIMM.2 riser
 { pkgs, lib, ... }:
 {
   hardware.amdgpu.initrd.enable = true;
+
+  # Emergency shell instead of a hang when stage-1 cannot find a device, and
+  # one passphrase prompt for all three LUKS containers instead of three.
+  boot.initrd.systemd.enable = true;
   environment.systemPackages = with pkgs; [
     lm_sensors
     btrfs-progs  # btrfs device stats, scrub, etc.

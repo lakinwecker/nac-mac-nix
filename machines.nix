@@ -109,7 +109,7 @@ EOF
 
   trunkie = {
     # Threadripper 1950X desktop — AMD GPU, 64GB RAM
-    # 4-disk btrfs RAID1: root mirror (2x224G) + home mirror (1.9T + 2T)
+    # 3 disks: unmirrored root (931G) + home btrfs RAID1 (1.9T + 1.8T)
     desktop = "hyprland";
     hardware = [ "common-cpu-amd" "common-gpu-amd" "common-pc" "common-pc-ssd" ];
     diskoConfig = ./hosts/trunkie/disko-config.nix;

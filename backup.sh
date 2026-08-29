@@ -62,6 +62,13 @@ Data:
         rsync <source> into the pool's $SUBVOL subvolume.
         Source defaults to $SYNC_SOURCE.
         Always excluded: ${SYNC_EXCLUDES[*]}
+  restore [--dry-run] [--mirror] [--owner <user:group>] [--no-chown]
+          [--exclude <pattern>]... [<target>]
+        rsync the pool's $SUBVOL subvolume back out onto <target>.
+        Target defaults to $SYNC_SOURCE, and may be a subtree of it.
+        Never deletes unless --mirror is given. Afterwards chowns the
+        target to the user implied by $SYNC_SOURCE, because the pool
+        stores the old system's numeric uids.
   verify [--exclude <pattern>]... [<source>]
         Compare <source> against the pool by content hash, writing nothing.
         Lists every file whose bytes differ or that never arrived. Clean
@@ -94,15 +101,30 @@ EOF
 # ── Helpers ──────────────────────────────────────────────────────────
 
 # lwpass is a fish abbreviation, so it is absent from a bash script's PATH.
-# Prefer a real binary if one ever appears; otherwise let fish resolve it.
+# Prefer a real binary if one ever appears; then bare pass; then let fish
+# resolve the abbreviation. Last resort is typing it: on a live ISO there is
+# no password store at all, because the store lives in the /home this script
+# is being used to restore.
+#
 # Command substitution strips the trailing newline, which matters: the LUKS
 # passphrase is the bare string, so a piped secret must match a typed one.
 secret() {
-  local out
+  # Each attempt runs at most once: a second `pass show` to test for the entry
+  # would ask gpg-agent for the key twice.
+  local out=""
   if command -v lwpass >/dev/null 2>&1; then
-    out=$(lwpass show "$1")
-  else
-    out=$(fish -c "lwpass show $1")
+    out=$(lwpass show "$1" 2>/dev/null) || out=""
+  fi
+  if [ -z "$out" ] && command -v pass >/dev/null 2>&1; then
+    out=$(pass show "$1" 2>/dev/null) || out=""
+  fi
+  if [ -z "$out" ] && command -v fish >/dev/null 2>&1; then
+    out=$(fish -c "lwpass show $1" 2>/dev/null) || out=""
+  fi
+  if [ -z "$out" ] && [ -t 0 ]; then
+    echo "No password store entry for '$1'." >&2
+    read -r -s -p "Enter it manually: " out
+    echo >&2
   fi
   [ -n "$out" ] || { echo "ERROR: password store entry '$1' is empty or missing." >&2; exit 1; }
   printf '%s' "$out"
@@ -396,6 +418,74 @@ cmd_sync() {
   esac
 }
 
+# ── restore ──────────────────────────────────────────────────────────
+
+# The reverse of sync: pool -> target. Deliberately never deletes. sync's
+# --delete-during is correct for a mirror, but on a restore the extra files
+# are whatever the freshly installed system already put there, and deleting
+# them is not what "restore my home" means. Use --mirror to opt in.
+cmd_restore() {
+  require_cmds rsync
+
+  local dry=false mirror=false target="" owner="" extra=()
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --dry-run|-n) dry=true; shift ;;
+      --mirror) mirror=true; shift ;;
+      --owner) [ $# -ge 2 ] || usage; owner="$2"; shift 2 ;;
+      --no-chown) owner="-"; shift ;;
+      --exclude) [ $# -ge 2 ] || usage; extra+=("$2"); shift 2 ;;
+      -*) echo "Unknown option: $1" >&2; usage ;;
+      *) target="$1"; shift ;;
+    esac
+  done
+  target="${target:-$SYNC_SOURCE}"
+
+  require_open
+
+  # pool_dest maps a path under SYNC_SOURCE to its place in the pool. Here it
+  # names the source rather than the destination, which is what makes subtree
+  # restores work: /home/lakin/backups pulls from <pool>/trunkie-home/backups.
+  local src; src=$(pool_dest "$target")
+  [ -d "$src" ] || {
+    echo "ERROR: $src does not exist in the pool. Nothing to restore from." >&2
+    exit 1
+  }
+
+  # --numeric-ids preserves the uid/gid the files were saved with. Those are
+  # the old system's, so the chown below is what actually makes the restored
+  # files belong to the new account.
+  local args=(-aHAX --numeric-ids --info=progress2 --partial)
+  local pat
+  for pat in ${extra+"${extra[@]}"}; do
+    args+=(--exclude "$pat")
+  done
+  $mirror && args+=(--delete-during)
+  $dry && args+=(--dry-run)
+
+  echo "==> rsync $src/ -> ${target%/}/"
+  $dry && echo "    (dry run)"
+  $mirror && echo "    (--mirror: files not in the pool will be DELETED)"
+
+  sudo mkdir -p "${target%/}"
+  sudo rsync "${args[@]}" "$src/" "${target%/}/"
+
+  # Default to the owner implied by the path: /home/lakin -> lakin:users.
+  # NixOS need not have handed the rebuilt account the same uid Arch did.
+  if [ "$owner" = "-" ]; then
+    echo "Restore complete. Ownership left as stored (--no-chown)."
+  else
+    [ -n "$owner" ] || owner="$(basename "${SYNC_SOURCE%/}"):users"
+    if $dry; then
+      echo "Restore complete (dry run). Would chown -R $owner ${target%/}"
+    else
+      echo "==> chown -R $owner ${target%/}"
+      sudo chown -R "$owner" "${target%/}"
+      echo "Restore complete."
+    fi
+  fi
+}
+
 # ── verify ───────────────────────────────────────────────────────────
 
 cmd_verify() {
@@ -556,6 +646,7 @@ case "$cmd" in
   close)    cmd_close "$@" ;;
   status)   cmd_status "$@" ;;
   sync)     cmd_sync "$@" ;;
+  restore)  cmd_restore "$@" ;;
   verify)   cmd_verify "$@" ;;
   snapshot) cmd_snapshot "$@" ;;
   scrub)    cmd_scrub "$@" ;;

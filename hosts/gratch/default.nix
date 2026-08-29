@@ -86,31 +86,6 @@
     '';
   };
 
-  # ── Syncthing: only run on AC power ──────────────────────────────────
-  # Remove from auto-start targets — power guard and udev manage it
-  systemd.services.syncthing.wantedBy = lib.mkForce [];
-
-  # Start syncthing at boot only if on AC
-  systemd.services.syncthing-power-guard = {
-    description = "Start syncthing if on AC power";
-    after = [ "network.target" ];
-    wantedBy = [ "multi-user.target" ];
-    serviceConfig = {
-      Type = "oneshot";
-      ExecStart = pkgs.writeShellScript "syncthing-power-guard" ''
-        if cat /sys/class/power_supply/*/online 2>/dev/null | grep -q "^1$"; then
-          systemctl start syncthing.service 2>/dev/null || true
-        fi
-      '';
-    };
-  };
-
-  # Start/stop syncthing on AC plug/unplug
-  services.udev.extraRules = ''
-    SUBSYSTEM=="power_supply", ATTR{type}=="Mains", ATTR{online}=="0", RUN+="${pkgs.systemd}/bin/systemctl stop syncthing.service"
-    SUBSYSTEM=="power_supply", ATTR{type}=="Mains", ATTR{online}=="1", RUN+="${pkgs.systemd}/bin/systemctl start syncthing.service"
-  '';
-
   # ── Ollama: don't auto-start (use systemctl start ollama manually) ─
   systemd.services.ollama.wantedBy = lib.mkForce [];
 
