@@ -21,7 +21,6 @@ show = true
 left = [
     "dashboard",
     "hyprland-workspaces",
-    "window-title",
 ]
 center = ["media"]
 right = [
@@ -51,8 +50,6 @@ display-mode = "label"
 12 = { label = "g" }
 13 = { label = "s" }
 14 = { label = "*" }
-
-[modules.window-title]
 
 [modules.media]
 label-max-length = 35
