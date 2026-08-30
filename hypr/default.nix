@@ -229,6 +229,11 @@ in {
     mode = "0755";
   };
 
+  environment.etc."hypr/scripts/lan-mouse-toggle.sh" = {
+    source = ./scripts/lan-mouse-toggle.sh;
+    mode = "0755";
+  };
+
   # Power key opens the rofi menu via hyprland.lua; a long press still poweroffs.
   services.logind.settings.Login = {
     HandlePowerKey = lib.mkDefault "ignore";

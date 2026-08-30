@@ -141,6 +141,10 @@ hl.bind("SUPER + SHIFT + Z", hl.dsp.exec_cmd("/etc/hypr/scripts/mac-shortcut.sh 
 
 hl.bind("CTRL + SUPER + SHIFT + T", hl.dsp.exec_cmd("/etc/user-bin/theme-toggle"))
 
+-- Start/stop lan-mouse. Stopping also restarts the portal, which is the only
+-- thing that reclaims the fds it leaks per capture session (see the script).
+hl.bind("CTRL + SUPER + M", hl.dsp.exec_cmd("/etc/hypr/scripts/lan-mouse-toggle.sh toggle"))
+
 hl.bind("SUPER + Return", hl.dsp.exec_cmd("ghostty"))
 hl.bind("SUPER + SHIFT + Q", hl.dsp.window.close())
 hl.bind("SUPER + SHIFT + E", hl.dsp.exit())
