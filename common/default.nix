@@ -12,6 +12,7 @@
     ./networking.nix
     ./desktop.nix
     ./audio.nix
+    ./bluetooth.nix
     ./packages.nix
     ./user.nix
     ../ghostty

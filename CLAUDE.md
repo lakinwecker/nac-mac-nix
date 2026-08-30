@@ -51,7 +51,7 @@ and what is backed up where: [docs/trunkie-plan.md](docs/trunkie-plan.md).
 
 ```
 machines.nix         Machine registry (one entry per host)
-common/              Shared config (networking, desktop, audio, packages, user)
+common/              Shared config (networking, desktop, audio, bluetooth, packages, user)
 hosts/<name>/        Hardware-specific config per machine
 hypr/                Hyprland desktop module
 xfce/                XFCE desktop module

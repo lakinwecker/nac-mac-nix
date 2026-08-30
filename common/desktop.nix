@@ -3,6 +3,11 @@
   # ── Graphics ────────────────────────────────────────────────────────
   hardware.graphics.enable = true;
 
+  # ── Power ───────────────────────────────────────────────────────────
+  # Battery reporting for laptops and for Bluetooth devices (gratch also
+  # drives its lid/battery handling off `upower --monitor`).
+  services.upower.enable = true;
+
   # ── GTK / dconf ────────────────────────────────────────────────────
   programs.dconf = {
     enable = true;
