@@ -97,13 +97,19 @@ Put fingerprints in `machines.nix`, not via `lan-mouse cli authorize-key` —
 that writes to the config file, which the Nix-generated `/etc` copy replaces on
 every rebuild.
 
-## Known unknown
+## Coming back: the release bind
 
-**Whether the pointer can return from a Linux box to phoebe has not been
-tested.** With `--capture-backend dummy` there may be nothing watching trunkie's
-or gratch's screen edge to hand control back. If it turns out to be one-way, the
-options are the release bind (`Ctrl+Shift+Super+Alt`) or dropping the dummy
-backend on whichever host needs to initiate — and accepting the leak there.
+`Ctrl+Shift+Super+Alt` — on phoebe's keyboard, Control+Shift+Command+Option.
+
+With `--capture-backend dummy` a Linux host has nothing watching its screen edge,
+so it cannot hand the pointer back on its own. The release bind is the route
+back, and it is handled by whichever machine is *currently capturing* — phoebe —
+so it works regardless of the receiving host's backend.
+
+Verified on trunkie: repeated crossings back and forth, with the portal counters
+flat throughout (6 sessions / 6 ConnectToEIS / 32 xdph fds before and after).
+Under the portal backend the same crossings would have cost roughly +3 sessions
+and +3 fds each.
 
 ## Service
 
