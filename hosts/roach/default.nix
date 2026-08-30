@@ -1,7 +1,12 @@
 # Asus TUF Gaming F16 (FX608JM) — Intel Raptor Lake + NVIDIA RTX
 # hostname "roach"
-{ lib, pkgs, config, ... }:
+{ lib, pkgs, config, username, ... }:
 {
+  # ── Nix ────────────────────────────────────────────────────────────
+  # Trusted users may pass restricted client settings (e.g. the
+  # `system` setting devenv/direnv sets when evaluating a shell).
+  nix.settings.trusted-users = [ "root" username ];
+
   # ── ASUS services ──────────────────────────────────────────────────
   services.asusd.enable = true;
   services.supergfxd.enable = true;
