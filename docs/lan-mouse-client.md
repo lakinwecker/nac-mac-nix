@@ -1,29 +1,52 @@
 # lan-mouse config — phoebe & harry (clients)
 
-Place this at `~/.config/lan-mouse/config.toml`. Each client must define the server (trunkie) as a peer using the position trunkie is relative to that client.
+Each client defines the server (trunkie) as a peer, using the position trunkie
+occupies *relative to that client*. Config lives at
+`~/.config/lan-mouse/config.toml`.
 
-## Harry (Surface) — trunkie is above
+## harry (Surface) — trunkie is above
+
+Generated declaratively by `machines.nix` (harry's `extraModules`):
 
 ```toml
 port = 4343
 
-[top]
+[[clients]]
+position = "top"
 hostname = "trunkie.local"
 ips = ["192.168.50.15"]
 port = 4343
 activate_on_startup = true
 ```
 
-## Phoebe (Mac) — trunkie is to the right
+## phoebe (Mac) — trunkie is to the right
+
+Not NixOS, so place this by hand at `~/.config/lan-mouse/config.toml`:
 
 ```toml
 port = 4343
 
-[right]
+[[clients]]
+position = "right"
 hostname = "trunkie.local"
 ips = ["192.168.50.15"]
 port = 4343
 activate_on_startup = true
 ```
 
-Note: `ips` is needed because lan-mouse's built-in DNS resolver doesn't support mDNS `.local` resolution ([issue #234](https://github.com/feschber/lan-mouse/issues/234)). Use LAN IPs or add entries to `/etc/hosts`.
+## Config schema (0.11)
+
+Peers are `[[clients]]` array-of-tables entries carrying a `position` key
+(`left` | `right` | `top` | `bottom`). Earlier versions used bare `[left]` /
+`[top]` section headers; 0.11 **silently ignores** that form — no error, the
+peer just never shows up.
+
+`ips` is required. lan-mouse's resolver has no mDNS, so `trunkie.local` on its
+own never resolves ([issue #234](https://github.com/feschber/lan-mouse/issues/234)).
+Use LAN IPs or `/etc/hosts` entries.
+
+## Certificate authorization
+
+0.11 encrypts traffic with DTLS. Each side must authorize the other's TLS
+fingerprint before input crosses — see
+[lan-mouse-server.md](lan-mouse-server.md#certificate-authorization).

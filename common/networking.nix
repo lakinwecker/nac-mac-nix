@@ -70,7 +70,17 @@
     after = [ "graphical-session.target" ];
     wantedBy = [ "graphical-session.target" ];
     serviceConfig = {
-      ExecStart = "${pkgs.lan-mouse}/bin/lan-mouse --daemon";
+      # `daemon` subcommand, not `--daemon` — 0.11 moved to subcommands and the
+      # old flag now exits 2 (INVALIDARGUMENT).
+      #
+      # --config points at /etc rather than ~/.config on purpose. Hosts with
+      # boot.initrd.systemd.enable run NixOS activation before /home is
+      # mounted, so an activation script writing the config lands in the bare
+      # mountpoint and is shadowed the moment /home mounts over it. /etc is
+      # part of the system closure and always correct.
+      # Flags go BEFORE the subcommand — usage is `lan-mouse [OPTIONS] [COMMAND]`.
+      # `daemon --config ...` exits 2/INVALIDARGUMENT.
+      ExecStart = "${pkgs.lan-mouse}/bin/lan-mouse --config /etc/lan-mouse/config.toml daemon";
       Restart = "on-failure";
       RestartSec = 5;
     };
