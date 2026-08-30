@@ -25,15 +25,16 @@ the bar, Electron apps — not just the portal.
 - Fix: PR #421, **unmerged**, part 2 of 3 (also needs hyprland-protocols ≥ 0.8.0
   and a Hyprland-side change)
 
-Measured on trunkie: +3 fds per crossing, never released; crashes observed at 39
-and 45 sessions. Stopping lan-mouse does **not** give the fds back — they belong
+Measured on trunkie: +3 fds per crossing, never released; crashes observed at 39, 45
+and 50 sessions. Stopping lan-mouse does **not** give the fds back — they belong
 to xdph and survive until it restarts.
 
 Capture is the only path that touches the portal. Emulation uses the wlroots
 virtual-input protocols instead, so a host that never captures never leaks. That
-is what `lanMouseReceiveOnly = true` in `machines.nix` buys: it adds
+is what `lanMouseCaptureBackend = "dummy"` in `machines.nix` buys: it adds
 `--capture-backend dummy`, measured to produce zero portal sessions and zero fd
-growth.
+growth. Do not reach for `layer-shell` instead — it also avoids the portal, but
+sticks modifier keys and repeats keystrokes.
 
 macOS capture does not involve xdph at all, which is why phoebe is the hub.
 
@@ -45,7 +46,7 @@ these hosts runs from the initrd before `/home` is mounted, so a home-written
 config is shadowed the moment `/home` mounts over it.
 
 `position` is where the *peer* sits relative to this host, so both list phoebe:
-trunkie says `left`, roach says `bottom`.
+trunkie says `left`, roach says `right`.
 
 ## phoebe side (manual — not NixOS)
 
@@ -68,13 +69,34 @@ activate_on_startup = true
 [[clients]]
 position = "left"
 hostname = "roach.local"
-ips = ["<roach ip>"]
+ips = ["192.168.50.172"]
 port = 4343
 activate_on_startup = true
 ```
 
 `position` only picks which screen edge triggers a crossing — it does not have
 to match physical desk layout.
+
+## Addressing
+
+`ips` is mandatory in every peer block: lan-mouse's resolver has no mDNS, so a
+bare `.local` name never resolves (feschber/lan-mouse#234). That means these
+addresses have to stay put, so they are DHCP reservations on the router rather
+than ordinary leases:
+
+| host    | MAC                 | address        |
+|---------|---------------------|----------------|
+| trunkie | `10:7B:44:92:D4:7C` | 192.168.50.15  |
+| roach   | `F8:3D:C6:C2:FF:7C` | 192.168.50.172 |
+
+trunkie's is the onboard NIC `enp5s0` — deliberately *not* the dock's USB NIC
+(`8c:3b:4a:28:fd:9a`), which is left unmanaged in `hosts/trunkie/default.nix`
+and never holds an address.
+
+roach's is its Wi-Fi MAC. Its wired NIC (`bc:fc:e7:f1:4b:09`) is a separate
+interface with a separate lease, so plugging roach into ethernet would move it
+off the reserved address and break the peer with a "connection timed out" until
+`ips` is updated.
 
 ## Fingerprints
 
@@ -88,10 +110,15 @@ already in both Linux configs. **trunkie** is
 
 roach's does not exist until lan-mouse runs there once; read it with:
 
+Wrapped in `bash -c` because the login shell here is nushell, where `>` is a
+comparison operator rather than a redirect — the two-step version writes no file
+and the second command then fails on a path that does not exist.
+
 ```bash
-awk '/BEGIN CERTIFICATE/,/END CERTIFICATE/' ~/.config/lan-mouse/lan-mouse.pem > /tmp/c.pem
-nix shell nixpkgs#openssl -c openssl x509 -in /tmp/c.pem -noout -fingerprint -sha256
+bash -c "awk '/BEGIN CERTIFICATE/,/END CERTIFICATE/' ~/.config/lan-mouse/lan-mouse.pem | nix shell nixpkgs#openssl -c openssl x509 -noout -fingerprint -sha256"
 ```
+
+The `.pem` is created the first time lan-mouse runs on that host.
 
 Put fingerprints in `machines.nix`, not via `lan-mouse cli authorize-key` —
 that writes to the config file, which the Nix-generated `/etc` copy replaces on
