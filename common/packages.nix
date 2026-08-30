@@ -29,6 +29,8 @@
     # Archives
     zip
     unzip
+    # Browsers — firefox comes from programs.firefox in ./desktop.nix
+    chromium
     # Docs
     zathura
     glow
