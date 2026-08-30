@@ -39,7 +39,8 @@ and what is backed up where: [docs/trunkie-plan.md](docs/trunkie-plan.md).
 - `username` — defaults to `"lakin"`
 - `hardware` — list of `nixos-hardware` module name strings, defaults to `[]`
 - `hyprHostConfig` / `hyprWallpaper` / `hyprgrass` / `hyprIdleTimeouts` / `hyprSuspendOnAc` / `hyprDynamicCursorsMode` — Hyprland-specific overrides
-- `hyprlandChannel` — `"stable"` (default, v0.55.4, has hyprexpo + hyprgrass) | `"next"` (v0.56.0 + portal v1.4.0 for lan-mouse's libei input capture; has hyprexpo, but `hyprgrass = true` throws). Moves Hyprland, portal, and plugin pins in lockstep.
+- `hyprlandChannel` — `"stable"` (default, v0.55.4, has hyprexpo + hyprgrass) | `"next"` (v0.56.0 + portal v1.4.0 for lan-mouse's libei input capture; has hyprexpo, but `hyprgrass = true` throws) | `"latest"` (v0.56.2 + portal v1.4.1; **no hyprexpo** — the fork's newest tag is v0.56.1+3, so nothing is published for v0.56.2 — and `hyprgrass = true` throws). Moves Hyprland, portal, and plugin pins in lockstep.
+- `ghosttyOpacity` — ghostty `background-opacity`, 0.0–1.0, default `0.85`. Rendered with `builtins.toJSON`; `toString` would emit `0.950000`.
 - `xfceWallpaper` / `xfceAvatar` — XFCE-specific overrides
 - `ollamaCuda` — enables CUDA ollama
 - `devTools` — heavier dev modules (nvim, zellij, ollama, latex), defaults to `true`
@@ -74,6 +75,41 @@ starship/ bin/ zellij/ ai/
 - Firmware only supports s2idle. `mem_sleep_default=s2idle` and `i915.enable_psr=0` are load-bearing.
 - Hibernate: btrfs swapfile at `/swap/swapfile` with `resume_offset=39068928`. Recompute offset if swapfile changes.
 - `surface-touchscreen-resume` service reloads ithc after hibernate. Don't drop it.
+
+## Hyprland Lua config
+
+`hypr/hyprland.lua` — hyprlang was deprecated in 0.55 and is dropped in 0.57,
+so the compositor config is Lua. `hyprlock.conf` and `hypridle.conf` still take
+hyprlang and are unaffected. Per-host `hyprHostConfig` strings in `machines.nix`
+and `hypr/hyprgrass.lua` are Lua too, since they are concatenated onto the same
+file. https://hypr.land/news/26_lua/
+
+Reference material is local, not on the wiki (which renders via JS and loses the
+code blocks): the Hyprland package ships `share/hypr/hyprland.lua` (a worked
+example) and `share/hypr/stubs/hl.meta.lua` (the whole `hl` API). Dispatcher
+argument shapes live in the source at
+`src/config/lua/bindings/LuaBindingsDispatchers.cpp`.
+
+Verify any change with `Hyprland --verify-config -c <file>` before switching —
+it catches bad keys, dispatcher shapes and Lua syntax without touching the
+running session. Two caveats: it does not dlopen plugins, so `unknown config key
+'plugin.*'` notices are first-pass artifacts rather than errors; and for the
+same reason a plugin's own Lua namespace (`hl.plugin.hyprgrass`) is nil on that
+first pass, so guard uses of it with `if hg then ... end`.
+
+Gotchas found during the migration:
+- `movetoworkspacesilent` is `hl.dsp.window.move({ workspace = N, follow = false })`.
+- `hl.gesture`'s `action` takes a string, a table of start/update/finish
+  callbacks, or a plain Lua function — a bare dispatcher errors, so wrap it.
+- Plugin option keys are **renamed** for Lua: `luaConfigValueName` rewrites `:`
+  to `.` and `-` to `_`, so `plugin:dynamic-cursors:shake:threshold` is
+  `plugin.dynamic_cursors.shake.threshold`. `hyprctl getoption` still reports
+  the legacy colon/hyphen name, which makes this easy to get backwards — check
+  it live with `hyprctl eval` plus `getoption` rather than assuming.
+- Plugins load *after* the first config pass, so their keys are unknown then;
+  `handlePluginLoads()` calls `reload()` and the values apply on the second
+  pass. That means `--verify-config` cannot validate plugin keys at all — a
+  wrong one is silently ignored at runtime, leaving plugin defaults in place.
 
 ## Conventions
 

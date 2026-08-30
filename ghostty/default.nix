@@ -1,9 +1,12 @@
-{ pkgs, username, ... }: {
+{ pkgs, username, ghosttyOpacity ? 0.85, ... }: {
   environment.systemPackages = with pkgs; [
     ghostty
   ];
 
-  environment.etc."ghostty/config".source = ./config;
+  # toJSON, not toString — toString renders 0.95 as "0.950000".
+  environment.etc."ghostty/config".text =
+    builtins.readFile ./config
+    + "background-opacity = ${builtins.toJSON ghosttyOpacity}\n";
 
   system.activationScripts.ghosttyConfig = {
     deps = [ "users" ];

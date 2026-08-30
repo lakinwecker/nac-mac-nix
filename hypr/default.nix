@@ -1,5 +1,5 @@
 # Force rebuild
-{ pkgs, lib, username, hyprland, hyprgrass ? null, hyprDynamicCursors, hyprexpoSrc, hyprHostConfig ? "", hyprWallpaper ? ./wallpaper.jpg, hyprDynamicCursorsMode ? "none", hyprIdleTimeouts ? {}, hyprSuspendOnAc ? true, ... }:
+{ pkgs, lib, username, hyprland, hyprgrass ? null, hyprDynamicCursors, hyprexpoSrc, hyprHostConfig ? "", hyprWallpaper ? ./wallpaper.jpg, hyprDynamicCursorsMode ? "none", hyprIdleTimeouts ? {}, hyprSuspendOnAc ? true, hyprLockGrace ? 2, ... }:
 let
   hyprgrassEnabled = hyprgrass != null;
   hyprexpoEnabled = hyprexpoSrc != null;
@@ -63,33 +63,60 @@ let
     hyprlandPlugins = pkgs.hyprlandPlugins.override { hyprland = hyprlandPackage; };
   };
   hyprexpoConfig = ''
-    plugin = /etc/hypr/plugins/hyprexpo.so
+    hl.plugin.load("/etc/hypr/plugins/hyprexpo.so")
 
-    plugin:hyprexpo {
-        columns = 4
-        gap_size = 15
-        bg_col = rgb(111111)
-        workspace_method = first 1
-        gesture_distance = 300
-    }
+    hl.config({
+        plugin = {
+            hyprexpo = {
+                columns = 4,
+                gap_size = 15,
+                bg_col = "rgb(111111)",
+                workspace_method = "first 1",
+                gesture_distance = 300,
+            },
+        },
+    })
 
-    # hyprexpo overview. Routed via exec because the direct dispatcher/hyprexpo-gesture
-    # don't fire from a swipe on some touchpads (roach), though they work from the CLI.
-    gesture = 3, up, dispatcher, exec, hyprctl dispatch hyprexpo:expo toggle
+    -- hyprexpo overview. Routed via exec because the direct dispatcher /
+    -- hyprexpo-gesture don't fire from a swipe on some touchpads (roach),
+    -- though they work from the CLI.
+    -- action takes a string action name, a table of start/update/finish
+    -- callbacks, or a plain Lua function. A bare dispatcher falls through to
+    -- the string parser and errors, so wrap it in a function.
+    hl.gesture({
+        fingers = 3,
+        direction = "up",
+        action = function()
+            hl.dispatch(hl.dsp.exec_cmd("hyprctl dispatch hyprexpo:expo toggle"))
+        end,
+    })
   '';
+  # dynamic_cursors, not "dynamic-cursors": CConfigManager::luaConfigValueName
+  # rewrites ':' to '.' AND '-' to '_', so the Lua name for
+  # plugin:dynamic-cursors:shake:threshold is
+  # plugin.dynamic_cursors.shake.threshold. `hyprctl getoption` still reports
+  # the legacy colon/hyphen form, which is what makes this easy to get wrong.
+  #
+  # Note the plugin loads *after* the first config pass, so its keys are
+  # unknown then; handlePluginLoads() calls reload() once plugins are in, and
+  # the values apply on that second pass.
   dynamicCursorsConfig = ''
-    plugin = /etc/hypr/plugins/hypr-dynamic-cursors.so
+    hl.plugin.load("/etc/hypr/plugins/hypr-dynamic-cursors.so")
 
-    plugin:dynamic-cursors {
-        enabled = true
-        mode = ${hyprDynamicCursorsMode}
+    hl.config({
+        plugin = {
+            dynamic_cursors = {
+                enabled = true,
+                mode = "${hyprDynamicCursorsMode}",
 
-        shake {
-            enabled = true
-            # Lower than the 6.0 default — triggers magnification sooner.
-            threshold = 4.0
-        }
-    }
+                shake = {
+                    enabled = true,
+                    -- Lower than the 6.0 default — magnifies sooner.
+                    threshold = 4.0,
+                },
+            },
+        },
+    })
   '';
 in {
   imports = [ hyprland.nixosModules.default ];
@@ -197,7 +224,7 @@ in {
     mode = "0755";
   };
 
-  # Power key opens the rofi menu via hyprland.conf; a long press still poweroffs.
+  # Power key opens the rofi menu via hyprland.lua; a long press still poweroffs.
   services.logind.settings.Login = {
     HandlePowerKey = lib.mkDefault "ignore";
     HandlePowerKeyLongPress = lib.mkDefault "poweroff";
@@ -206,14 +233,32 @@ in {
   environment.etc."hypr/rofi-tokyonight.rasi".source = ./rofi-tokyonight.rasi;
   environment.etc."hypr/nwg-drawer.css".source = ./nwg-drawer.css;
 
-  environment.etc."hypr/hyprland.conf".text =
-    builtins.readFile ./hyprland.conf
-    + lib.optionalString hyprgrassEnabled (builtins.readFile ./hyprgrass.conf)
-    + lib.optionalString hyprexpoEnabled ("\n# hyprexpo plugin\n" + hyprexpoConfig)
-    + "\n# hypr-dynamic-cursors plugin\n" + dynamicCursorsConfig
-    + "\n# Per-host overrides\n" + hyprHostConfig;
+  # hyprland.lua, not hyprland.conf: hyprlang was deprecated in 0.55 and is
+  # dropped in 0.57. hyprlock/hypridle still take hyprlang and are unaffected.
+  environment.etc."hypr/hyprland.lua".text =
+    builtins.readFile ./hyprland.lua
+    + lib.optionalString hyprgrassEnabled ("\n-- hyprgrass plugin\n" + builtins.readFile ./hyprgrass.lua)
+    + lib.optionalString hyprexpoEnabled ("\n-- hyprexpo plugin\n" + hyprexpoConfig)
+    + "\n-- hypr-dynamic-cursors plugin\n" + dynamicCursorsConfig
+    + "\n-- Per-host overrides\n" + hyprHostConfig;
   environment.etc."hypr/hypridle.conf".text = hypridleConf;
-  environment.etc."hypr/hyprlock.conf".source = ./hyprlock.conf;
+  # grace = seconds the lockscreen stays dismissible by any input before it
+  # actually demands a password. Appended rather than baked into the file so
+  # hosts can differ: a desk machine can afford 10s, a laptop that locks in
+  # public should not.
+  # Started from hyprland.lua's autostart hook. Exists only so graphical-session
+  # .target can be reached: that target refuses manual start, but BindsTo pulls
+  # it in as a dependency, which is what lets user services bound to it run.
+  systemd.user.targets.hyprland-session = {
+    description = "Hyprland session";
+    bindsTo = [ "graphical-session.target" ];
+    wants = [ "graphical-session-pre.target" ];
+    after = [ "graphical-session-pre.target" ];
+  };
+
+  environment.etc."hypr/hyprlock.conf".text =
+    builtins.replaceStrings [ "@GRACE@" ] [ (toString hyprLockGrace) ]
+      (builtins.readFile ./hyprlock.conf);
 
   # hyprlock does pam_start("hyprlock"); without this it has no auth backend.
   security.pam.services.hyprlock = { };
@@ -232,10 +277,10 @@ in {
       install -d -o ${username} -g users /home/${username}/.config/btop
       ln -sf /etc/btop/btop.conf /home/${username}/.config/btop/btop.conf
       chown -h ${username}:users /home/${username}/.config/btop/btop.conf
-      ln -sf /etc/hypr/hyprland.conf /home/${username}/.config/hypr/hyprland.conf
+      ln -sf /etc/hypr/hyprland.lua /home/${username}/.config/hypr/hyprland.lua
       ln -sf /etc/hypr/hypridle.conf /home/${username}/.config/hypr/hypridle.conf
       ln -sf /etc/hypr/hyprlock.conf /home/${username}/.config/hypr/hyprlock.conf
-      chown -h ${username}:users /home/${username}/.config/hypr/hyprland.conf /home/${username}/.config/hypr/hypridle.conf /home/${username}/.config/hypr/hyprlock.conf
+      chown -h ${username}:users /home/${username}/.config/hypr/hyprland.lua /home/${username}/.config/hypr/hypridle.conf /home/${username}/.config/hypr/hyprlock.conf
       # Pick the wayle variant matching the current theme mode (set by
       # theme-toggle). Defaults to dark if state file is absent.
       mode="dark"

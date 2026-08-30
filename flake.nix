@@ -23,6 +23,13 @@
       url = "github:hyprwm/Hyprland/v0.56.0";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    # v0.56.2 pins xdg-desktop-portal-hyprland v1.4.1, which carries the
+    # InputCapture portal (added in 1.4.0) plus the 1.4.1 fix for the portal
+    # event loop pegging a CPU — that loop is what lan-mouse drives.
+    hyprland-latest = {
+      url = "github:hyprwm/Hyprland/v0.56.2";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     hypr-dynamic-cursors = {
       # Pinned to 0.55.4-compatible commit — bump in lockstep with hyprland.
       url = "github:VirtCode/hypr-dynamic-cursors/da447486c84e0be81f2cdd208af1ef92469f0a88";
@@ -31,6 +38,16 @@
     hypr-dynamic-cursors-next = {
       url = "github:VirtCode/hypr-dynamic-cursors/5ef778ea151deb3573383d13d6e1cf7eed7336e1";
       inputs.hyprland.follows = "hyprland-next";
+    };
+    # Taken from the plugin's own hyprpm.toml commit_pins table, which maps a
+    # Hyprland commit to the plugin commit that builds against it:
+    #   ["efb5099…" (Hyprland v0.56.2), "5a22428…"]
+    # Do NOT pin the commit that *adds* that table row — its own tree tracks
+    # Hyprland main and wants hyprland/src/ipc/s2/S2.hpp, a header that does
+    # not exist in the v0.56.2 release.
+    hypr-dynamic-cursors-latest = {
+      url = "github:VirtCode/hypr-dynamic-cursors/5a224284872208b5324759d535d65061043725de";
+      inputs.hyprland.follows = "hyprland-latest";
     };
     # Community-maintained hyprexpo fork (workspace overview). Pinned to v0.55.4
     # release — bump in lockstep with hyprland.
@@ -42,13 +59,29 @@
       url = "github:sandwichfarm/hyprexpo/v0.56.0";
       flake = false;
     };
+    # devenv only. The main nixpkgs pin is deliberately slow-moving because it
+    # rebuilds the whole fleet (kernel, mesa, …); devenv is a single CLI that
+    # nags about being behind. This input tracks unstable so `nix flake update
+    # nixpkgs-devenv` bumps devenv alone. Drop it once the main pin catches up.
+    nixpkgs-devenv.url = "github:NixOS/nixpkgs/nixos-unstable";
   };
 
-  outputs = { self, nixpkgs, nixos-hardware, disko, hyprland, hyprland-next, hyprgrass, hypr-dynamic-cursors, hypr-dynamic-cursors-next, hyprexpo-src, hyprexpo-src-next, ... }:
+  outputs = { self, nixpkgs, nixpkgs-devenv, nixos-hardware, disko, hyprland, hyprland-next, hyprland-latest, hyprgrass, hypr-dynamic-cursors, hypr-dynamic-cursors-next, hypr-dynamic-cursors-latest, hyprexpo-src, hyprexpo-src-next, ... }:
   let
     # ── Machine registry ────────────────────────────────────────────
     machines = import ./machines.nix;
-    commonModules = [ ./common ];
+
+    # Pull devenv from its own nixpkgs so it can move without dragging the
+    # rest of the fleet along. Everything else still comes from `nixpkgs`.
+    devenvOverlay = { ... }: {
+      nixpkgs.overlays = [
+        (_final: prev: {
+          devenv = nixpkgs-devenv.legacyPackages.${prev.stdenv.hostPlatform.system}.devenv;
+        })
+      ];
+    };
+
+    commonModules = [ ./common devenvOverlay ];
     desktopModule = { hyprland = ./hypr; xfce = ./xfce; gnome = ./gnome; };
 
     hyprlandChannels = {
@@ -63,6 +96,16 @@
         hyprgrass = throw "hyprgrass has no pin compatible with the 'next' Hyprland channel; keep this host on 'stable' or add a hyprgrass-next input.";
         hyprDynamicCursors = hypr-dynamic-cursors-next;
         hyprexpoSrc = hyprexpo-src-next;
+      };
+      # No hyprexpo: the fork's newest tag is v0.56.1+3, so there is nothing
+      # published for v0.56.2. hyprexpoSrc = null disables the plugin rather
+      # than building a mismatched one. Hosts that need the overview gesture
+      # belong on "next".
+      latest = {
+        hyprland = hyprland-latest;
+        hyprgrass = throw "hyprgrass has no pin compatible with the 'latest' Hyprland channel; keep this host on 'stable'.";
+        hyprDynamicCursors = hypr-dynamic-cursors-latest;
+        hyprexpoSrc = null;
       };
     };
 
@@ -82,6 +125,7 @@
         hyprgrass  = if (m.hyprgrass or false) then channel.hyprgrass else null;
         ollamaCuda = m.ollamaCuda or false;
         devTools   = m.devTools or true;
+        ghosttyOpacity = m.ghosttyOpacity or 0.85;
       }
       // (if m.desktop == "hyprland" then {
         hyprHostConfig = m.hyprHostConfig or "";
@@ -90,6 +134,7 @@
         inherit (channel) hyprDynamicCursors hyprexpoSrc;
         hyprIdleTimeouts       = m.hyprIdleTimeouts or {};
         hyprSuspendOnAc        = m.hyprSuspendOnAc or true;
+        hyprLockGrace          = m.hyprLockGrace or 2;
       } else {})
       // (if m.desktop == "xfce" then {
         xfceWallpaper = m.xfceWallpaper or null;
