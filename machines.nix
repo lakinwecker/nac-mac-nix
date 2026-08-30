@@ -42,6 +42,12 @@
 #   xfceWallpaper  path to wallpaper, default: null
 #   xfceAvatar     path to avatar, default: null
 #   ghosttyOpacity ghostty background-opacity, 0.0-1.0, default: 0.85
+#   lanMouseReceiveOnly
+#                  run lan-mouse with --capture-backend dummy, default: false.
+#                  The host can still receive input but never opens an
+#                  input-capture portal session, dodging the xdph fd leak that
+#                  crashes the session bus (xdg-desktop-portal-hyprland#419).
+#                  Set on hosts where another machine owns the keyboard/mouse.
 #   ollamaCuda     enable CUDA ollama, default: false
 #   devTools       install the heavier dev modules (nvim/LazyVim, zellij,
 #                  ollama, latex). Default: true. Set false for a trimmed
@@ -99,6 +105,8 @@
     diskoConfig = ./hosts/gratch/disko-config.nix;
     hyprlandChannel = "next";
     hyprDynamicCursorsMode = "tilt";
+    # Same as trunkie: phoebe captures, gratch only emulates.
+    lanMouseReceiveOnly = true;
     # Don't idle-suspend when on AC power. Battery still suspends; lid-close
     # still suspends via logind. hypridle still dims/locks/dpms (screen off).
     hyprSuspendOnAc = false;
@@ -113,6 +121,32 @@
           kb_options = "altwin:swap_lalt_lwin,caps:backspace",
       })
     '';
+    extraModules = [
+      ({ ... }: {
+        # lan-mouse client. phoebe captures and drives both Linux boxes, so
+        # gratch sits above it: from gratch's point of view phoebe is below.
+        # In /etc rather than ~/.config for the same reason as trunkie --
+        # activation runs before /home is mounted here.
+        environment.etc."lan-mouse/config.toml".text = ''
+          port = 4343
+
+          # phoebe's certificate fingerprint. Without it the DTLS handshake is
+          # rejected with "Alert is Fatal or Close Notify".
+          [authorized_fingerprints]
+          "8b:73:b1:29:df:1d:50:bb:92:ce:d1:15:21:ae:af:45:b8:a0:21:14:33:d1:ee:8e:14:50:0a:d9:ac:15:6f:6b" = "phoebe"
+
+          # phoebe (Mac) — below gratch. ips is required: lan-mouse's resolver
+          # has no mDNS, so "phoebe.local" alone never resolves
+          # (feschber/lan-mouse#234).
+          [[clients]]
+          position = "bottom"
+          hostname = "phoebe.local"
+          ips = ["192.168.50.52"]
+          port = 4343
+          activate_on_startup = true
+        '';
+      })
+    ];
   };
 
   trunkie = {
@@ -121,6 +155,9 @@
     desktop = "hyprland";
     hardware = [ "common-cpu-amd" "common-gpu-amd" "common-pc" "common-pc-ssd" ];
     diskoConfig = ./hosts/trunkie/disko-config.nix;
+    # phoebe owns the keyboard/mouse in this topology, so trunkie only ever
+    # emulates. Keeps it out of the leaking capture path entirely.
+    lanMouseReceiveOnly = true;
     hyprWallpaper = ./hypr/wallpaper-trunkie.jpg;
     # Fully opaque: the Calgary wallpaper is bright, so any bleed-through
     # washes out light-theme terminal text.

@@ -1,4 +1,4 @@
-{ lib, pkgs, username, ... }:
+{ lib, pkgs, username, lanMouseReceiveOnly ? false, ... }:
 {
   # ── Networking (NetworkManager) ─────────────────────────────────────
   # NetworkManager is the single stack across every machine: the Wayland
@@ -80,7 +80,22 @@
       # part of the system closure and always correct.
       # Flags go BEFORE the subcommand — usage is `lan-mouse [OPTIONS] [COMMAND]`.
       # `daemon --config ...` exits 2/INVALIDARGUMENT.
-      ExecStart = "${pkgs.lan-mouse}/bin/lan-mouse --config /etc/lan-mouse/config.toml daemon";
+      #
+      # lanMouseReceiveOnly adds `--capture-backend dummy`, which stops this
+      # host ever opening an input-capture portal session. That matters because
+      # xdg-desktop-portal-hyprland leaks an EIS fd per session and lan-mouse
+      # opens one per barrier crossing; after ~36 the D-Bus session bus runs
+      # out of in-flight fd references and xdg-desktop-portal segfaults, taking
+      # every client on that bus down with it.
+      #   https://github.com/hyprwm/xdg-desktop-portal-hyprland/issues/419
+      #   fix: PR #421, unmerged, part 2 of 3
+      # Measured on trunkie: with the dummy backend, zero sessions and zero fd
+      # growth. Emulation is unaffected — it uses the wlroots virtual-input
+      # protocols and never touches the portal — so the host can still receive
+      # input, it just cannot initiate a crossing itself.
+      ExecStart = "${pkgs.lan-mouse}/bin/lan-mouse --config /etc/lan-mouse/config.toml"
+        + lib.optionalString lanMouseReceiveOnly " --capture-backend dummy"
+        + " daemon";
       Restart = "on-failure";
       RestartSec = 5;
     };
