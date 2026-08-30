@@ -42,12 +42,12 @@
 #   xfceWallpaper  path to wallpaper, default: null
 #   xfceAvatar     path to avatar, default: null
 #   ghosttyOpacity ghostty background-opacity, 0.0-1.0, default: 0.85
-#   lanMouseReceiveOnly
-#                  run lan-mouse with --capture-backend dummy, default: false.
-#                  The host can still receive input but never opens an
-#                  input-capture portal session, dodging the xdph fd leak that
-#                  crashes the session bus (xdg-desktop-portal-hyprland#419).
-#                  Set on hosts where another machine owns the keyboard/mouse.
+#   lanMouseCaptureBackend
+#                  lan-mouse --capture-backend value, default: null (auto).
+#                  "dummy" never opens an input-capture portal session, so the
+#                  host can receive but not initiate, dodging the xdph fd leak
+#                  that crashes the session bus (xdph#419). Avoid "layer-shell":
+#                  it sticks modifier keys and repeats keystrokes here.
 #   ollamaCuda     enable CUDA ollama, default: false
 #   devTools       install the heavier dev modules (nvim/LazyVim, zellij,
 #                  ollama, latex). Default: true. Set false for a trimmed
@@ -106,7 +106,7 @@
     hyprlandChannel = "next";
     hyprDynamicCursorsMode = "tilt";
     # Same as trunkie: phoebe captures, gratch only emulates.
-    lanMouseReceiveOnly = true;
+    lanMouseCaptureBackend = "dummy";
     # Don't idle-suspend when on AC power. Battery still suspends; lid-close
     # still suspends via logind. hypridle still dims/locks/dpms (screen off).
     hyprSuspendOnAc = false;
@@ -162,7 +162,7 @@
     diskoConfig = ./hosts/trunkie/disko-config.nix;
     # phoebe owns the keyboard/mouse in this topology, so trunkie only ever
     # emulates. Keeps it out of the leaking capture path entirely.
-    lanMouseReceiveOnly = true;
+    lanMouseCaptureBackend = "dummy";
     hyprWallpaper = ./hypr/wallpaper-trunkie.jpg;
     # Fully opaque: the Calgary wallpaper is bright, so any bleed-through
     # washes out light-theme terminal text.

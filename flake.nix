@@ -126,7 +126,7 @@
         ollamaCuda = m.ollamaCuda or false;
         devTools   = m.devTools or true;
         ghosttyOpacity = m.ghosttyOpacity or 0.85;
-        lanMouseReceiveOnly = m.lanMouseReceiveOnly or false;
+        lanMouseCaptureBackend = m.lanMouseCaptureBackend or null;
       }
       // (if m.desktop == "hyprland" then {
         hyprHostConfig = m.hyprHostConfig or "";

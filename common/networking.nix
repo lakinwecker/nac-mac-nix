@@ -1,4 +1,4 @@
-{ lib, pkgs, username, lanMouseReceiveOnly ? false, ... }:
+{ lib, pkgs, username, lanMouseCaptureBackend ? null, ... }:
 {
   # ── Networking (NetworkManager) ─────────────────────────────────────
   # NetworkManager is the single stack across every machine: the Wayland
@@ -81,20 +81,26 @@
       # Flags go BEFORE the subcommand — usage is `lan-mouse [OPTIONS] [COMMAND]`.
       # `daemon --config ...` exits 2/INVALIDARGUMENT.
       #
-      # lanMouseReceiveOnly adds `--capture-backend dummy`, which stops this
-      # host ever opening an input-capture portal session. That matters because
-      # xdg-desktop-portal-hyprland leaks an EIS fd per session and lan-mouse
-      # opens one per barrier crossing; after ~36 the D-Bus session bus runs
+      # lanMouseCaptureBackend picks how this host grabs input. The default
+      # (unset) lets lan-mouse choose, which on Hyprland means the
+      # input-capture portal -- and that leaks an EIS fd per session. lan-mouse
+      # opens one per barrier crossing, so after ~36 the D-Bus session bus runs
       # out of in-flight fd references and xdg-desktop-portal segfaults, taking
       # every client on that bus down with it.
       #   https://github.com/hyprwm/xdg-desktop-portal-hyprland/issues/419
       #   fix: PR #421, unmerged, part 2 of 3
-      # Measured on trunkie: with the dummy backend, zero sessions and zero fd
-      # growth. Emulation is unaffected — it uses the wlroots virtual-input
-      # protocols and never touches the portal — so the host can still receive
-      # input, it just cannot initiate a crossing itself.
+      #
+      # "dummy" disables capture entirely: no portal session is ever opened, so
+      # the leak is structurally impossible. Measured on trunkie: zero sessions,
+      # zero ConnectToEIS, zero fd growth. The cost is that this host cannot
+      # initiate a crossing -- the peer must, and coming back relies on the
+      # release bind (Ctrl+Shift+Meta+Alt) on the capturing side.
+      #
+      # "layer-shell" also avoids the portal and keeps capture working, but it
+      # is lan-mouse's older path and misbehaves here: stuck modifier keys and
+      # repeated keystrokes. Do not use it.
       ExecStart = "${pkgs.lan-mouse}/bin/lan-mouse --config /etc/lan-mouse/config.toml"
-        + lib.optionalString lanMouseReceiveOnly " --capture-backend dummy"
+        + lib.optionalString (lanMouseCaptureBackend != null) " --capture-backend ${lanMouseCaptureBackend}"
         + " daemon";
       Restart = "on-failure";
       RestartSec = 5;
