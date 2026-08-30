@@ -142,11 +142,9 @@
     # One spec shared by the initial hl.monitor call and the F10 re-enable, so
     # the two cannot drift — the reason the old config bound the mode string to
     # a name as well.
-    hyprHostConfig = let
-      hdmiSpec = ''{ output = "HDMI-A-1", mode = "3840x2160@120", position = "0x0", scale = 1.25 }'';
-    in ''
+    hyprHostConfig = ''
       -- 4K landscape panel (KVM-shared) — 1.25x scale, 3072x1728 logical at 0x0
-      hl.monitor(${hdmiSpec})
+      hl.monitor({ output = "HDMI-A-1", mode = "3840x2160@120", position = "0x0", scale = 1.25 })
       -- 1440p panel rotated 270deg, standing to the right of the 4K
       hl.monitor({ output = "DP-1", mode = "2560x1440@164", position = "3072x-420", scale = 1, transform = 3 })
 
@@ -157,13 +155,16 @@
       -- Hyprland reflow the windows instead of stranding them on a panel that
       -- is no longer displaying this host.
       --
-      -- `hyprctl keyword` is hyprlang-only — under a Lua config it returns
-      -- "keyword can't work with non-legacy parsers. Use eval." and does
-      -- nothing, silently. `hyprctl eval` runs Lua against the live config and
-      -- is the documented replacement. Single-quoted so the shell keeps the
-      -- braces and double quotes intact.
-      hl.bind("CTRL + SUPER + SHIFT + F9",  hl.dsp.exec_cmd([[hyprctl eval 'hl.monitor({ output = "HDMI-A-1", disabled = true })']]))
-      hl.bind("CTRL + SUPER + SHIFT + F10", hl.dsp.exec_cmd([[hyprctl eval 'hl.monitor(${hdmiSpec})']]))
+      -- Routed through kvm-monitor.sh because dropping the panel also has to
+      -- restart lan-mouse: the portal refuses a pointer barrier on the shared
+      -- HDMI-A-1/DP-1 edge while both are present (interior boundary), and
+      -- lan-mouse only asks for barriers when its capture session starts. See
+      -- the script for the full reasoning.
+      --
+      -- The script uses `hyprctl eval` / `hyprctl reload`; `hyprctl keyword` is
+      -- hyprlang-only and under a Lua config silently does nothing.
+      hl.bind("CTRL + SUPER + SHIFT + F9",  hl.dsp.exec_cmd("/etc/hypr/scripts/kvm-monitor.sh off HDMI-A-1"))
+      hl.bind("CTRL + SUPER + SHIFT + F10", hl.dsp.exec_cmd("/etc/hypr/scripts/kvm-monitor.sh on HDMI-A-1"))
 
       -- Send the current workspace to a named panel. By name, not monitor ID,
       -- because the KVM hotplug above renumbers the IDs.

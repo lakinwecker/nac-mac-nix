@@ -224,6 +224,11 @@ in {
     mode = "0755";
   };
 
+  environment.etc."hypr/scripts/kvm-monitor.sh" = {
+    source = ./scripts/kvm-monitor.sh;
+    mode = "0755";
+  };
+
   # Power key opens the rofi menu via hyprland.lua; a long press still poweroffs.
   services.logind.settings.Login = {
     HandlePowerKey = lib.mkDefault "ignore";
