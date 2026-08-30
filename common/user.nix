@@ -27,6 +27,21 @@
   time.timeZone = "America/Edmonton";
   time.hardwareClockInLocalTime = true;
 
+  # ── /home must be mounted before activation ────────────────────────
+  # Every host here keeps /home on its own filesystem, and roughly a dozen
+  # activation scripts (ghostty, hypr, nvim, nushell, starship, zellij, bin,
+  # lan-mouse, …) write into it. On hosts with boot.initrd.systemd.enable,
+  # NixOS runs the whole activation script from the initrd — before /home is
+  # mounted. Those writes land in the bare mountpoint on the root filesystem
+  # and are shadowed the instant /home mounts over them, so home config only
+  # ever took effect on `switch`, never on boot. systemd reports the leftovers
+  # as "Directory /home to mount over is not empty, mounting anyway."
+  #
+  # neededForBoot pulls the mount into stage 1, ahead of activation. Note the
+  # trade-off: /home failing to mount now drops to emergency instead of
+  # booting without it.
+  fileSystems."/home".neededForBoot = true;
+
   # ── Home directory ownership ───────────────────────────────────────
   system.activationScripts.userHomeOwnership = {
     deps = [ "users" "ghosttyConfig" "userBin" ];
