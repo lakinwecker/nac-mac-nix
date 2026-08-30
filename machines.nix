@@ -143,7 +143,12 @@
           hostname = "phoebe.local"
           ips = ["192.168.50.52"]
           port = 4343
-          activate_on_startup = true
+          # false, not true: on a receive-only host `activate_on_startup`
+          # makes lan-mouse *enter* this client at startup -- it seizes control
+          # and streams to the peer. With --capture-backend dummy there is no
+          # real input to send, so it pushes garbage and the peer's pointer
+          # wanders on its own. phoebe initiates; this host only receives.
+          activate_on_startup = false
         '';
       })
     ];
@@ -235,7 +240,12 @@
           hostname = "phoebe.local"
           ips = ["192.168.50.52"]
           port = 4343
-          activate_on_startup = true
+          # false, not true: on a receive-only host `activate_on_startup`
+          # makes lan-mouse *enter* this client at startup -- it seizes control
+          # and streams to the peer. With --capture-backend dummy there is no
+          # real input to send, so it pushes garbage and the peer's pointer
+          # wanders on its own. phoebe initiates; this host only receives.
+          activate_on_startup = false
         '';
       })
     ];
