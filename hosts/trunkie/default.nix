@@ -51,6 +51,17 @@
     HandleHibernateKeyLongPress = "ignore";
   };
 
+  # ── ZSA Moonlander ───────────────────────────────────────────────────
+  # Installs zsa-udev-rules, replacing the 50-zsa.rules file Oryx asks you to
+  # write by hand, so web flashing and live training can reach the keyboard's
+  # hidraw node without root.
+  #
+  # Ignore the plugdev group in ZSA's instructions: the packaged rules use
+  #   SUBSYSTEM=="hidraw", ATTRS{idVendor}=="3297", TAG+="uaccess"
+  # so logind hands the active session an ACL on the device. That is per-login
+  # rather than a static group, so there is nothing to create and nobody to add.
+  hardware.keyboard.zsa.enable = true;
+
   # ── Network: onboard NIC only ────────────────────────────────────────
   # The dock/KVM's USB NIC (r8152) takes a second DHCP lease on the same
   # 192.168.50.0/24 as the onboard igb, so the host ends up with two addresses
