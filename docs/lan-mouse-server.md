@@ -5,10 +5,12 @@ gratch only *emulate* — they receive input and can never initiate a crossing
 themselves.
 
 ```
-                  gratch          (position = "top"    from phoebe)
-                    |
-   phoebe  ------- trunkie        (position = "right"  from phoebe)
-   (hub)
+   gratch  -------  phoebe  ------- trunkie
+                     (hub)
+
+   from phoebe:  gratch = "left",  trunkie = "right"
+   from gratch:  phoebe = "right"
+   from trunkie: phoebe = "left"
 ```
 
 ## Why phoebe captures and the Linux boxes do not
@@ -64,7 +66,7 @@ port = 4343
 activate_on_startup = true
 
 [[clients]]
-position = "top"
+position = "left"
 hostname = "gratch.local"
 ips = ["<gratch ip>"]
 port = 4343

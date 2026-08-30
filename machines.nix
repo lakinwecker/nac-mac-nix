@@ -123,10 +123,10 @@
     '';
     extraModules = [
       ({ ... }: {
-        # lan-mouse client. phoebe captures and drives both Linux boxes, so
-        # gratch sits above it: from gratch's point of view phoebe is below.
-        # In /etc rather than ~/.config for the same reason as trunkie --
-        # activation runs before /home is mounted here.
+        # lan-mouse client. phoebe captures and drives both Linux boxes, with
+        # gratch to its left, so from gratch's point of view phoebe is to the
+        # right. In /etc rather than ~/.config for the same reason as trunkie
+        # -- activation runs before /home is mounted here.
         environment.etc."lan-mouse/config.toml".text = ''
           port = 4343
 
@@ -135,11 +135,11 @@
           [authorized_fingerprints]
           "8b:73:b1:29:df:1d:50:bb:92:ce:d1:15:21:ae:af:45:b8:a0:21:14:33:d1:ee:8e:14:50:0a:d9:ac:15:6f:6b" = "phoebe"
 
-          # phoebe (Mac) — below gratch. ips is required: lan-mouse's resolver
-          # has no mDNS, so "phoebe.local" alone never resolves
+          # phoebe (Mac) — right of gratch. ips is required: lan-mouse's
+          # resolver has no mDNS, so "phoebe.local" alone never resolves
           # (feschber/lan-mouse#234).
           [[clients]]
-          position = "bottom"
+          position = "right"
           hostname = "phoebe.local"
           ips = ["192.168.50.52"]
           port = 4343
