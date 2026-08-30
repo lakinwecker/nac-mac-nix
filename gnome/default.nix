@@ -5,8 +5,12 @@ let
   cursorName = "BreezeX-RosePineDawn-Linux";     # light variant from rose-pine-cursor
   wallpaper  = ./wallpapers/rose-pine/birb.png;  # CC0, see wallpapers/rose-pine/LICENSE
   # rose-pine-gtk-theme + GNOME Shell themes (Moon, and a Dawn recolor of it).
-  # See ./rose-pine-theme.nix for the palette remap.
-  rosePineTheme = pkgs.callPackage ./rose-pine-theme.nix { };
+  # The base package is vendored (./rose-pine-gtk-theme.nix) because nixpkgs
+  # dropped it with gtk-engine-murrine. See ./rose-pine-theme.nix for the
+  # palette remap.
+  rosePineTheme = pkgs.callPackage ./rose-pine-theme.nix {
+    rose-pine-gtk-theme = pkgs.callPackage ./rose-pine-gtk-theme.nix { };
+  };
   gtk4css    = "${rosePineTheme}/share/themes/${themeName}/gtk-4.0/gtk.css";
 in
 {
