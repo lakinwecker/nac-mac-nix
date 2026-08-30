@@ -105,8 +105,6 @@
     diskoConfig = ./hosts/gratch/disko-config.nix;
     hyprlandChannel = "next";
     hyprDynamicCursorsMode = "tilt";
-    # Same as trunkie: phoebe captures, gratch only emulates.
-    lanMouseCaptureBackend = "dummy";
     # Don't idle-suspend when on AC power. Battery still suspends; lid-close
     # still suspends via logind. hypridle still dims/locks/dpms (screen off).
     hyprSuspendOnAc = false;
@@ -121,37 +119,6 @@
           kb_options = "altwin:swap_lalt_lwin,caps:backspace",
       })
     '';
-    extraModules = [
-      ({ ... }: {
-        # lan-mouse client. phoebe captures and drives both Linux boxes, with
-        # gratch to its left, so from gratch's point of view phoebe is to the
-        # right. In /etc rather than ~/.config for the same reason as trunkie
-        # -- activation runs before /home is mounted here.
-        environment.etc."lan-mouse/config.toml".text = ''
-          port = 4343
-
-          # phoebe's certificate fingerprint. Without it the DTLS handshake is
-          # rejected with "Alert is Fatal or Close Notify".
-          [authorized_fingerprints]
-          "8b:73:b1:29:df:1d:50:bb:92:ce:d1:15:21:ae:af:45:b8:a0:21:14:33:d1:ee:8e:14:50:0a:d9:ac:15:6f:6b" = "phoebe"
-
-          # phoebe (Mac) — right of gratch. ips is required: lan-mouse's
-          # resolver has no mDNS, so "phoebe.local" alone never resolves
-          # (feschber/lan-mouse#234).
-          [[clients]]
-          position = "right"
-          hostname = "phoebe.local"
-          ips = ["192.168.50.52"]
-          port = 4343
-          # false, not true: on a receive-only host `activate_on_startup`
-          # makes lan-mouse *enter* this client at startup -- it seizes control
-          # and streams to the peer. With --capture-backend dummy there is no
-          # real input to send, so it pushes garbage and the peer's pointer
-          # wanders on its own. phoebe initiates; this host only receives.
-          activate_on_startup = false
-        '';
-      })
-    ];
   };
 
   trunkie = {
@@ -274,6 +241,39 @@
       })
     '';
     hyprWallpaper = ./hypr/wallpaper-roach.jpg;
+    # Same as trunkie: phoebe captures, roach only emulates.
+    lanMouseCaptureBackend = "dummy";
+    extraModules = [
+      ({ ... }: {
+        # lan-mouse client. phoebe captures and drives both Linux boxes, with
+        # roach to its left, so from roach's point of view phoebe is to the
+        # right. In /etc rather than ~/.config for the same reason as trunkie
+        # -- activation runs before /home is mounted here.
+        environment.etc."lan-mouse/config.toml".text = ''
+          port = 4343
+
+          # phoebe's certificate fingerprint. Without it the DTLS handshake is
+          # rejected with "Alert is Fatal or Close Notify".
+          [authorized_fingerprints]
+          "8b:73:b1:29:df:1d:50:bb:92:ce:d1:15:21:ae:af:45:b8:a0:21:14:33:d1:ee:8e:14:50:0a:d9:ac:15:6f:6b" = "phoebe"
+
+          # phoebe (Mac) — right of roach. ips is required: lan-mouse's
+          # resolver has no mDNS, so "phoebe.local" alone never resolves
+          # (feschber/lan-mouse#234).
+          [[clients]]
+          position = "right"
+          hostname = "phoebe.local"
+          ips = ["192.168.50.52"]
+          port = 4343
+          # false, not true: on a receive-only host `activate_on_startup`
+          # makes lan-mouse *enter* this client at startup -- it seizes control
+          # and streams to the peer. With --capture-backend dummy there is no
+          # real input to send, so it pushes garbage and the peer's pointer
+          # wanders on its own. phoebe initiates; this host only receives.
+          activate_on_startup = false
+        '';
+      })
+    ];
   };
 
   shrike = {

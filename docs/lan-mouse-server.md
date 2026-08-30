@@ -1,15 +1,15 @@
 # lan-mouse topology — phoebe (Mac) as the hub
 
 phoebe holds the keyboard and mouse and does all the capturing. trunkie and
-gratch only *emulate* — they receive input and can never initiate a crossing
+roach only *emulate* — they receive input and can never initiate a crossing
 themselves.
 
 ```
-   gratch  -------  phoebe  ------- trunkie
+   roach  -------  phoebe  ------- trunkie
                      (hub)
 
-   from phoebe:  gratch = "left",  trunkie = "right"
-   from gratch:  phoebe = "right"
+   from phoebe:  roach = "left",  trunkie = "right"
+   from roach:   phoebe = "right"
    from trunkie: phoebe = "left"
 ```
 
@@ -45,7 +45,7 @@ these hosts runs from the initrd before `/home` is mounted, so a home-written
 config is shadowed the moment `/home` mounts over it.
 
 `position` is where the *peer* sits relative to this host, so both list phoebe:
-trunkie says `left`, gratch says `bottom`.
+trunkie says `left`, roach says `bottom`.
 
 ## phoebe side (manual — not NixOS)
 
@@ -56,7 +56,7 @@ port = 4343
 
 [authorized_fingerprints]
 "<trunkie fingerprint>" = "trunkie"
-"<gratch fingerprint>"  = "gratch"
+"<roach fingerprint>"  = "roach"
 
 [[clients]]
 position = "right"
@@ -67,8 +67,8 @@ activate_on_startup = true
 
 [[clients]]
 position = "left"
-hostname = "gratch.local"
-ips = ["<gratch ip>"]
+hostname = "roach.local"
+ips = ["<roach ip>"]
 port = 4343
 activate_on_startup = true
 ```
@@ -86,7 +86,7 @@ Known: **phoebe** is
 already in both Linux configs. **trunkie** is
 `44:bc:eb:83:d7:a3:e8:99:1c:57:e8:7b:4e:01:67:7a:f4:45:c2:64:9e:5a:e5:79:5b:ae:ba:23:58:fe:b7:6a`.
 
-gratch's does not exist until lan-mouse runs there once; read it with:
+roach's does not exist until lan-mouse runs there once; read it with:
 
 ```bash
 awk '/BEGIN CERTIFICATE/,/END CERTIFICATE/' ~/.config/lan-mouse/lan-mouse.pem > /tmp/c.pem
