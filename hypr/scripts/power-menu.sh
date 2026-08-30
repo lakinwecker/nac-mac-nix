@@ -8,10 +8,20 @@ if pidof hyprlock >/dev/null 2>&1; then
   exit 0
 fi
 
-entries=("Lock" "Suspend")
+entries=("Lock")
+
+# Hosts that set systemd.targets.<x>.enable = false report "masked".
+unit_available() {
+  [ "$(systemctl is-enabled "$1" 2>/dev/null)" != "masked" ]
+}
+
+if unit_available suspend.target; then
+  entries+=("Suspend")
+fi
 
 # Only offer hibernate where a resume device is actually configured.
-if grep -qw disk /sys/power/state 2>/dev/null \
+if unit_available hibernate.target \
+  && grep -qw disk /sys/power/state 2>/dev/null \
   && [ -r /sys/power/resume ] \
   && [ "$(cat /sys/power/resume)" != "0:0" ]; then
   entries+=("Hibernate")
