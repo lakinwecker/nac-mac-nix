@@ -18,11 +18,16 @@ let
     dpms      = hyprIdleTimeouts.dpms or 600;
     suspend   = hyprIdleTimeouts.suspend or 900;
   };
+  # `grace` is a command-line flag in hyprlock 0.9.x, not a config option --
+  # `general:grace` in hyprlock.conf is rejected outright. One definition here
+  # so the idle listener, the sleep hook and the logind Lock signal cannot end
+  # up with different grace periods.
+  lockCmd = "pidof hyprlock || hyprlock --grace ${toString hyprLockGrace}";
   hypridleConf = ''
     general {
-        lock_cmd = pidof hyprlock || hyprlock
-        before_sleep_cmd = loginctl lock-session
-        after_sleep_cmd = sh -c 'hyprctl dispatch dpms on; wayle panel show'
+        lock_cmd = ${lockCmd}
+        before_sleep_cmd = ${lockCmd}
+        after_sleep_cmd = /etc/hypr/scripts/idle-dpms.sh on
     }
 
     listener {
@@ -33,13 +38,18 @@ let
 
     listener {
         timeout = ${toString idle.lock}
-        on-timeout = loginctl lock-session
+        # Not `loginctl lock-session`: greetd runs this session out of its
+        # default_session slot, so logind classes it as a greeter and refuses
+        # Lock() with "Session does not support lock screen" -- which silently
+        # dropped this listener entirely. Calling hyprlock directly does not
+        # care about the session class.
+        on-timeout = ${lockCmd}
     }
 
     listener {
         timeout = ${toString idle.dpms}
-        on-timeout = sh -c 'wayle panel hide; hyprctl dispatch dpms off'
-        on-resume = sh -c 'hyprctl dispatch dpms on; wayle panel show'
+        on-timeout = /etc/hypr/scripts/idle-dpms.sh off
+        on-resume = /etc/hypr/scripts/idle-dpms.sh on
     }
   '' + lib.optionalString (idle.suspend > 0) ''
 
@@ -234,6 +244,11 @@ in {
     mode = "0755";
   };
 
+  environment.etc."hypr/scripts/idle-dpms.sh" = {
+    source = ./scripts/idle-dpms.sh;
+    mode = "0755";
+  };
+
   # Power key opens the rofi menu via hyprland.lua; a long press still poweroffs.
   services.logind.settings.Login = {
     HandlePowerKey = lib.mkDefault "ignore";
@@ -252,10 +267,6 @@ in {
     + "\n-- hypr-dynamic-cursors plugin\n" + dynamicCursorsConfig
     + "\n-- Per-host overrides\n" + hyprHostConfig;
   environment.etc."hypr/hypridle.conf".text = hypridleConf;
-  # grace = seconds the lockscreen stays dismissible by any input before it
-  # actually demands a password. Appended rather than baked into the file so
-  # hosts can differ: a desk machine can afford 10s, a laptop that locks in
-  # public should not.
   # Started from hyprland.lua's autostart hook. Exists only so graphical-session
   # .target can be reached: that target refuses manual start, but BindsTo pulls
   # it in as a dependency, which is what lets user services bound to it run.
@@ -266,9 +277,7 @@ in {
     after = [ "graphical-session-pre.target" ];
   };
 
-  environment.etc."hypr/hyprlock.conf".text =
-    builtins.replaceStrings [ "@GRACE@" ] [ (toString hyprLockGrace) ]
-      (builtins.readFile ./hyprlock.conf);
+  environment.etc."hypr/hyprlock.conf".source = ./hyprlock.conf;
 
   # hyprlock does pam_start("hyprlock"); without this it has no auth backend.
   security.pam.services.hyprlock = { };

@@ -170,5 +170,16 @@
   };
   powerManagement.powertop.enable = false;
 
+  # ── No suspend while plugged in ──────────────────────────────────────
+  # hyprSuspendOnAc = false (machines.nix) already stops hypridle's idle
+  # suspend on mains power, but that listener is only one of the two routes
+  # into suspend: closing the lid goes through logind, which defaults to
+  # suspending regardless of power source.
+  #
+  # Only the external-power case is overridden, so the lid still suspends on
+  # battery — closing a laptop and walking off should not leave it awake in a
+  # bag. Docked with the lid shut now keeps running.
+  services.logind.settings.Login.HandleLidSwitchExternalPower = "ignore";
+
   environment.systemPackages = with pkgs; [ powertop lm_sensors ];
 }

@@ -48,6 +48,9 @@
   environment.etc."nvim/lua/plugins/linter.lua".source = ./lua/plugins/linter.lua;
   environment.etc."nvim/lua/plugins/disabled.lua".source = ./lua/plugins/disabled.lua;
   environment.etc."nvim/lua/plugins/example.lua".source = ./lua/plugins/example.lua;
+  environment.etc."nvim/lua/plugins/neogit.lua".source = ./lua/plugins/neogit.lua;
+  environment.etc."nvim/lua/plugins/codediff.lua".source = ./lua/plugins/codediff.lua;
+  environment.etc."nvim/lua/plugins/lazygit.lua".source = ./lua/plugins/lazygit.lua;
 
   system.activationScripts.nvimConfig = {
     deps = [ "users" ];
@@ -70,6 +73,9 @@
       ln -sf /etc/nvim/lua/plugins/linter.lua "$NVIM_CONFIG/lua/plugins/linter.lua"
       ln -sf /etc/nvim/lua/plugins/disabled.lua "$NVIM_CONFIG/lua/plugins/disabled.lua"
       ln -sf /etc/nvim/lua/plugins/example.lua "$NVIM_CONFIG/lua/plugins/example.lua"
+      ln -sf /etc/nvim/lua/plugins/neogit.lua "$NVIM_CONFIG/lua/plugins/neogit.lua"
+      ln -sf /etc/nvim/lua/plugins/codediff.lua "$NVIM_CONFIG/lua/plugins/codediff.lua"
+      ln -sf /etc/nvim/lua/plugins/lazygit.lua "$NVIM_CONFIG/lua/plugins/lazygit.lua"
       chown -R ${username}:users "$NVIM_CONFIG"
     '';
   };

@@ -46,6 +46,20 @@
     };
   };
 
+  # ── Default browser ─────────────────────────────────────────────────
+  # Without an explicit default, xdg-open picks the first app in
+  # mimeinfo.cache that claims the scheme, and chromium sorts before
+  # firefox — so installing chromium silently steals every link.
+  xdg.mime.defaultApplications = {
+    "text/html" = "firefox.desktop";
+    "x-scheme-handler/http" = "firefox.desktop";
+    "x-scheme-handler/https" = "firefox.desktop";
+    "x-scheme-handler/about" = "firefox.desktop";
+    "x-scheme-handler/unknown" = "firefox.desktop";
+  };
+
+  environment.sessionVariables.BROWSER = "firefox";
+
   # ── Fonts ───────────────────────────────────────────────────────────
   fonts.fontconfig.enable = true;
   fonts.fontDir.enable = true;

@@ -66,6 +66,14 @@ hl.config({
 
     misc = {
         disable_hyprland_logo = true,
+
+        -- Compositor-level wake from DPMS off. Both default to false, which
+        -- makes the screens unwakeable by mouse or keyboard once hypridle
+        -- blanks them -- the only way back is hypridle's on-resume, so any
+        -- failure there is a black screen with no escape. These are the
+        -- independent path that keeps that from being fatal.
+        mouse_move_enables_dpms = true,
+        key_press_enables_dpms = true,
     },
 })
 
@@ -185,8 +193,10 @@ hl.bind("SUPER + SHIFT + space", hl.dsp.window.move({ workspace = "special" }))
 ---- RESIZING  ----
 -------------------
 
--- Second arg is the reset key: escape leaves the submap.
-hl.define_submap("resize", "escape", function()
+-- define_submap's optional second arg is NOT an escape key -- it is the submap
+-- to jump to after any bind in here fires (a one-shot submap). Leaving it out
+-- keeps resize mode sticky; escape has to be bound explicitly below.
+hl.define_submap("resize", function()
     hl.bind("right", hl.dsp.window.resize({ x = 2,  y = 0,  relative = true }), { repeating = true })
     hl.bind("left",  hl.dsp.window.resize({ x = -2, y = 0,  relative = true }), { repeating = true })
     hl.bind("up",    hl.dsp.window.resize({ x = 0,  y = -2, relative = true }), { repeating = true })
@@ -204,6 +214,10 @@ hl.define_submap("resize", "escape", function()
     hl.bind("SHIFT + H",     hl.dsp.window.resize({ x = -20, y = 0,   relative = true }), { repeating = true })
     hl.bind("SHIFT + J",     hl.dsp.window.resize({ x = 0,   y = -20, relative = true }), { repeating = true })
     hl.bind("SHIFT + K",     hl.dsp.window.resize({ x = 0,   y = 20,  relative = true }), { repeating = true })
+
+    hl.bind("escape", hl.dsp.submap("reset"))
+    hl.bind("return", hl.dsp.submap("reset"))
+    hl.bind("SUPER + R", hl.dsp.submap("reset"))
 end)
 
 hl.bind("SUPER + R", hl.dsp.submap("resize"))
