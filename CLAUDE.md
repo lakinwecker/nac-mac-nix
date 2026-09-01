@@ -29,6 +29,12 @@ LUKS) and wraps the restic repo that mirrors it to OVH object storage. See
 trunkie is being rebuilt from Arch to NixOS. Disk layout, pre-install steps,
 and what is backed up where: [docs/trunkie-plan.md](docs/trunkie-plan.md).
 
+## Binary cache
+
+Planned, not built. attic on trunkie, storage on a 500GB subvolume of the SATA
+backup pool, served over nebula to the other hosts. Decision, trade-offs and
+open questions: [docs/binary-cache.md](docs/binary-cache.md).
+
 ## Architecture
 
 `machines.nix` is the **machine registry** — a single attrset keyed by hostname declaring each machine's desktop, hardware modules, username, and any overrides. `flake.nix` imports it and generates all `nixosConfigurations` (N hosts x {iso, installed}) via `mkIso`/`mkInstalled` helpers. To add a machine: add an entry to `machines.nix` + create `hosts/<name>/default.nix`.
