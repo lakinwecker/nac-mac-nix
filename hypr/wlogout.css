@@ -1,0 +1,70 @@
+/* Tokyonight theme for wlogout — palette matches rofi-tokyonight.rasi.
+ *
+ * @icons@ is substituted at build time with ${pkgs.wlogout}/share/wlogout/icons
+ * (see hypr/default.nix). GTK CSS needs absolute paths, and the store path is
+ * not knowable at edit time.
+ *
+ * Sized for touch: buttons are deliberately large, because the whole point of
+ * moving off rofi is that this has to be usable with no Type Cover attached.
+ */
+
+* {
+	background-image: none;
+	box-shadow: none;
+	font-family: "JetBrainsMono Nerd Font", monospace;
+}
+
+window {
+	background-color: rgba(31, 35, 53, 0.92);   /* bg */
+}
+
+button {
+	color: #c0caf5;                              /* fg */
+	background-color: #24283b;                   /* bg-alt */
+	border-style: solid;
+	border-width: 2px;
+	border-color: #363a54;                       /* border-col */
+	border-radius: 16px;
+	font-size: 18px;
+
+	background-repeat: no-repeat;
+	background-position: center 30%;
+	background-size: 28%;
+
+	/* Push the label clear of the centred icon. */
+	padding-top: 90px;
+}
+
+button:focus, button:active, button:hover {
+	background-color: #292e42;                   /* card */
+	color: #bb9af7;                              /* accent */
+	border-color: #bb9af7;
+	outline-style: none;
+}
+
+#lock      { background-image: url("@icons@/lock.png"); }
+#logout    { background-image: url("@icons@/logout.png"); }
+#suspend   { background-image: url("@icons@/suspend.png"); }
+#hibernate { background-image: url("@icons@/hibernate.png"); }
+#shutdown  { background-image: url("@icons@/shutdown.png"); }
+#reboot    { background-image: url("@icons@/reboot.png"); }
+
+/* No icon ships for cancel — it reads as a plain wide label, which is fine and
+ * makes it visually distinct from the destructive actions. */
+#cancel {
+	background-image: none;
+	padding-top: 0;
+	color: #565f89;                              /* fg-dim */
+}
+
+#cancel:focus, #cancel:active, #cancel:hover {
+	color: #7dcfff;                              /* accent-alt */
+	border-color: #7dcfff;
+}
+
+/* Destructive actions get a red tint on hover so a stray tap is obvious. */
+#shutdown:focus, #shutdown:active, #shutdown:hover,
+#reboot:focus, #reboot:active, #reboot:hover {
+	color: #f7768e;                              /* urgent */
+	border-color: #f7768e;
+}

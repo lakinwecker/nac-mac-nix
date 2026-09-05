@@ -39,6 +39,9 @@
 #                  makes the suspend listener skip when any power supply
 #                  reports online, so the host still idle-suspends on battery.
 #                  Dim/lock/dpms and logind's lid-close suspend are unaffected.
+#   hyprHibernate  offer Hibernate in the power menu, default: true. Set false
+#                  where hibernate is known broken. Only hides the menu entry;
+#                  `systemctl hibernate` by hand still works.
 #   xfceWallpaper  path to wallpaper, default: null
 #   xfceAvatar     path to avatar, default: null
 #   ghosttyOpacity ghostty background-opacity, 0.0-1.0, default: 0.85
@@ -61,6 +64,7 @@
     desktop = "hyprland";
     hardware = [ "microsoft-surface-pro-intel" ];
     hyprgrass = true;
+    hyprHibernate = false;   # no hibernate configured on harry
     hyprHostConfig = ''
       -- Swap Alt and Super to match Mac-style layout
       hl.config({

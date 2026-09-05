@@ -136,6 +136,7 @@
         hyprIdleTimeouts       = m.hyprIdleTimeouts or {};
         hyprSuspendOnAc        = m.hyprSuspendOnAc or true;
         hyprLockGrace          = m.hyprLockGrace or 2;
+        hyprHibernate          = m.hyprHibernate or true;
       } else {})
       // (if m.desktop == "xfce" then {
         xfceWallpaper = m.xfceWallpaper or null;

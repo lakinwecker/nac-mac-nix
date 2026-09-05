@@ -119,6 +119,8 @@ Gotchas found during the migration:
 
 ## Conventions
 
+- The power menu (`hypr/scripts/power-menu.sh`, bound to `XF86PowerOff`) uses **wlogout, not rofi** — rofi has no touch support, which makes the menu undismissable on a Surface with the Type Cover detached. Keep the `Cancel` entry: wlogout closes on Esc, and Esc needs a keyboard. `hypr/wlogout.css` is a template; `@icons@` is substituted at build time in `hypr/default.nix`.
+
 - ISO builds use `gzip -Xcompression-level 1` for faster (larger) images during dev.
 - `iso-packages.nix` is shared between installer and installed configs.
 - lan-mouse listens on TCP/UDP **4343** (4242 is taken by nebula).

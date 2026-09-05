@@ -1,5 +1,5 @@
 # Force rebuild
-{ pkgs, lib, username, hyprland, hyprgrass ? null, hyprDynamicCursors, hyprexpoSrc, hyprHostConfig ? "", hyprWallpaper ? ./wallpaper.jpg, hyprDynamicCursorsMode ? "none", hyprIdleTimeouts ? {}, hyprSuspendOnAc ? true, hyprLockGrace ? 2, ... }:
+{ pkgs, lib, username, hyprland, hyprgrass ? null, hyprDynamicCursors, hyprexpoSrc, hyprHostConfig ? "", hyprWallpaper ? ./wallpaper.jpg, hyprDynamicCursorsMode ? "none", hyprIdleTimeouts ? {}, hyprSuspendOnAc ? true, hyprLockGrace ? 2, hyprHibernate ? true, ... }:
 let
   hyprgrassEnabled = hyprgrass != null;
   hyprexpoEnabled = hyprexpoSrc != null;
@@ -174,6 +174,7 @@ in {
 
   environment.systemPackages = with pkgs; [
     rofi
+    wlogout                 # power menu — GTK3, so it takes touch (rofi does not)
     nwg-drawer
     bibata-cursors          # XCURSOR fallback for xwayland / X11 apps
     rose-pine-hyprcursor    # SVG-based hyprcursor — sharp at magnification
@@ -230,7 +231,11 @@ in {
   };
 
   environment.etc."hypr/scripts/power-menu.sh" = {
-    source = ./scripts/power-menu.sh;
+    source = pkgs.runCommand "power-menu.sh" { } ''
+      cp ${./scripts/power-menu.sh} $out
+      substituteInPlace $out \
+        --replace-fail '@hibernate@' '${if hyprHibernate then "1" else "0"}'
+    '';
     mode = "0755";
   };
 
@@ -249,13 +254,41 @@ in {
     mode = "0755";
   };
 
-  # Power key opens the rofi menu via hyprland.lua; a long press still poweroffs.
+  # Power key opens the wlogout menu via hyprland.lua; a long press still poweroffs.
   services.logind.settings.Login = {
     HandlePowerKey = lib.mkDefault "ignore";
     HandlePowerKeyLongPress = lib.mkDefault "poweroff";
   };
 
+  # Stamp /run/last-resume on every resume so power-menu.sh can tell "the user
+  # pressed power to wake the machine" from "the user wants the power menu".
+  # Without this the wake press falls through to the menu, which on a tablet
+  # with no Type Cover attached is unescapable — rofi has no touch support and
+  # the menu sits above the on-screen keyboard toggle.
+  #
+  # Use powerManagement.resumeCommands rather than a hand-rolled unit. It runs
+  # in the preStop of NixOS's sleep-actions service, which gets the ordering
+  # right via unitConfig.StopWhenUnneeded — a plain wantedBy=sleep.target unit
+  # with RemainAfterExit never re-fires, because stopping a target does not
+  # stop units merely wanted by it.
+  #
+  # mkBefore so the stamp lands first: resumeCommands is a merged `lines`, and
+  # host modules put slow work in there (harry reloads ithc and sleeps 1s). A
+  # late stamp would burn most of the grace window before it is even written.
+  powerManagement.resumeCommands = lib.mkBefore ''
+    ${pkgs.coreutils}/bin/touch /run/last-resume
+  '';
+
   environment.etc."hypr/rofi-tokyonight.rasi".source = ./rofi-tokyonight.rasi;
+
+  # GTK CSS needs absolute icon paths and the store path isn't knowable at edit
+  # time, so substitute it in at build time.
+  environment.etc."hypr/wlogout.css".source =
+    pkgs.runCommand "wlogout.css" { } ''
+      cp ${./wlogout.css} $out
+      substituteInPlace $out \
+        --replace-fail '@icons@' '${pkgs.wlogout}/share/wlogout/icons'
+    '';
   environment.etc."hypr/nwg-drawer.css".source = ./nwg-drawer.css;
 
   # hyprland.lua, not hyprland.conf: hyprlang was deprecated in 0.55 and is
