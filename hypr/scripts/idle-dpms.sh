@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -uo pipefail
 
-# Blank/unblank the panels for hypridle's idle listener.
+# Blank/unblank the screens for hypridle's idle listener.
 #
 #   usage: idle-dpms.sh on|off
 #
@@ -10,22 +10,22 @@ set -uo pipefail
 # Under a Lua config `hyprctl dispatch` parses its argument as Lua, so the old
 # `hyprctl dispatch dpms off` dies with "')' expected near 'off'" and the whole
 # listener silently does nothing. The working spelling is a Lua expression,
-# `hl.dsp.dpms("off")`, which has to be quoted inside the `sh -c '...'` that
-# hypridle would otherwise need to chain the wayle call — three levels of
-# nested quoting. One script instead, so there is a single place to get right.
+# `hl.dsp.dpms("off")`, whose quotes and parens do not survive the `sh -c` that
+# hypridle wraps every command in. One script instead, so the quoting lives in
+# exactly one place.
 #
-# Not `set -e`: on-resume must reach the dpms call even if wayle is dead,
-# otherwise a failed panel call leaves the screens dark with no way back.
+# This deliberately does NOT touch the Wayle bar. Hiding it bought nothing --
+# the screens are off, nobody can see the bar, and Wayle sits on layer "top"
+# so hyprlock (layer "overlay") already covers it -- while `wayle panel show`
+# on resume was unreliable enough to leave the bar gone until a manual
+# `wayle panel restart`.
 
 case "${1:-}" in
   off)
-    wayle panel hide || true
     hyprctl dispatch 'hl.dsp.dpms("off")'
     ;;
   on)
-    # dpms first — getting the screens lit matters more than the bar.
     hyprctl dispatch 'hl.dsp.dpms("on")'
-    wayle panel show || true
     ;;
   *)
     echo "usage: $0 on|off" >&2

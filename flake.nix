@@ -123,7 +123,7 @@
         username   = m.username or "lakin";
         hyprland   = if m.desktop == "hyprland" then channel.hyprland else null;
         hyprgrass  = if (m.hyprgrass or false) then channel.hyprgrass else null;
-        ollamaCuda = m.ollamaCuda or false;
+        ollamaAccel = m.ollamaAccel or "cpu";
         devTools   = m.devTools or true;
         ghosttyOpacity = m.ghosttyOpacity or 0.85;
         lanMouseCaptureBackend = m.lanMouseCaptureBackend or null;

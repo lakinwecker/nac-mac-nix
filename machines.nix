@@ -51,7 +51,9 @@
 #                  host can receive but not initiate, dodging the xdph fd leak
 #                  that crashes the session bus (xdph#419). Avoid "layer-shell":
 #                  it sticks modifier keys and repeats keystrokes here.
-#   ollamaCuda     enable CUDA ollama, default: false
+#   ollamaAccel    ollama hardware acceleration: "cpu" (default), "cuda" or
+#                  "rocm". Picks the matching ollama package; the NixOS module
+#                  already grants the unit /dev/kfd and the render group.
 #   devTools       install the heavier dev modules (nvim/LazyVim, zellij,
 #                  ollama, latex). Default: true. Set false for a trimmed
 #                  machine. Note: CLI tools (git TUIs, k8s, DBs, btop, …)
@@ -131,6 +133,9 @@
     desktop = "hyprland";
     hardware = [ "common-cpu-amd" "common-gpu-amd" "common-pc" "common-pc-ssd" ];
     diskoConfig = ./hosts/trunkie/disko-config.nix;
+    # RX 6800 XT (Navi 21 = gfx1030, 16GB) — one of the gfx targets ROCm
+    # supports officially, so no rocmOverrideGfx is needed here.
+    ollamaAccel = "rocm";
     # phoebe owns the keyboard/mouse in this topology, so trunkie only ever
     # emulates. Keeps it out of the leaking capture path entirely.
     lanMouseCaptureBackend = "dummy";
@@ -227,7 +232,9 @@
     desktop = "hyprland";
     hardware = [ "common-cpu-intel" "common-gpu-nvidia-nonprime" "common-pc-laptop" "common-pc-laptop-ssd" ];
     diskoConfig = ./hosts/roach/disko-config.nix;
-    ollamaCuda = true;
+    # NVIDIA RTX mobile with 8GB VRAM — half of trunkie's, and the practical
+    # ceiling on what will fit on the GPU here.
+    ollamaAccel = "cuda";
     hyprIdleTimeouts = { dim = 360; lock = 600; dpms = 1200; };
     # Don't idle-suspend when on AC power (lid open). Battery still suspends;
     # lid-close still suspends via logind. hypridle still dims/locks/dpms.

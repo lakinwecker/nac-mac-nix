@@ -48,7 +48,7 @@ open questions: [docs/binary-cache.md](docs/binary-cache.md).
 - `hyprlandChannel` — `"stable"` (default, v0.55.4, has hyprexpo + hyprgrass) | `"next"` (v0.56.0 + portal v1.4.0 for lan-mouse's libei input capture; has hyprexpo, but `hyprgrass = true` throws) | `"latest"` (v0.56.2 + portal v1.4.1; **no hyprexpo** — the fork's newest tag is v0.56.1+3, so nothing is published for v0.56.2 — and `hyprgrass = true` throws). Moves Hyprland, portal, and plugin pins in lockstep.
 - `ghosttyOpacity` — ghostty `background-opacity`, 0.0–1.0, default `0.85`. Rendered with `builtins.toJSON`; `toString` would emit `0.950000`.
 - `xfceWallpaper` / `xfceAvatar` — XFCE-specific overrides
-- `ollamaCuda` — enables CUDA ollama
+- `ollamaAccel` — ollama acceleration: `"cpu"` (default), `"cuda"` (roach), `"rocm"` (trunkie)
 - `devTools` — heavier dev modules (nvim, zellij, ollama, latex), defaults to `true`
 - `diskoConfig` — path to custom disko layout, defaults to `./disko-config.nix`
 - `extraModules` — list of extra NixOS modules
