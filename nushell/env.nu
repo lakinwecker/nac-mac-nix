@@ -2,6 +2,9 @@ $env.PATH = ($env.PATH | split row (char esep) | prepend [
     ($env.HOME | path join ".local" "bin")
     ($env.HOME | path join "bin")
     ($env.HOME | path join "go" "bin")
+    # npm's global prefix (see ../pi/default.nix). Deliberately after ~/bin, so
+    # the `pi` wrapper keeps shadowing the binary LazyPi installs here.
+    ($env.HOME | path join ".npm-global" "bin")
 ] | uniq)
 
 $env.EDITOR = "nvim"

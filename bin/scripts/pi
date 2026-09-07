@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+# The Pi coding agent, bootstrapping itself through LazyPi on first use.
+set -euo pipefail
+
+SELF_DIR="$(cd -- "$(dirname -- "$0")" && pwd)"
+
+# Exported, not just read: Pi installs its own extensions through whichever
+# package manager it detects. See ./lazypi for why the ambient value is unsafe.
+NPM_CONFIG_PREFIX="${NPM_CONFIG_PREFIX:-$HOME/.npm-global}"
+export NPM_CONFIG_PREFIX
+
+# Absolute path, not a PATH lookup: this wrapper is also named `pi`.
+PI="$NPM_CONFIG_PREFIX/bin/pi"
+
+if [ ! -x "$PI" ]; then
+    echo "pi is not installed yet — bootstrapping it with LazyPi." >&2
+    # Interactive, not --yes: you're at a terminal, and --yes takes all 25.
+    "$SELF_DIR/lazypi"
+fi
+
+if [ ! -x "$PI" ]; then
+    echo "LazyPi finished but $PI still does not exist. Try '$SELF_DIR/lazypi doctor'." >&2
+    exit 1
+fi
+
+exec "$PI" "$@"

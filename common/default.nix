@@ -24,12 +24,14 @@
     ../cli-tools
     ../tools
   ]
-  # Dev-only modules: LazyVim, zellij, ollama (ai/), texlive (latex/).
+  # Dev-only modules: LazyVim, zellij, ollama (ai/), texlive (latex/),
+  # node + npm prefix for the Pi coding agent (pi/).
   # Skipped on trimmed machines (devTools = false).
   ++ lib.optionals devTools [
     ../nvim
     ../zellij
     ../ai
     ../latex
+    ../pi
   ];
 }

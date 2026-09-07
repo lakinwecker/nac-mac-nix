@@ -1,4 +1,4 @@
-{ pkgs, username, ... }:
+{ pkgs, lib, username, devTools ? true, ... }:
 let
   scripts = [
     "ponymake"
@@ -20,6 +20,12 @@ let
     "toggle-keeb"
     "rotate-screen"
     "no-idle"
+  ]
+  # Gated individually because this module itself is imported unconditionally:
+  # these are ../pi's entry points, and ../pi is devTools-only.
+  ++ lib.optionals devTools [
+    "pi"
+    "lazypi"
   ];
   mkScript = name: pkgs.writeTextFile {
     inherit name;

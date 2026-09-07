@@ -63,7 +63,7 @@ hypr/                Hyprland desktop module
 xfce/                XFCE desktop module
 gnome/               GNOME desktop module
 ghostty/ nvim/ git/  Program modules (imported by common/default.nix)
-starship/ bin/ zellij/ ai/
+starship/ bin/ zellij/ ai/ pi/
 ```
 
 ### Module composition
