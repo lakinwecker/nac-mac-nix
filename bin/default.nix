@@ -21,27 +21,24 @@ let
     "rotate-screen"
     "no-idle"
   ];
-  scriptEntries = builtins.listToAttrs (map (name: {
-    name = "user-bin/${name}";
-    value = { source = ./scripts/${name}; };
-  }) scripts);
+  mkScript = name: pkgs.writeTextFile {
+    inherit name;
+    text = builtins.readFile ./scripts/${name};
+    executable = true;
+    destination = "/bin/${name}";
+  };
 in {
   # The pony* wrappers shell out to ponysay.
-  environment.systemPackages = with pkgs; [ ponysay ];
+  environment.systemPackages = with pkgs; [ ponysay ] ++ map mkScript scripts;
 
-  environment.etc = scriptEntries;
-
-  system.activationScripts.userBin = {
+  system.activationScripts.userBinCleanup = {
     deps = [ "users" ];
     text = ''
       BIN_DIR="/home/${username}/bin"
-      install -d -o ${username} -g users "$BIN_DIR"
       for script in ${builtins.concatStringsSep " " scripts}; do
         TARGET="$BIN_DIR/$script"
-        # Only symlink if target doesn't exist or is already a symlink (don't overwrite user scripts)
-        if [ ! -e "$TARGET" ] || [ -L "$TARGET" ]; then
-          ln -sf "/etc/user-bin/$script" "$TARGET"
-          chown -h ${username}:users "$TARGET"
+        if [ -L "$TARGET" ] && [ "$(readlink "$TARGET")" = "/etc/user-bin/$script" ]; then
+          rm -f "$TARGET"
         fi
       done
     '';

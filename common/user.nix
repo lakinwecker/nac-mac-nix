@@ -44,7 +44,7 @@
 
   # ── Home directory ownership ───────────────────────────────────────
   system.activationScripts.userHomeOwnership = {
-    deps = [ "users" "ghosttyConfig" "userBin" ];
+    deps = [ "users" "ghosttyConfig" "userBinCleanup" ];
     text = ''
       install -d -o ${username} -g users /home/${username}/.config
       install -d -o ${username} -g users /home/${username}/.local

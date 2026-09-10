@@ -147,7 +147,7 @@ hl.bind("SUPER + A", hl.dsp.exec_cmd("/etc/hypr/scripts/mac-shortcut.sh select-a
 hl.bind("SUPER + Z", hl.dsp.exec_cmd("/etc/hypr/scripts/mac-shortcut.sh undo"))
 hl.bind("SUPER + SHIFT + Z", hl.dsp.exec_cmd("/etc/hypr/scripts/mac-shortcut.sh redo"))
 
-hl.bind("CTRL + SUPER + SHIFT + T", hl.dsp.exec_cmd("/etc/user-bin/theme-toggle"))
+hl.bind("CTRL + SUPER + SHIFT + T", hl.dsp.exec_cmd("theme-toggle"))
 
 -- Start/stop lan-mouse. Stopping also restarts the portal, which is the only
 -- thing that reclaims the fds it leaks per capture session (see the script).

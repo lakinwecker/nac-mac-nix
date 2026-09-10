@@ -44,7 +44,7 @@ hg.bind({ pattern = "edge:3:u:d", action = hl.dsp.window.close() })
 hg.bind({ pattern = "edge:r:l", action = hl.dsp.focus({ workspace = "+1" }) })
 hg.bind({ pattern = "edge:l:r", action = hl.dsp.focus({ workspace = "-1" }) })
 
-hg.bind({ pattern = "tap:3", action = hl.dsp.exec_cmd("/home/lakin/bin/toggle-keeb") })
+hg.bind({ pattern = "tap:3", action = hl.dsp.exec_cmd("toggle-keeb") })
 
 hg.bind({ pattern = "edge:l:d", action = hl.dsp.exec_cmd("wpctl set-volume @DEFAULT_AUDIO_SINK@ 4%-") })
 hg.bind({ pattern = "edge:l:u", action = hl.dsp.exec_cmd("wpctl set-volume @DEFAULT_AUDIO_SINK@ 4%+") })
