@@ -320,6 +320,7 @@
     username = "anita";
     hardware = [ "dell-xps-13-9370" ];
     devTools = false;   # normal-user machine, skip the dev kitchen sink
+    kagi = false;       # Anita's machine — leave Firefox search alone
   };
 
   cornfield = {

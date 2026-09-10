@@ -127,6 +127,7 @@
         devTools   = m.devTools or true;
         ghosttyOpacity = m.ghosttyOpacity or 0.85;
         lanMouseCaptureBackend = m.lanMouseCaptureBackend or null;
+        kagi       = m.kagi or true;
       }
       // (if m.desktop == "hyprland" then {
         hyprHostConfig = m.hyprHostConfig or "";

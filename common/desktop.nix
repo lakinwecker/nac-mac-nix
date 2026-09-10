@@ -1,4 +1,4 @@
-{ pkgs, ... }:
+{ pkgs, lib, kagi ? true, ... }:
 {
   # ── Graphics ────────────────────────────────────────────────────────
   hardware.graphics.enable = true;
@@ -27,6 +27,9 @@
   };
 
   # ── Firefox ─────────────────────────────────────────────────────────
+  # Search defaults live here rather than in the profile: a profile reset (a
+  # `firstrun-created-default` after an upgrade, say) silently takes the search
+  # engine back to Google, and nothing outside this file puts it back.
   programs.firefox = {
     enable = true;
     policies = {
@@ -38,11 +41,20 @@
             installation_mode = "force_installed";
           };
         };
-      in builtins.listToAttrs [
+      in builtins.listToAttrs ([
         (extension "ublock-origin" "uBlock0@raymondhill.net")
         (extension "privacy-badger17" "jid1-MnnxcxisBPnSXQ@jetpack")
         (extension "darkreader" "addon@darkreader.org")
-      ];
+      ] ++ lib.optionals kagi [
+        # Registers the "Kagi" engine that SearchEngines.Default names below,
+        # and carries the session token so search works without a separate login.
+        (extension "kagi-search-for-firefox" "search@kagi.com")
+      ]);
+    }
+    # SearchEngines was ESR-only until Firefox 139; it applies on release now.
+    # The string has to match the engine name the extension registers.
+    // lib.optionalAttrs kagi {
+      SearchEngines.Default = "Kagi";
     };
   };
 

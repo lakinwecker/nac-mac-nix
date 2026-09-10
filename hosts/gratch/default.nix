@@ -67,8 +67,9 @@
   environment.systemPackages = with pkgs; [ powertop lm_sensors ];
 
   # ── secretspec: default to the pass provider ───────────────────────
-  # Make bare `pass` use the real store (what lwpass points at).
-  environment.sessionVariables.PASSWORD_STORE_DIR = "/home/${username}/passwords/pass";
+  # PASSWORD_STORE_DIR now comes from ../../common/user.nix, which sets it on
+  # every host. Defining it here too is a conflicting definition, not an
+  # override.
 
   # store_dir: the real store is ~/passwords/pass, not ~/.password-store.
   environment.etc."secretspec/config.toml".text = ''

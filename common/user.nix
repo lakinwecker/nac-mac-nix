@@ -23,6 +23,14 @@
   # Register nushell in /etc/shells so it can be a login shell.
   environment.shells = [ pkgs.nushell ];
 
+  # ── pass ────────────────────────────────────────────────────────────
+  # The real store is ~/passwords/pass (syncthing), not pass's default
+  # ~/.password-store. Without this, bare `pass` finds an empty store and only
+  # the nushell `lwpass` wrapper (../nushell/config.nu) works — which leaves
+  # every non-nushell caller broken, e.g. backup.sh's bare-`pass` branch.
+  # `lipass` still overrides this for the lichess sysadmin store.
+  environment.sessionVariables.PASSWORD_STORE_DIR = "/home/${username}/passwords/pass";
+
   # ── Locale / time ──────────────────────────────────────────────────
   time.timeZone = "America/Edmonton";
   time.hardwareClockInLocalTime = true;
