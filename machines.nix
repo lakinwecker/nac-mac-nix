@@ -5,20 +5,12 @@
 #   desktop        "hyprland" | "xfce" | "gnome"
 #   username       default: "lakin"
 #   hardware       list of nixos-hardware module name strings, default: []
-#   hyprlandChannel
-#                  Which Hyprland pin set to build against: "stable" (default)
-#                  or "next". The channel moves Hyprland, its portal, and the
-#                  plugin pins together, which is why it is one field rather
-#                  than a version plus separate plugin toggles.
-#                    stable — Hyprland v0.55.4; hyprexpo, hypr-dynamic-cursors
-#                             and hyprgrass all available.
-#                    next   — Hyprland v0.56.0 + xdg-desktop-portal-hyprland
-#                             v1.4.0, which supplies the input-capture portal
-#                             (libei) that lan-mouse uses in place of its
-#                             layer-shell capture. hyprexpo and
-#                             hypr-dynamic-cursors are pinned to matching 0.56
-#                             builds. No hyprgrass pin — "next" with
-#                             hyprgrass = true throws.
+#
+# There is deliberately no per-host Hyprland version. Every host builds the one
+# pin set in flake.nix — v0.56.1 plus the matching hyprgrass / hyprexpo /
+# hypr-dynamic-cursors commits. See the comment above the `hyprland` input for
+# why that release and what to check before bumping it.
+#
 #   hyprgrass      enable touch gestures (Surface), default: false
 #   hyprHostConfig hyprland monitor/input config string, default: ""
 #   hyprWallpaper  path to wallpaper, default: ./hypr/wallpaper.jpg
@@ -109,7 +101,6 @@
     desktop = "hyprland";
     hardware = [ "common-cpu-amd" "common-gpu-amd" "common-pc-laptop" "common-pc-laptop-ssd" ];
     diskoConfig = ./hosts/gratch/disko-config.nix;
-    hyprlandChannel = "next";
     hyprDynamicCursorsMode = "tilt";
     # Don't idle-suspend when on AC power. Battery still suspends; lid-close
     # still suspends via logind. hypridle still dims/locks/dpms (screen off).
@@ -143,10 +134,6 @@
     # Fully opaque: the Calgary wallpaper is bright, so any bleed-through
     # washes out light-theme terminal text.
     ghosttyOpacity = 1.0;
-    # lan-mouse needs the InputCapture portal, which only exists in
-    # xdg-desktop-portal-hyprland >= 1.4.0. Costs hyprexpo (no v0.56.2 build),
-    # which is a touchpad gesture this desktop can't use anyway.
-    hyprlandChannel = "latest";
     # Never idle-suspend; the sleep targets are masked in hosts/trunkie.
     # dpms 10s after the lock instead of the default 600 — once it locks there
     # is no reason to keep two big panels lit. That lands exactly as the 10s

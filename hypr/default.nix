@@ -79,7 +79,12 @@ let
         plugin = {
             hyprexpo = {
                 columns = 4,
-                gap_size = 15,
+                -- gaps_in/gaps_out, not upstream's single `gap_size`: the
+                -- sandwichfarm fork splits the tile spacing (inner) from the
+                -- margin around the grid (outer). `gap_size` is not registered
+                -- by either pinned tag, so it raises "unknown config key".
+                gaps_in = 15,
+                gaps_out = 0,
                 bg_col = "rgb(111111)",
                 workspace_method = "first 1",
                 gesture_distance = 300,

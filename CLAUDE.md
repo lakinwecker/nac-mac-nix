@@ -45,7 +45,7 @@ open questions: [docs/binary-cache.md](docs/binary-cache.md).
 - `username` — defaults to `"lakin"`
 - `hardware` — list of `nixos-hardware` module name strings, defaults to `[]`
 - `hyprHostConfig` / `hyprWallpaper` / `hyprgrass` / `hyprIdleTimeouts` / `hyprSuspendOnAc` / `hyprDynamicCursorsMode` — Hyprland-specific overrides
-- `hyprlandChannel` — `"stable"` (default, v0.55.4, has hyprexpo + hyprgrass) | `"next"` (v0.56.0 + portal v1.4.0 for lan-mouse's libei input capture; has hyprexpo, but `hyprgrass = true` throws) | `"latest"` (v0.56.2 + portal v1.4.1; **no hyprexpo** — the fork's newest tag is v0.56.1+3, so nothing is published for v0.56.2 — and `hyprgrass = true` throws). Moves Hyprland, portal, and plugin pins in lockstep.
+- There is **no** per-host Hyprland version field. The whole fleet builds one pin set from `flake.nix`: Hyprland **v0.56.1**, hyprgrass `hl-0.56.1`, the hyprexpo fork `v0.56.1+3`, hypr-dynamic-cursors `f5ba36c7`, and xdg-desktop-portal-hyprland v1.4.0+1 (lan-mouse's InputCapture portal needs ≥1.4.0). v0.56.1 is the newest release with a published pin for all three plugins — v0.56.2 has neither hyprgrass nor hyprexpo. Before bumping, confirm every plugin has a pin for the target release; bump all four inputs together or not at all.
 - `ghosttyOpacity` — ghostty `background-opacity`, 0.0–1.0, default `0.85`. Rendered with `builtins.toJSON`; `toString` would emit `0.950000`.
 - `xfceWallpaper` / `xfceAvatar` — XFCE-specific overrides
 - `ollamaAccel` — ollama acceleration: `"cpu"` (default), `"cuda"` (roach), `"rocm"` (trunkie)
