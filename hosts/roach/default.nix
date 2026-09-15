@@ -63,6 +63,8 @@
     open = true;
     nvidiaSettings = true;
     powerManagement.enable = true;
+    # explicit runtime D3 (NVreg_DynamicPowerManagement=0x02)
+    powerManagement.finegrained = true;
     package = config.boot.kernelPackages.nvidiaPackages.stable;
     prime = {
       offload = {
@@ -75,12 +77,18 @@
   };
   services.xserver.videoDrivers = [ "nvidia" ];
 
-  # Wayland / Hyprland on NVIDIA
+  # Stable, colon-free alias for the iGPU's card node. AQ_DRM_DEVICES is split
+  # on ':' (aquamarine src/backend/drm/DRM.cpp), so /dev/dri/by-path/pci-0000:...
+  # shreds into three bogus entries, aquamarine finds no GPUs, and Hyprland
+  # aborts in initServer before it writes a line of log. Card numbering isn't
+  # guaranteed stable either, hence the symlink keyed on the PCI address.
+  # (rule lives in the services.udev.extraRules block further down)
+
+  # Render on the iGPU (eDP-1 hangs off it). Setting GBM_BACKEND/
+  # __GLX_VENDOR_LIBRARY_NAME to nvidia here pins the dGPU in D0; don't.
   environment.sessionVariables = {
-    LIBVA_DRIVER_NAME = "nvidia";
-    GBM_BACKEND = "nvidia-drm";
-    __GLX_VENDOR_LIBRARY_NAME = "nvidia";
-    NVD_BACKEND = "direct";
+    LIBVA_DRIVER_NAME = "iHD";
+    AQ_DRM_DEVICES = "/dev/dri/igpu";
     MOZ_ENABLE_WAYLAND = "1";
     ELECTRON_OZONE_PLATFORM_HINT = "auto";
   };
@@ -131,6 +139,8 @@
   # the first event after an idle window incurs a 100-500ms wake
   # penalty that shows up as "mouse froze for a moment."
   services.udev.extraRules = ''
+    # Stable, colon-free alias for the iGPU card node — see AQ_DRM_DEVICES above
+    SUBSYSTEM=="drm", KERNEL=="card[0-9]*", KERNELS=="0000:00:02.0", SYMLINK+="dri/igpu"
     # USB HID (bInterfaceClass 03) — disable autosuspend
     ACTION=="add", SUBSYSTEM=="usb", ATTR{bInterfaceClass}=="03", TEST=="power/control", ATTR{power/control}="on"
     # Bluetooth adapter (bDeviceClass e0 = Wireless Controller) — disable autosuspend
@@ -181,5 +191,5 @@
   # bag. Docked with the lid shut now keeps running.
   services.logind.settings.Login.HandleLidSwitchExternalPower = "ignore";
 
-  environment.systemPackages = with pkgs; [ powertop lm_sensors ];
+  environment.systemPackages = with pkgs; [ powertop lm_sensors iw ];
 }
