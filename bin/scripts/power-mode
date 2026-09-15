@@ -1,0 +1,135 @@
+#!/usr/bin/env bash
+# Switch roach between the anti-stutter tuning and the low-power tuning.
+# Usage: power-mode performance | powersave | status [--with-reloads]
+#
+# Without --with-reloads nothing disconnects: no module reload, so wifi and
+# bluetooth links stay up. Three knobs cannot be changed this way and are
+# handled by the boot specialisation instead -- i915.enable_psr (module params
+# are root-read-only, i915 cannot unload while driving the display), and
+# rtw89's disable_ps_mode / disable_aspm_l1* (read once at probe; the ASPM
+# state is latched off by pci_disable_link_state, so /sys/.../link is empty).
+set -euo pipefail
+
+MODE="${1:-status}"
+RELOADS=0
+[ "${2:-}" = "--with-reloads" ] && RELOADS=1
+
+priv() {
+  if [ "$(id -u)" -eq 0 ]; then "$@"; else sudo "$@"; fi
+}
+
+setval() {
+  local path="$1" val="$2"
+  [ -e "$path" ] || return 0
+  printf '%s' "$val" | priv tee "$path" >/dev/null 2>&1 || echo "  skipped $path" >&2
+}
+
+hypr() {
+  command -v hyprctl >/dev/null 2>&1 || return 0
+  [ -n "${HYPRLAND_INSTANCE_SIGNATURE:-}" ] || return 0
+  hyprctl eval "$1" >/dev/null 2>&1 || true
+}
+
+wifi_dev() {
+  local d
+  for d in /sys/class/net/*/wireless; do
+    [ -e "$d" ] || continue
+    basename "$(dirname "$d")"
+    return 0
+  done
+  return 1
+}
+
+wifi_powersave() {
+  local dev
+  command -v iw >/dev/null 2>&1 || { echo "  iw not found, wifi power save unchanged" >&2; return 0; }
+  dev="$(wifi_dev)" || return 0
+  priv iw dev "$dev" set power_save "$1" || echo "  wifi power save $1 failed" >&2
+}
+
+reload_wifi() {
+  local ps="$1" aspm="$2"
+  lsmod | grep -q '^rtw89_core' || return 0
+  echo "  reloading rtw89 (wifi will drop briefly)"
+  priv modprobe -r rtw89_8852ce rtw89_8852c rtw89_pci rtw89_core 2>/dev/null || {
+    echo "  wifi modules busy, left alone" >&2
+    return 0
+  }
+  priv modprobe rtw89_core disable_ps_mode="$ps"
+  priv modprobe rtw89_pci disable_aspm_l1="$aspm" disable_aspm_l1ss="$aspm"
+  priv modprobe rtw89_8852ce
+}
+
+reload_btusb() {
+  lsmod | grep -q '^btusb' || return 0
+  echo "  reloading btusb (bluetooth will drop briefly)"
+  priv modprobe -r btusb 2>/dev/null || {
+    echo "  btusb busy, left alone" >&2
+    return 0
+  }
+  priv modprobe btusb enable_autosuspend="$1"
+}
+
+hid_autosuspend() {
+  local val="$1" iface parent
+  for iface in /sys/bus/usb/devices/*:*; do
+    [ -r "$iface/bInterfaceClass" ] || continue
+    [ "$(cat "$iface/bInterfaceClass")" = "03" ] || continue
+    parent="$(dirname "$iface")/$(basename "$iface" | cut -d: -f1)"
+    setval "$parent/power/control" "$val"
+  done
+}
+
+case "$MODE" in
+  performance)
+    echo "power-mode: performance"
+    wifi_powersave off
+    hid_autosuspend on
+    setval /sys/module/pcie_aspm/parameters/policy default
+    priv systemctl start irqbalance 2>/dev/null || true
+    hypr 'hl.monitor({ output = "eDP-1", mode = "preferred", position = "1920x0", scale = 1.25, vrr = 1 })'
+    [ "$RELOADS" = 1 ] && { reload_wifi Y Y; reload_btusb N; }
+    ;;
+
+  powersave)
+    echo "power-mode: powersave"
+    wifi_powersave on
+    hid_autosuspend auto
+    setval /sys/module/pcie_aspm/parameters/policy powersave
+    priv systemctl stop irqbalance 2>/dev/null || true
+    hypr 'hl.monitor({ output = "eDP-1", mode = "2560x1600@60", position = "1920x0", scale = 1.25, vrr = 1 })'
+    [ "$RELOADS" = 1 ] && { reload_wifi N N; reload_btusb Y; }
+    ;;
+
+  status)
+    dev="$(wifi_dev || true)"
+    if [ -n "$dev" ] && command -v iw >/dev/null 2>&1; then
+      printf 'wifi power save       : %s\n' "$(iw dev "$dev" get power_save 2>/dev/null | awk '{print $3}')"
+    fi
+    printf 'wifi ps_mode disabled : %s\n' "$(cat /sys/module/rtw89_core/parameters/disable_ps_mode 2>/dev/null || echo n/a)"
+    printf 'wifi aspm l1 disabled : %s\n' "$(cat /sys/module/rtw89_pci/parameters/disable_aspm_l1 2>/dev/null || echo n/a)"
+    printf 'wifi aspm l1ss disabld: %s\n' "$(cat /sys/module/rtw89_pci/parameters/disable_aspm_l1ss 2>/dev/null || echo n/a)"
+    printf 'btusb autosuspend     : %s\n' "$(cat /sys/module/btusb/parameters/enable_autosuspend 2>/dev/null || echo n/a)"
+    printf 'pcie aspm policy      : %s\n' "$(cat /sys/module/pcie_aspm/parameters/policy 2>/dev/null || echo n/a)"
+    printf 'irqbalance            : %s\n' "$(systemctl is-active irqbalance 2>/dev/null || true)"
+    printf 'i915 psr (cmdline)    : %s\n' "$(grep -o 'i915.enable_psr=[01]' /proc/cmdline || echo unset)"
+    if command -v hyprctl >/dev/null 2>&1 && [ -n "${HYPRLAND_INSTANCE_SIGNATURE:-}" ]; then
+      hyprctl monitors 2>/dev/null \
+        | grep -E '^Monitor |^[[:space:]]+[0-9]+x[0-9]+@|^[[:space:]]+vrr:' \
+        | sed 's/^[[:space:]]*/monitor               : /'
+    fi
+    for bat in /sys/class/power_supply/BAT*/power_now; do
+      [ -r "$bat" ] || continue
+      printf 'draw                  : %s W (%s)\n' \
+        "$(awk '{printf "%.1f", $1/1000000}' "$bat")" \
+        "$(cat "$(dirname "$bat")/status" 2>/dev/null || echo unknown)"
+    done
+    printf 'dgpu runtime          : %s\n' \
+      "$(cat /sys/bus/pci/devices/0000:01:00.0/power/runtime_status 2>/dev/null || echo n/a)"
+    ;;
+
+  *)
+    echo "Usage: power-mode performance|powersave|status [--with-reloads]" >&2
+    exit 1
+    ;;
+esac

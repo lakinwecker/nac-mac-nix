@@ -20,6 +20,7 @@ let
     "toggle-keeb"
     "rotate-screen"
     "no-idle"
+    "power-mode"
   ]
   # Gated individually because this module itself is imported unconditionally:
   # these are ../pi's entry points, and ../pi is devTools-only.
