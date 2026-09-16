@@ -51,24 +51,18 @@
       url = "github:sandwichfarm/hyprexpo/v0.56.1+3";
       flake = false;
     };
-    # devenv only. The main nixpkgs pin is deliberately slow-moving because it
-    # rebuilds the whole fleet (kernel, mesa, …); devenv is a single CLI that
-    # nags about being behind. This input tracks unstable so `nix flake update
-    # nixpkgs-devenv` bumps devenv alone. Drop it once the main pin catches up.
-    nixpkgs-devenv.url = "github:NixOS/nixpkgs/nixos-unstable";
+    devenv.url = "github:cachix/devenv/v2.3";
   };
 
-  outputs = { self, nixpkgs, nixpkgs-devenv, nixos-hardware, disko, hyprland, hyprgrass, hypr-dynamic-cursors, hyprexpo-src, ... }:
+  outputs = { self, nixpkgs, devenv, nixos-hardware, disko, hyprland, hyprgrass, hypr-dynamic-cursors, hyprexpo-src, ... }:
   let
     # ── Machine registry ────────────────────────────────────────────
     machines = import ./machines.nix;
 
-    # Pull devenv from its own nixpkgs so it can move without dragging the
-    # rest of the fleet along. Everything else still comes from `nixpkgs`.
     devenvOverlay = { ... }: {
       nixpkgs.overlays = [
         (_final: prev: {
-          devenv = nixpkgs-devenv.legacyPackages.${prev.stdenv.hostPlatform.system}.devenv;
+          devenv = devenv.packages.${prev.stdenv.hostPlatform.system}.default;
         })
       ];
     };

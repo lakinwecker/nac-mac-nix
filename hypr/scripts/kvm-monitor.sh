@@ -19,6 +19,8 @@ set -euo pipefail
 # the old layout, and crossing stops working in exactly the mode you switched
 # into.
 
+unset LD_LIBRARY_PATH
+
 usage() { echo "usage: $0 on|off <output>" >&2; exit 1; }
 
 [ $# -eq 2 ] || usage
