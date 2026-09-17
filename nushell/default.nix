@@ -6,6 +6,13 @@ let
   zoxideNu = pkgs.runCommand "zoxide-init.nu" { } ''
     ${pkgs.zoxide}/bin/zoxide init nushell > $out
   '';
+
+  ghosttyNu = pkgs.runCommand "ghostty.nu" { } ''
+    substitute \
+      ${pkgs.ghostty}/share/ghostty/shell-integration/nushell/vendor/autoload/ghostty.nu \
+      $out \
+      --replace-fail '$env.GHOSTTY_SHELL_FEATURES |' '$env.GHOSTTY_SHELL_FEATURES? |'
+  '';
 in
 {
   # Backing binaries for config.nu's aliases and the zoxide/starship inits.
@@ -19,8 +26,7 @@ in
   environment.etc."nushell-user/env.nu".source = ./env.nu;
   environment.etc."nushell-user/starship.nu".source = starshipNu;
   environment.etc."nushell-user/zoxide.nu".source = zoxideNu;
-  environment.etc."nushell-user/ghostty.nu".source =
-    "${pkgs.ghostty}/share/ghostty/shell-integration/nushell/vendor/autoload/ghostty.nu";
+  environment.etc."nushell-user/ghostty.nu".source = ghosttyNu;
 
   system.activationScripts.nushellConfig = {
     deps = [ "users" ];
