@@ -1,19 +1,121 @@
 #!/usr/bin/env bash
-# Run a command with idle inhibition — no dim, lock, or screen-off while it runs.
-# Usage: no-idle make -j$(nproc)
 set -euo pipefail
 
-if [ $# -eq 0 ]; then
-  echo "Usage: no-idle <command> [args...]" >&2
-  exit 1
-fi
+UNIT=no-idle
+SERVICE=no-idle.service
 
-cleanup() {
-  hypridle &
-  disown
+usage() {
+  cat >&2 <<'USAGE'
+usage: no-idle <duration>        hold off hypridle for a while: 2h, 120m, 90s, 1d
+                                 (a bare number means minutes)
+       no-idle off               end the hold now
+       no-idle                   report whether a hold is active
+       no-idle <command> [args]  hold off hypridle while the command runs
+USAGE
+  exit 1
 }
 
-killall hypridle 2>/dev/null || true
-trap cleanup EXIT
+to_seconds() {
+  local spec=$1
+  local count=${spec%[smhd]}
+  local unit=${spec##*[0-9]}
+  case ${unit:-m} in
+    s) echo "$count" ;;
+    m) echo $(( count * 60 )) ;;
+    h) echo $(( count * 3600 )) ;;
+    d) echo $(( count * 86400 )) ;;
+  esac
+}
 
-systemd-inhibit --what=idle --who="no-idle" --why="Running: $*" "$@"
+humanize() {
+  local remaining=$1
+  local out=""
+  if (( remaining >= 86400 )); then
+    out+="$(( remaining / 86400 ))d"
+    remaining=$(( remaining % 86400 ))
+  fi
+  if (( remaining >= 3600 )); then
+    out+="$(( remaining / 3600 ))h"
+    remaining=$(( remaining % 3600 ))
+  fi
+  if (( remaining >= 60 )); then
+    out+="$(( remaining / 60 ))m"
+    remaining=$(( remaining % 60 ))
+  fi
+  if [ -z "$out" ] || (( remaining > 0 )); then
+    out+="${remaining}s"
+  fi
+  echo "$out"
+}
+
+expiry() {
+  systemctl --user is-active --quiet "$SERVICE" || return 1
+  local description
+  description=$(systemctl --user show "$SERVICE" -P Description)
+  echo "${description##* }"
+}
+
+report_status() {
+  local until now left
+  if ! until=$(expiry); then
+    echo "no-idle: inactive — hypridle is managing idle normally"
+    return 0
+  fi
+  now=$(date +%s)
+  left=$(( until - now ))
+  if (( left > 0 )); then
+    echo "no-idle: active for another $(humanize "$left"), until $(date -d "@$until" '+%H:%M')"
+  else
+    echo "no-idle: active, expiring now"
+  fi
+}
+
+release() {
+  if systemctl --user is-active --quiet "$SERVICE"; then
+    systemctl --user stop "$SERVICE"
+    echo "no-idle: released — hypridle is managing idle again"
+  else
+    echo "no-idle: nothing to release"
+  fi
+}
+
+hold() {
+  local seconds=$1
+  local until=$(( $(date +%s) + seconds ))
+  systemctl --user reset-failed "$SERVICE" 2>/dev/null || true
+  systemctl --user stop "$SERVICE" 2>/dev/null || true
+  systemd-run --user --quiet --collect --unit="$UNIT" \
+    --description="no-idle until $until" \
+    --property=RuntimeMaxSec="$seconds" \
+    systemd-inhibit --what=idle --who=no-idle --why="no-idle for $(humanize "$seconds")" \
+      sleep infinity
+  echo "no-idle: holding off hypridle for $(humanize "$seconds"), until $(date -d "@$until" '+%H:%M')"
+}
+
+if [ $# -eq 0 ]; then
+  report_status
+  exit 0
+fi
+
+case $1 in
+  -h|--help)
+    usage
+    ;;
+  off|stop|cancel)
+    release
+    ;;
+  status)
+    report_status
+    ;;
+  *)
+    if [[ $1 =~ ^[0-9]+[smhd]?$ ]]; then
+      [ $# -eq 1 ] || usage
+      seconds=$(to_seconds "$1")
+      [ "$seconds" -gt 0 ] || usage
+      hold "$seconds"
+    else
+      command -v "$1" >/dev/null 2>&1 || usage
+      exec systemd-inhibit --what=idle --who=no-idle --why="Running: $*" "$@"
+    fi
+    ;;
+esac
