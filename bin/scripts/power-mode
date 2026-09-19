@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Switch roach between the anti-stutter tuning and the low-power tuning.
-# Usage: power-mode performance | powersave | status [--with-reloads]
+# Usage: power-mode performance | powersave | cpu [pct] | status [--with-reloads]
 # i915.enable_psr and rtw89's disable_ps_mode/disable_aspm_l1* can't be changed
 # at runtime at all; the boot specialisation handles those.
 set -euo pipefail
@@ -65,6 +65,22 @@ reload_btusb() {
   priv modprobe btusb enable_autosuspend="$1"
 }
 
+MAX_PERF=/sys/devices/system/cpu/intel_pstate/max_perf_pct
+CPU_CAP_LOW=40
+
+# TLP owns this via CPU_MAX_PERF_ON_{AC,BAT}; it rewrites it on the next
+# AC/battery transition, so this is a until-you-replug override.
+cpu_cap() {
+  local cur target="${1:-}"
+  [ -e "$MAX_PERF" ] || { echo "no intel_pstate max_perf_pct" >&2; return 0; }
+  cur=$(cat "$MAX_PERF")
+  if [ -z "$target" ]; then
+    if [ "$cur" -ge 100 ]; then target=$CPU_CAP_LOW; else target=100; fi
+  fi
+  setval "$MAX_PERF" "$target"
+  printf 'cpu max_perf_pct: %s -> %s\n' "$cur" "$(cat "$MAX_PERF")"
+}
+
 hid_autosuspend() {
   local val="$1" iface parent
   for iface in /sys/bus/usb/devices/*:*; do
@@ -96,8 +112,13 @@ case "$MODE" in
     [ "$RELOADS" = 1 ] && { reload_wifi N N; reload_btusb Y; }
     ;;
 
+  cpu)
+    cpu_cap "${2:-}"
+    ;;
+
   status)
     dev="$(wifi_dev || true)"
+    printf 'cpu max_perf_pct      : %s\n' "$(cat "$MAX_PERF" 2>/dev/null || echo n/a)"
     if [ -n "$dev" ] && command -v iw >/dev/null 2>&1; then
       printf 'wifi power save       : %s\n' "$(iw dev "$dev" get power_save 2>/dev/null | awk '{print $3}')"
     fi
@@ -124,7 +145,7 @@ case "$MODE" in
     ;;
 
   *)
-    echo "Usage: power-mode performance|powersave|status [--with-reloads]" >&2
+    echo "Usage: power-mode performance|powersave|cpu [pct]|status [--with-reloads]" >&2
     exit 1
     ;;
 esac

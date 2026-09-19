@@ -133,6 +133,9 @@
       CPU_HWP_DYN_BOOST_ON_BAT = 0;
       CPU_MIN_PERF_ON_BAT = 0;
       CPU_MAX_PERF_ON_BAT = 40;
+      # Without this TLP never writes max_perf_pct on AC, so the 40% BAT cap
+      # survives plugging in and the CPU stays clamped until reboot.
+      CPU_MAX_PERF_ON_AC = 100;
       RUNTIME_PM_ON_BAT = "auto";
       USB_AUTOSUSPEND = 1;
       USB_EXCLUDE_BTUSB = 1;
