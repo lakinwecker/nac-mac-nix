@@ -8,7 +8,7 @@
   };
 
   environment.systemPackages = with pkgs; [
-    # Core runtime deps expected by LazyVim
+    # LazyVim runtime deps
     git
     curl
     ripgrep
@@ -17,18 +17,11 @@
     nodejs_22
     python3
 
-    # Formatters / linters
     stylua
     shfmt
     prettier
-
-    # Tree-sitter CLI
     tree-sitter
-
-    # Clipboard support (Wayland)
     wl-clipboard
-
-    # Optional
     fzf
     delta
   ];
@@ -37,8 +30,6 @@
   environment.etc."nvim/.neoconf.json".source = ./.neoconf.json;
   environment.etc."nvim/stylua.toml".source = ./stylua.toml;
   environment.etc."nvim/lua/config/lazy.lua".source = ./lua/config/lazy.lua;
-  environment.etc."nvim/lua/config/options.lua".source = ./lua/config/options.lua;
-  environment.etc."nvim/lua/config/keymaps.lua".source = ./lua/config/keymaps.lua;
   environment.etc."nvim/lua/config/autocmds.lua".source = ./lua/config/autocmds.lua;
   environment.etc."nvim/lua/plugins/tokyonight.lua".source = ./lua/plugins/tokyonight.lua;
   environment.etc."nvim/lua/plugins/avante.lua".source = ./lua/plugins/avante.lua;
@@ -51,6 +42,7 @@
   environment.etc."nvim/lua/plugins/neogit.lua".source = ./lua/plugins/neogit.lua;
   environment.etc."nvim/lua/plugins/codediff.lua".source = ./lua/plugins/codediff.lua;
   environment.etc."nvim/lua/plugins/lazygit.lua".source = ./lua/plugins/lazygit.lua;
+  environment.etc."nvim/lua/plugins/snacks.lua".source = ./lua/plugins/snacks.lua;
 
   system.activationScripts.nvimConfig = {
     deps = [ "users" ];
@@ -62,8 +54,6 @@
       ln -sf /etc/nvim/.neoconf.json "$NVIM_CONFIG/.neoconf.json"
       ln -sf /etc/nvim/stylua.toml "$NVIM_CONFIG/stylua.toml"
       ln -sf /etc/nvim/lua/config/lazy.lua "$NVIM_CONFIG/lua/config/lazy.lua"
-      ln -sf /etc/nvim/lua/config/options.lua "$NVIM_CONFIG/lua/config/options.lua"
-      ln -sf /etc/nvim/lua/config/keymaps.lua "$NVIM_CONFIG/lua/config/keymaps.lua"
       ln -sf /etc/nvim/lua/config/autocmds.lua "$NVIM_CONFIG/lua/config/autocmds.lua"
       ln -sf /etc/nvim/lua/plugins/tokyonight.lua "$NVIM_CONFIG/lua/plugins/tokyonight.lua"
       ln -sf /etc/nvim/lua/plugins/avante.lua "$NVIM_CONFIG/lua/plugins/avante.lua"
@@ -76,6 +66,7 @@
       ln -sf /etc/nvim/lua/plugins/neogit.lua "$NVIM_CONFIG/lua/plugins/neogit.lua"
       ln -sf /etc/nvim/lua/plugins/codediff.lua "$NVIM_CONFIG/lua/plugins/codediff.lua"
       ln -sf /etc/nvim/lua/plugins/lazygit.lua "$NVIM_CONFIG/lua/plugins/lazygit.lua"
+      ln -sf /etc/nvim/lua/plugins/snacks.lua "$NVIM_CONFIG/lua/plugins/snacks.lua"
       chown -R ${username}:users "$NVIM_CONFIG"
     '';
   };

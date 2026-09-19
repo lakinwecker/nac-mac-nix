@@ -1,10 +1,8 @@
 return {
   "neovim/nvim-lspconfig",
   opts = {
-    -- make sure mason installs the server
     servers = {
-      --- @deprecated -- tsserver renamed to ts_ls but not yet released, so keep this for now
-      --- the proper approach is to check the nvim-lspconfig release version when it's released to determine the server name dynamically
+      --- @deprecated -- tsserver was renamed to ts_ls
       tsserver = {
         enabled = false,
       },
@@ -12,8 +10,7 @@ return {
         enabled = false,
       },
       vtsls = {
-        -- explicitly add default filetypes, so that we can extend
-        -- them in related extras
+        -- explicit defaults, so related extras can extend them
         filetypes = {
           "javascript",
           "javascriptreact",
@@ -105,14 +102,11 @@ return {
       },
     },
     setup = {
-      --- @deprecated -- tsserver renamed to ts_ls but not yet released, so keep this for now
-      --- the proper approach is to check the nvim-lspconfig release version when it's released to determine the server name dynamically
+      --- @deprecated -- tsserver was renamed to ts_ls
       tsserver = function()
-        -- disable tsserver
         return true
       end,
       ts_ls = function()
-        -- disable tsserver
         return true
       end,
       vtsls = function(_, opts)

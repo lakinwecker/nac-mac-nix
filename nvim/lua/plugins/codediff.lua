@@ -1,17 +1,10 @@
--- NOTE: first use downloads libvscode_diff.so and loads it over FFI, with no
--- pure-Lua fallback. It resolves on NixOS because RPATH is $ORIGIN and the
--- installer puts a matching libgomp.so.1 beside it. `:CodeDiff install!` refetches.
--- NOTE: neogit's integrations/codediff.lua still writes the pre-3.0 SessionConfig
--- shape (`mode` + `explorer_data` + `original_path`/`modified_path` strings).
--- codediff dropped `mode` for a `panel` descriptor in 48576d2 and the path
--- strings for `Path` objects in fe7ab20, so neogit's `dd` dies on a nil `ref` in
--- view/helpers.lua. Tracked as NeogitOrg/neogit#2008 — open, no PR. Until it
--- lands, `panel_session_config` below translates the old shape at the seam.
--- Delete the shim (and its wrapper in `config`) once neogit updates.
--- NOTE: tokyonight's Comment (#565f89) sits at 2.18:1 on codediff's insert
--- background, well under the 4.5:1 needed to read. #8a94c4 clears it on both
--- diff backgrounds. Scoped to a window-local namespace so normal editing keeps
--- the dimmer comments; the namespace is what reaches treesitter's @comment.
+-- First use downloads libvscode_diff.so and loads it over FFI; `:CodeDiff install!` refetches.
+-- neogit still writes the pre-3.0 SessionConfig shape, so `dd` dies on a nil
+-- `ref`: NeogitOrg/neogit#2008. `panel_session_config` below translates at the
+-- seam; delete it and its wrapper in `config` once neogit updates.
+-- #8a94c4, not tokyonight's Comment (#565f89, only 2.18:1 on codediff's insert
+-- background): this clears 4.5:1 on both diff backgrounds. Window-local
+-- namespace so normal editing keeps the dimmer comments.
 local comment_ns = vim.api.nvim_create_namespace("codediff_readable_comments")
 
 local function readable_comments(tabpage)
@@ -24,9 +17,8 @@ local function readable_comments(tabpage)
   end
 end
 
--- codediff has no built-in way to jump straight at a diff pane — only
--- focus_explorer and the ]f/[f/]c/[c motions — so <C-w>h/l is the fallback, and
--- with the explorer open that is a window too many. These two land directly.
+-- codediff can only focus the explorer or step with ]f/[f/]c/[c; these land
+-- directly on a pane.
 local PANE_KEYS = {
   { lhs = "<leader>1", side = "original", desc = "codediff: focus original pane" },
   { lhs = "<leader>2", side = "modified", desc = "codediff: focus modified pane" },
@@ -51,9 +43,8 @@ local function bind_pane_keys(tabpage)
   end
 end
 
--- Keymaps are buffer-local and codediff swaps the pane buffers on every file
--- selection, so a one-shot bind at CodeDiffOpen would only survive the first
--- file. Re-bind whenever a buffer is displayed inside a diff tab.
+-- codediff swaps pane buffers on every file selection, so buffer-local keymaps
+-- must be re-bound whenever a buffer is displayed in a diff tab.
 local function bind_pane_keys_for_buffer(tabpage, bufnr)
   local lifecycle = require("codediff.ui.lifecycle")
   for _, key in ipairs(PANE_KEYS) do
@@ -63,8 +54,8 @@ local function bind_pane_keys_for_buffer(tabpage, bufnr)
   end
 end
 
--- Translate a pre-3.0 SessionConfig into the panel/Path shape. Anything already
--- speaking the current shape passes through untouched.
+-- Translate a pre-3.0 SessionConfig into the panel/Path shape; current-shape
+-- input passes through untouched.
 local function panel_session_config(session_config)
   if type(session_config) ~= "table" or session_config.panel ~= nil or session_config.mode == nil then
     return session_config
@@ -110,8 +101,7 @@ return {
 
     vim.api.nvim_create_autocmd("BufWinEnter", {
       callback = function(ev)
-        -- Fires for every buffer in every window; cost has to stay at one table
-        -- lookup for anyone who never opens a diff.
+        -- Fires for every buffer in every window; keep this to one table lookup.
         if not package.loaded["codediff.ui.lifecycle"] then
           return
         end
@@ -144,8 +134,7 @@ return {
       status_right_margin = 1,
       line_stats = {
         enabled = true,
-        -- Counting untracked files means reading each one to count its lines;
-        -- they show no +N without it.
+        -- Counting untracked files means reading each one; they show no +N without it.
         count_untracked = false,
       },
       visible_groups = {
