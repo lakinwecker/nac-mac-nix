@@ -51,7 +51,7 @@
       url = "github:sandwichfarm/hyprexpo/v0.56.1+3";
       flake = false;
     };
-    devenv.url = "github:cachix/devenv/v2.3";
+    devenv.url = "github:cachix/devenv/v2.3.1";
   };
 
   outputs = { self, nixpkgs, devenv, nixos-hardware, disko, hyprland, hyprgrass, hypr-dynamic-cursors, hyprexpo-src, ... }:

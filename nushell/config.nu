@@ -40,7 +40,7 @@ def --wrapped lwpass [...rest] {
 
 # pass, pointed at the lichess sysadmin store
 def --wrapped lipass [...rest] {
-  with-env {PASSWORD_STORE_DIR: ($env.HOME | path join personal-repos lichess-org sysadmin pass)} {
+  with-env {PASSWORD_STORE_DIR: ($env.HOME | path join personal-repos lichess-sysadmin sysadmin pass)} {
     ^pass ...$rest
   }
 }
