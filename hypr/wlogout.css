@@ -1,12 +1,5 @@
-/* Tokyonight theme for wlogout — palette matches rofi-tokyonight.rasi.
- *
- * @icons@ is substituted at build time with ${pkgs.wlogout}/share/wlogout/icons
- * (see hypr/default.nix). GTK CSS needs absolute paths, and the store path is
- * not knowable at edit time.
- *
- * Sized for touch: buttons are deliberately large, because the whole point of
- * moving off rofi is that this has to be usable with no Type Cover attached.
- */
+/* Tokyonight theme for wlogout, sized for touch.
+ * @icons@ is substituted at build time (hypr/default.nix). */
 
 * {
 	background-image: none;
@@ -31,7 +24,6 @@ button {
 	background-position: center 30%;
 	background-size: 28%;
 
-	/* Push the label clear of the centred icon. */
 	padding-top: 90px;
 }
 
@@ -49,8 +41,7 @@ button:focus, button:active, button:hover {
 #shutdown  { background-image: url("@icons@/shutdown.png"); }
 #reboot    { background-image: url("@icons@/reboot.png"); }
 
-/* No icon ships for cancel — it reads as a plain wide label, which is fine and
- * makes it visually distinct from the destructive actions. */
+/* No icon ships for cancel; it reads as a plain wide label. */
 #cancel {
 	background-image: none;
 	padding-top: 0;
@@ -62,7 +53,6 @@ button:focus, button:active, button:hover {
 	border-color: #7dcfff;
 }
 
-/* Destructive actions get a red tint on hover so a stray tap is obvious. */
 #shutdown:focus, #shutdown:active, #shutdown:hover,
 #reboot:focus, #reboot:active, #reboot:hover {
 	color: #f7768e;                              /* urgent */

@@ -70,9 +70,8 @@ current_host() {
   exit 1
 }
 
-# Reads the disko config for a host and applies name=path overrides.
-# Emits "name<TAB>path" lines on stdout, one per disk.
-# Usage: read_disks <host> [override_name=override_path]...
+# Emits "name<TAB>path" per disk from the host's disko config, after applying
+# name=path overrides. Usage: read_disks <host> [name=path]...
 read_disks() {
   local host="$1"; shift
   local json
@@ -155,8 +154,8 @@ do_install() {
 
   echo
   echo "==> Closing stale LUKS mappings and unmounting /mnt"
-  # Leftover LUKS headers that open with the same passphrase can trick disko
-  # into skipping luksFormat and mkfs.btrfs, landing in a half-formatted state.
+  # Leftover LUKS headers that open with the same passphrase trick disko into
+  # skipping luksFormat and mkfs.btrfs, landing in a half-formatted state. The
   # blkdiscard below guarantees every sector is gone.
   for m in cryptroot crypthome; do
     if [ -e "/dev/mapper/$m" ]; then
@@ -303,8 +302,7 @@ do_wipe() {
 
 [ $# -ge 1 ] || usage
 
-# --update is a modifier, not an action: refresh flake.lock before building.
-# Pull it out wherever it appears so the rest of parsing is unchanged.
+# --update is a modifier, not an action; pull it out wherever it appears.
 do_update=0
 kept_args=()
 for arg in "$@"; do
@@ -336,14 +334,12 @@ case "$action" in
   *) echo "Unknown action: $action" >&2; usage ;;
 esac
 
-# Collect hosts from remaining args
 targets=()
 for arg in "$@"; do
   validate_host "$arg"
   targets+=("$arg")
 done
 
-# Default host selection
 if [ ${#targets[@]} -eq 0 ]; then
   case "$action" in
     --iso|--dry)

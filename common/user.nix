@@ -1,10 +1,7 @@
 { pkgs, username, ... }:
 {
-  # ── Nix settings ────────────────────────────────────────────────────
   nixpkgs.hostPlatform = "x86_64-linux";
   nix.settings.experimental-features = [ "nix-command" "flakes" ];
-  # Trust wheel users for Nix (extra substituters, remote builders, --option,
-  # nix copy, …). Merges with Nix's own "root" entry.
   nix.settings.trusted-users = [ "root" "@wheel" ];
   nix.settings.substituters = [ "https://cache.nixos.org" "https://hyprland.cachix.org" "https://devenv.cachix.org" ];
   nix.settings.trusted-public-keys = [
@@ -15,43 +12,23 @@
   nixpkgs.config.allowUnfree = true;
   hardware.enableRedistributableFirmware = true;
 
-  # ── Shell ───────────────────────────────────────────────────────────
-  # Normal priority (beats the bash module's mkDefault). Per-host overrides
-  # (e.g. souris → fish) must use lib.mkForce.
+  # Normal priority, so per-host overrides need lib.mkForce.
   users.defaultUserShell = pkgs.nushell;
   programs.bash.enable = true;
-  # programs.nushell is a home-manager option, not a NixOS one.
-  # Register nushell in /etc/shells so it can be a login shell.
   environment.shells = [ pkgs.nushell ];
 
-  # ── pass ────────────────────────────────────────────────────────────
-  # The real store is ~/passwords/pass (syncthing), not pass's default
-  # ~/.password-store. Without this, bare `pass` finds an empty store and only
-  # the nushell `lwpass` wrapper (../nushell/config.nu) works — which leaves
-  # every non-nushell caller broken, e.g. backup.sh's bare-`pass` branch.
-  # `lipass` still overrides this for the lichess sysadmin store.
+  # Real store is the syncthing'd ~/passwords/pass; bare `pass` (backup.sh,
+  # non-nushell callers) finds an empty store without this.
   environment.sessionVariables.PASSWORD_STORE_DIR = "/home/${username}/passwords/pass";
 
-  # ── Locale / time ──────────────────────────────────────────────────
   time.timeZone = "America/Edmonton";
   time.hardwareClockInLocalTime = true;
 
-  # ── /home must be mounted before activation ────────────────────────
-  # Every host here keeps /home on its own filesystem, and roughly a dozen
-  # activation scripts (ghostty, hypr, nvim, nushell, starship, zellij, bin,
-  # lan-mouse, …) write into it. On hosts with boot.initrd.systemd.enable,
-  # NixOS runs the whole activation script from the initrd — before /home is
-  # mounted. Those writes land in the bare mountpoint on the root filesystem
-  # and are shadowed the instant /home mounts over them, so home config only
-  # ever took effect on `switch`, never on boot. systemd reports the leftovers
-  # as "Directory /home to mount over is not empty, mounting anyway."
-  #
-  # neededForBoot pulls the mount into stage 1, ahead of activation. Note the
-  # trade-off: /home failing to mount now drops to emergency instead of
-  # booting without it.
+  # Pulls /home into stage 1 so the many activation scripts that write into it
+  # aren't shadowed by the later mount. Trade-off: a failed mount now drops to
+  # emergency instead of booting without /home.
   fileSystems."/home".neededForBoot = true;
 
-  # ── Home directory ownership ───────────────────────────────────────
   system.activationScripts.userHomeOwnership = {
     deps = [ "users" "ghosttyConfig" "userBinCleanup" ];
     text = ''

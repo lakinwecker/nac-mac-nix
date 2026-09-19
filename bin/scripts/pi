@@ -4,8 +4,7 @@ set -euo pipefail
 
 SELF_DIR="$(cd -- "$(dirname -- "$0")" && pwd)"
 
-# Exported, not just read: Pi installs its own extensions through whichever
-# package manager it detects. See ./lazypi for why the ambient value is unsafe.
+# See ./lazypi for why the ambient value is unsafe.
 NPM_CONFIG_PREFIX="${NPM_CONFIG_PREFIX:-$HOME/.npm-global}"
 export NPM_CONFIG_PREFIX
 
@@ -14,7 +13,6 @@ PI="$NPM_CONFIG_PREFIX/bin/pi"
 
 if [ ! -x "$PI" ]; then
     echo "pi is not installed yet — bootstrapping it with LazyPi." >&2
-    # Interactive, not --yes: you're at a terminal, and --yes takes all 25.
     "$SELF_DIR/lazypi"
 fi
 

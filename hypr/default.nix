@@ -1,11 +1,8 @@
-# Force rebuild
 { pkgs, lib, username, hyprland, hyprgrass ? null, hyprDynamicCursors, hyprexpoSrc, hyprHostConfig ? "", hyprWallpaper ? ./wallpaper.jpg, hyprDynamicCursorsMode ? "none", hyprIdleTimeouts ? {}, hyprSuspendOnAc ? true, hyprLockGrace ? 2, hyprHibernate ? true, ... }:
 let
   hyprgrassEnabled = hyprgrass != null;
   hyprexpoEnabled = hyprexpoSrc != null;
-  # Wayle bar config: one shared base (layout + modules + osd + wallpaper)
-  # concatenated with a per-mode [styling.palette] block to produce the two
-  # theme variants. theme-toggle swaps the whole file + `wayle panel restart`.
+  # base.toml + a per-mode palette block; theme-toggle swaps the whole file.
   mkWayleConfig = name: palette:
     pkgs.runCommand name { } ''
       cat ${./wayle/base.toml} ${palette} > $out
@@ -18,10 +15,8 @@ let
     dpms      = hyprIdleTimeouts.dpms or 600;
     suspend   = hyprIdleTimeouts.suspend or 900;
   };
-  # `grace` is a command-line flag in hyprlock 0.9.x, not a config option --
-  # `general:grace` in hyprlock.conf is rejected outright. One definition here
-  # so the idle listener, the sleep hook and the logind Lock signal cannot end
-  # up with different grace periods.
+  # `grace` is a CLI flag in hyprlock 0.9.x; `general:grace` in hyprlock.conf
+  # is rejected outright.
   lockCmd = "pidof hyprlock || hyprlock --grace ${toString hyprLockGrace}";
   hypridleConf = ''
     general {
@@ -38,11 +33,8 @@ let
 
     listener {
         timeout = ${toString idle.lock}
-        # Not `loginctl lock-session`: greetd runs this session out of its
-        # default_session slot, so logind classes it as a greeter and refuses
-        # Lock() with "Session does not support lock screen" -- which silently
-        # dropped this listener entirely. Calling hyprlock directly does not
-        # care about the session class.
+        # Not `loginctl lock-session`: logind classes this greetd session as a
+        # greeter and refuses Lock(), silently dropping the listener.
         on-timeout = ${lockCmd}
     }
 
@@ -58,15 +50,11 @@ let
         on-timeout = ${suspendCmd}
     }
   '';
-  # When hyprSuspendOnAc is false, only idle-suspend on battery: skip the
-  # suspend if any mains adapter reports online (i.e. AC is plugged in).
-  # Lid-close suspend is handled by logind and is unaffected by this.
+  # Lid-close suspend is logind's and is unaffected by this.
   suspendCmd =
     if hyprSuspendOnAc
     then "systemctl suspend"
     else "sh -c 'grep -lq 1 /sys/class/power_supply/*/online 2>/dev/null || systemctl suspend'";
-  # Shake-to-find is on by default for every Hyprland host. `mode` (tilt /
-  # rotate / stretch / none) is opt-in per-host via machines.nix.
   hyprlandPackage = hyprland.packages.${pkgs.system}.hyprland;
   hyprexpo = pkgs.callPackage hyprexpoSrc {
     hyprland = hyprlandPackage;
@@ -79,10 +67,8 @@ let
         plugin = {
             hyprexpo = {
                 columns = 4,
-                -- gaps_in/gaps_out, not upstream's single `gap_size`: the
-                -- sandwichfarm fork splits the tile spacing (inner) from the
-                -- margin around the grid (outer). `gap_size` is not registered
-                -- by either pinned tag, so it raises "unknown config key".
+                -- The sandwichfarm fork splits upstream's `gap_size` into
+                -- gaps_in/gaps_out; `gap_size` is an unknown key here.
                 gaps_in = 15,
                 gaps_out = 0,
                 bg_col = "rgb(111111)",
@@ -92,14 +78,8 @@ let
         },
     })
 
-    -- hyprexpo overview. The plugin registers its own Lua namespace
-    -- (hl.plugin.hyprexpo.expo), which acts directly rather than returning a
-    -- dispatcher — so no hl.dispatch wrapper. The old exec route ran
-    -- `hyprctl dispatch hyprexpo:expo toggle`, which is hyprlang and errors
-    -- out under a Lua config.
-    --
-    -- Safe unguarded: the closure only runs on a swipe, by which time plugins
-    -- have loaded. Only top-level uses of hl.plugin.* need an `if` guard.
+    -- hl.plugin.hyprexpo.expo acts directly; it is not a dispatcher, so no
+    -- hl.dispatch wrapper. Unguarded is safe: these closures run after load.
     hl.gesture({
         fingers = 3,
         direction = "up",
@@ -112,15 +92,8 @@ let
         hl.plugin.hyprexpo.expo("toggle")
     end, { description = "Toggle hyprexpo overview" })
   '';
-  # dynamic_cursors, not "dynamic-cursors": CConfigManager::luaConfigValueName
-  # rewrites ':' to '.' AND '-' to '_', so the Lua name for
-  # plugin:dynamic-cursors:shake:threshold is
-  # plugin.dynamic_cursors.shake.threshold. `hyprctl getoption` still reports
-  # the legacy colon/hyphen form, which is what makes this easy to get wrong.
-  #
-  # Note the plugin loads *after* the first config pass, so its keys are
-  # unknown then; handlePluginLoads() calls reload() once plugins are in, and
-  # the values apply on that second pass.
+  # dynamic_cursors, not "dynamic-cursors": Lua config keys rewrite ':' to '.'
+  # and '-' to '_', though `hyprctl getoption` still reports the legacy form.
   dynamicCursorsConfig = ''
     hl.plugin.load("/etc/hypr/plugins/hypr-dynamic-cursors.so")
 
@@ -132,7 +105,7 @@ let
 
                 shake = {
                     enabled = true,
-                    -- Lower than the 6.0 default — magnifies sooner.
+                    -- Default is 6.0; lower magnifies sooner.
                     threshold = 4.0,
                 },
             },
@@ -265,7 +238,6 @@ in {
     mode = "0755";
   };
 
-  # Sourced by the scripts above; see the file for why it exists.
   environment.etc."hypr/scripts/hypr-lua.sh" = {
     source = ./scripts/hypr-lua.sh;
     mode = "0644";
@@ -277,29 +249,16 @@ in {
     HandlePowerKeyLongPress = lib.mkDefault "poweroff";
   };
 
-  # Stamp /run/last-resume on every resume so power-menu.sh can tell "the user
-  # pressed power to wake the machine" from "the user wants the power menu".
-  # Without this the wake press falls through to the menu, which on a tablet
-  # with no Type Cover attached is unescapable — rofi has no touch support and
-  # the menu sits above the on-screen keyboard toggle.
-  #
-  # Use powerManagement.resumeCommands rather than a hand-rolled unit. It runs
-  # in the preStop of NixOS's sleep-actions service, which gets the ordering
-  # right via unitConfig.StopWhenUnneeded — a plain wantedBy=sleep.target unit
-  # with RemainAfterExit never re-fires, because stopping a target does not
-  # stop units merely wanted by it.
-  #
-  # mkBefore so the stamp lands first: resumeCommands is a merged `lines`, and
-  # host modules put slow work in there (harry reloads ithc and sleeps 1s). A
-  # late stamp would burn most of the grace window before it is even written.
+  # Stamp /run/last-resume so power-menu.sh can tell a wake press from a
+  # request for the menu. mkBefore: host modules add slow work to this merged
+  # `lines`, and a late stamp would burn most of the grace window.
   powerManagement.resumeCommands = lib.mkBefore ''
     ${pkgs.coreutils}/bin/touch /run/last-resume
   '';
 
   environment.etc."hypr/rofi-tokyonight.rasi".source = ./rofi-tokyonight.rasi;
 
-  # GTK CSS needs absolute icon paths and the store path isn't knowable at edit
-  # time, so substitute it in at build time.
+  # GTK CSS needs absolute icon paths, so substitute the store path at build.
   environment.etc."hypr/wlogout.css".source =
     pkgs.runCommand "wlogout.css" { } ''
       cp ${./wlogout.css} $out
@@ -308,8 +267,8 @@ in {
     '';
   environment.etc."hypr/nwg-drawer.css".source = ./nwg-drawer.css;
 
-  # hyprland.lua, not hyprland.conf: hyprlang was deprecated in 0.55 and is
-  # dropped in 0.57. hyprlock/hypridle still take hyprlang and are unaffected.
+  # hyprland.lua, not hyprland.conf: hyprlang is dropped in 0.57. hyprlock and
+  # hypridle still take hyprlang.
   environment.etc."hypr/hyprland.lua".text =
     builtins.readFile ./hyprland.lua
     + lib.optionalString hyprgrassEnabled ("\n-- hyprgrass plugin\n" + builtins.readFile ./hyprgrass.lua)
@@ -317,9 +276,8 @@ in {
     + "\n-- hypr-dynamic-cursors plugin\n" + dynamicCursorsConfig
     + "\n-- Per-host overrides\n" + hyprHostConfig;
   environment.etc."hypr/hypridle.conf".text = hypridleConf;
-  # Started from hyprland.lua's autostart hook. Exists only so graphical-session
-  # .target can be reached: that target refuses manual start, but BindsTo pulls
-  # it in as a dependency, which is what lets user services bound to it run.
+  # Started from hyprland.lua's autostart hook. Exists only to reach
+  # graphical-session.target, which refuses manual start but can be BindsTo'd.
   systemd.user.targets.hyprland-session = {
     description = "Hyprland session";
     bindsTo = [ "graphical-session.target" ];
@@ -350,8 +308,6 @@ in {
       ln -sf /etc/hypr/hypridle.conf /home/${username}/.config/hypr/hypridle.conf
       ln -sf /etc/hypr/hyprlock.conf /home/${username}/.config/hypr/hyprlock.conf
       chown -h ${username}:users /home/${username}/.config/hypr/hyprland.lua /home/${username}/.config/hypr/hypridle.conf /home/${username}/.config/hypr/hyprlock.conf
-      # Pick the wayle variant matching the current theme mode (set by
-      # theme-toggle). Defaults to dark if state file is absent.
       mode="dark"
       if [ -r /home/${username}/.local/state/theme-mode ]; then
         mode=$(cat /home/${username}/.local/state/theme-mode)

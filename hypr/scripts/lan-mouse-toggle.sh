@@ -1,28 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Start/stop lan-mouse, and reclaim the portal file descriptors it leaks.
-#
-# xdg-desktop-portal-hyprland leaks an EIS fd per input-capture session and
-# lan-mouse opens one per barrier crossing, so after roughly 36 crossings the
-# D-Bus *session bus* runs out of in-flight fd references and
-# xdg-desktop-portal segfaults, taking every client on that bus with it —
-# terminals, the bar, Electron apps. Upstream issue:
-#   https://github.com/hyprwm/xdg-desktop-portal-hyprland/issues/419
-#   fix in flight: PR #421 (unmerged, part 2 of 3)
-#
-# Measured on trunkie: +3 fds per crossing, never released. Stopping lan-mouse
-# does NOT give them back — the fds belong to xdph and survive until it
-# restarts (28 fds still held with lan-mouse fully stopped). So stopping also
-# restarts xdph, which is what actually resets the budget (30 -> 5 measured).
-#
-# Restarting xdph interrupts any in-progress screencast. That is why this is a
-# deliberate keybind rather than a background timer.
+# Start/stop lan-mouse, and reclaim the portal fds it leaks. xdph leaks ~3 fds
+# per barrier crossing and segfaults the whole session bus around 40; only
+# restarting xdph reclaims them, so stopping lan-mouse restarts it too.
+# https://github.com/hyprwm/xdg-desktop-portal-hyprland/issues/419
 
 note() { notify-send -a lan-mouse "lan-mouse" "$1" 2>/dev/null || hyprctl notify 1 3000 0 "$1" >/dev/null 2>&1 || true; }
 
-# Count since the *current* xdph started, not since boot: the budget is per
-# portal lifetime, so a since-boot count overstates risk right after a reset.
+# Count since the current xdph started: the fd budget is per portal lifetime.
 sessions() {
   local since
   since=$(systemctl --user show -p ActiveEnterTimestamp --value xdg-desktop-portal-hyprland 2>/dev/null || true)
@@ -52,7 +38,6 @@ esac
 
 if systemctl --user is-active --quiet lan-mouse; then
   systemctl --user stop lan-mouse
-  # Reclaim the leaked descriptors; lan-mouse reconnects fine on next start.
   systemctl --user restart xdg-desktop-portal-hyprland
   note "stopped — portal restarted, fd budget reset"
 else

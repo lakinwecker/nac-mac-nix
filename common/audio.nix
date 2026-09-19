@@ -1,8 +1,5 @@
 { username, ... }:
 {
-  # Bluetooth audio (bluez5 codecs, headset roles) lives in bluetooth.nix.
-
-  # ── PipeWire ────────────────────────────────────────────────────────
   security.rtkit.enable = true;
   services.pipewire = {
     enable = true;
@@ -11,7 +8,6 @@
     wireplumber.enable = true;
   };
 
-  # ── Music (MPD) ────────────────────────────────────────────────────
   services.mpd = {
     enable = true;
     user = username;

@@ -1,4 +1,4 @@
-# Lenovo ThinkPad T460 (6th-gen Skylake, Intel HD 520)
+# Lenovo ThinkPad T460 (Skylake)
 { pkgs, ... }:
 {
   boot.initrd.systemd.enable = true;

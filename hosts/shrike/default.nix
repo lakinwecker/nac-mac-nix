@@ -1,15 +1,12 @@
-# Dell XPS 16 9650 (2026) — Intel Panther Lake (Core Ultra Series 3) — hostname "shrike"
-# Top-spec config: Core Ultra X9 388H, Arc Xe3 iGPU (no discrete GPU this generation),
-# 64GB LPDDR5x-9600, 4TB NVMe, 16" OLED 2880x1800 touch.
+# Dell XPS 16 9650 — Intel Panther Lake (Core Ultra X9 388H, Arc Xe3 iGPU),
+# 64GB LPDDR5x, 4TB NVMe, 16" OLED 2880x1800 touch.
 { lib, pkgs, ... }:
 {
-  # ── Graphics (Intel Arc Xe3, integrated) ───────────────────────────
   hardware.graphics = {
     enable = true;
     enable32Bit = true;
   };
 
-  # ── Boot / initrd ──────────────────────────────────────────────────
   boot.initrd.systemd.enable = true;
   boot.initrd.availableKernelModules = [
     "nvme"
@@ -32,26 +29,18 @@
   ];
 
   boot.kernelParams = [
-    # Intel Panel Self-Refresh causes input stutter on idle screens —
-    # same fix as roach. Revisit once Panther Lake i915/Xe driver matures.
-    "i915.enable_psr=0"
+    "i915.enable_psr=0"   # PSR causes input stutter on idle screens
   ];
 
-  # ── Sensors (ambient light, accelerometer on touch chassis) ────────
   hardware.sensor.iio.enable = true;
-
-  # ── IRQ balancing — keep CPU0 from getting saturated under input ───
   services.irqbalance.enable = true;
 
-  # ── USB HID autosuspend ────────────────────────────────────────────
-  # Same rationale as roach — autosuspend on input devices causes
-  # 100-500ms wake-from-idle stutter for negligible power savings.
+  # USB HID autosuspend off: 100-500ms wake-from-idle stutter, negligible saving.
   services.udev.extraRules = ''
     ACTION=="add", SUBSYSTEM=="usb", ATTR{bInterfaceClass}=="03", TEST=="power/control", ATTR{power/control}="on"
     ACTION=="add", SUBSYSTEM=="usb", ATTR{bDeviceClass}=="e0", TEST=="power/control", ATTR{power/control}="on"
   '';
 
-  # ── Power management (TLP) ─────────────────────────────────────────
   services.power-profiles-daemon.enable = false;
   services.tlp = {
     enable = true;

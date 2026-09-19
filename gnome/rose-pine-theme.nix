@@ -1,24 +1,11 @@
-# rose-pine-gtk-theme, extended with GNOME Shell (top bar) themes that the
-# nixpkgs package doesn't install:
-#
-#   rose-pine-moon  — the upstream Moon (dark) shell theme, copied verbatim.
-#   rose-pine-dawn  — a light shell theme we derive from Moon, because upstream
-#                     ships no light one. We remap the Moon palette to Dawn by
-#                     role across the CSS + SVG assets.
-#
-# The remap is driven by the `palette` table below rather than a wall of sed
-# flags: each role names its Dawn target and the Moon-side source values (in
-# both #hex and decimal "r, g, b" forms, as they appear in the theme). The
-# rewrite is two-pass via per-role placeholder tokens so replacements never
-# chain — e.g. Moon base #232136 → Dawn base #faf4ed must not then be caught
-# by Moon's own #faf4ed → text rule.
+# rose-pine-gtk-theme plus GNOME Shell themes nixpkgs doesn't install:
+# rose-pine-moon verbatim, and rose-pine-dawn recolored from it (upstream ships
+# no light shell theme). The rewrite goes via per-role placeholder tokens so
+# replacements never chain (Moon base → Dawn base must not hit Moon's #faf4ed rule).
 { lib, rose-pine-gtk-theme }:
 
 let
-  # role -> { hex; rgb?; fromHex?; fromRgb?; }
-  #   hex/rgb  = Dawn target value for this role
-  #   fromHex  = Moon #hex source values that map to it
-  #   fromRgb  = Moon "r, g, b" source values that map to it
+  # hex/rgb = Dawn target; fromHex/fromRgb = Moon source values mapping to it.
   palette = {
     base    = { hex = "#faf4ed"; rgb = "250, 244, 237"; fromHex = [ "#191724" "#232136" "#151515" ]; fromRgb = [ "35, 33, 54" ]; };
     surface = { hex = "#fffaf3";                        fromHex = [ "#2a273f" ]; };
@@ -42,12 +29,12 @@ let
   rgbPat = v: lib.replaceStrings [ ", " ] [ ", *" ] v;
 
   sed = expr: "-e '${expr}'";
-  # Pass 1: every source value -> its role token.
+  # Pass 1: source value -> role token.
   toTokens = lib.concatLists (lib.mapAttrsToList (role: v:
     map (h: sed "s/${h}/${hexTok role}/gI") (v.fromHex or [])
     ++ map (r: sed "s/${rgbPat r}/${rgbTok role}/g") (v.fromRgb or [])
   ) palette);
-  # Pass 2: each role token -> its Dawn value.
+  # Pass 2: role token -> Dawn value.
   toDawn = lib.concatLists (lib.mapAttrsToList (role: v:
     [ (sed "s/${hexTok role}/${v.hex}/g") ]
     ++ lib.optional (v ? rgb) (sed "s/${rgbTok role}/${v.rgb}/g")
@@ -57,10 +44,8 @@ let
 in
 rose-pine-gtk-theme.overrideAttrs (old: {
   postInstall = (old.postInstall or "") + ''
-    # Moon (dark) shell theme — upstream, as-is.
     cp -r $src/gnome_shell/moon/gnome-shell $out/share/themes/rose-pine-moon/gnome-shell
 
-    # Dawn (light) shell theme — Moon recolored to the Dawn palette.
     cp -r $src/gnome_shell/moon/gnome-shell $out/share/themes/rose-pine-dawn/gnome-shell
     chmod -R u+w $out/share/themes/rose-pine-dawn/gnome-shell
     find $out/share/themes/rose-pine-dawn/gnome-shell -type f \( -name '*.css' -o -name '*.svg' \) \

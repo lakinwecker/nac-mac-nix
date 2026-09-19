@@ -1,27 +1,14 @@
 #!/usr/bin/env bash
 # Manages the backup pool: a two-disk btrfs RAID1 mirror over LUKS, plus the
 # restic repository that mirrors it offsite to OVH object storage.
+# `init` is DESTRUCTIVE — it repartitions and luksFormats both disks.
+# See usage() below for the commands.
 #
-# The pool is built once with `init` and thereafter located by GPT partition
-# label, so it opens the same way whether the disks are in a USB dock or on
-# internal SATA. Moving them between the two needs no reconfiguration.
-#
-# Usage:
-#   ./backup.sh init --disk0 <disk-id> --disk1 <disk-id>   # DESTRUCTIVE
-#   ./backup.sh open | close | status
-#   ./backup.sh sync [--dry-run] [<source>]
-#   ./backup.sh verify [<source>]
-#   ./backup.sh snapshot [<name>]
-#   ./backup.sh scrub [--wait]
-#   ./backup.sh restic <args...>
-#
-# Secrets are read from the password store at call time and never written to
-# disk. Nothing here stores a credential.
+# Secrets are read from the password store at call time, never written to disk.
 set -euo pipefail
 
-# ── Pool identity ────────────────────────────────────────────────────
-# Partition labels are the pool's identity. by-id paths change when the
-# disks move between the dock and internal SATA; partition labels do not.
+# Partition labels are the pool's identity: by-id paths change when the disks
+# move between the dock and internal SATA; partition labels do not.
 PART0=${PART0:-backup0}
 PART1=${PART1:-backup1}
 POOL_LABEL=${POOL_LABEL:-backup}
@@ -29,16 +16,10 @@ POOL_MOUNT=${POOL_MOUNT:-/mnt/backup}
 SUBVOL=${SUBVOL:-trunkie-home}
 SYNC_SOURCE=${SYNC_SOURCE:-/home/lakin}
 
-# Skipped by `sync`. These are re-derivable and they churn while rsync reads
-# them, which costs far more in seek time than they are worth: a browser cache
-# is hundreds of thousands of tiny files that rewrite themselves mid-copy.
-# Override with SYNC_EXCLUDES, or add one-offs with --exclude.
+# Skipped by `sync`: re-derivable, and they churn while rsync reads them.
 read -r -a SYNC_EXCLUDES <<<"${SYNC_EXCLUDES:-.cache/ .local/share/Trash/}"
 
-# ── Password-store entries ───────────────────────────────────────────
 # The real store is ~/passwords/pass, not pass's default ~/.password-store.
-# An already-exported PASSWORD_STORE_DIR wins, which is what makes this work
-# unchanged on machines that set it as a session variable.
 PASSWORD_STORE_DIR=${PASSWORD_STORE_DIR:-$HOME/passwords/pass}
 
 PASS_LUKS=${PASS_LUKS:-lakin.ca/luks/trunkie-backup-pool}
@@ -46,7 +27,6 @@ PASS_S3_KEY=${PASS_S3_KEY:-lakin.ca/ovh/s3-backups/access-key}
 PASS_S3_SECRET=${PASS_S3_SECRET:-lakin.ca/ovh/s3-backups/secret-key}
 PASS_RESTIC=${PASS_RESTIC:-lakin.ca/restic/trunkie-backups}
 
-# ── OVH object storage ───────────────────────────────────────────────
 RESTIC_REPO=${RESTIC_REPO:-s3:https://s3.bhs.io.cloud.ovh.net/fretful-lehr/restic}
 OVH_REGION=${OVH_REGION:-bhs}
 
@@ -103,21 +83,12 @@ EOF
   exit 1
 }
 
-# ── Helpers ──────────────────────────────────────────────────────────
-
-# lwpass is a nushell function (nushell/config.nu), so it is absent from a
-# bash script's PATH. Prefer a real binary if one ever appears; then bare
-# pass, pointed at the real store; then let fish resolve it, on the one
-# machine that still has fish. Every attempt is guarded, because a missing
-# shell must fall through rather than abort. Last resort is typing it: on a
-# live ISO there is no password store at all, because the store lives in the
-# /home this script is being used to restore.
-#
-# Command substitution strips the trailing newline, which matters: the LUKS
-# passphrase is the bare string, so a piped secret must match a typed one.
+# Falls through lwpass (a nushell function, absent from bash's PATH) -> pass ->
+# fish -> typing it by hand, because on a live ISO the store lives in the /home
+# being restored. Each backend is tried at most once so gpg-agent is asked for
+# the key only once. Emits the bare string: a piped LUKS passphrase must match
+# a typed one byte for byte.
 secret() {
-  # Each attempt runs at most once: a second `pass show` to test for the entry
-  # would ask gpg-agent for the key twice.
   local out=""
   if command -v lwpass >/dev/null 2>&1; then
     out=$(lwpass show "$1" 2>/dev/null) || out=""
@@ -139,8 +110,8 @@ secret() {
 
 part_dev() { echo "/dev/disk/by-partlabel/$1"; }
 
-# The physical disks behind the pool, e.g. "sdb". Used to measure read
-# throughput during verify; /proc/diskstats is keyed by disk name.
+# The physical disks behind the pool, e.g. "sdb" — /proc/diskstats is keyed by
+# disk name, and verify reports throughput from it.
 pool_backing_disks() {
   local label dev disk
   for label in "$PART0" "$PART1"; do
@@ -157,8 +128,8 @@ pool_sectors_read() {
   awk -v re="^($re)\$" '$3 ~ re { r += $6 } END { print r+0 }' /proc/diskstats
 }
 
-# Checked before any destructive work. A tool missing halfway through would
-# leave one disk partitioned and the other untouched.
+# Checked before any destructive work: a tool missing halfway through leaves
+# one disk partitioned and the other untouched.
 require_cmds() {
   local missing=() c
   for c in "$@"; do
@@ -176,7 +147,6 @@ require_cmds() {
       *)                 pkgs+=("$m") ;;
     esac
   done
-  # De-duplicate: mkfs.btrfs and btrfs both come from btrfs-progs.
   local uniq
   uniq=$(printf '%s\n' "${pkgs[@]}" | sort -u | tr '\n' ' ')
   echo "  Arch:   sudo pacman -S --needed $uniq" >&2
@@ -184,9 +154,8 @@ require_cmds() {
   exit 1
 }
 
-# Maps a source path to the matching location inside the pool, so a subtree
-# can be synced or verified on its own: /home/lakin/backups compares against
-# <pool>/trunkie-home/backups rather than against the subvolume root.
+# Maps a source path to its place inside the pool, so a subtree can be synced
+# or verified alone: /home/lakin/backups -> <pool>/trunkie-home/backups.
 pool_dest() {
   local src="${1%/}" base="${SYNC_SOURCE%/}" rel
   if [ "$src" = "$base" ]; then
@@ -206,8 +175,6 @@ require_open() {
     exit 1
   }
 }
-
-# ── init ─────────────────────────────────────────────────────────────
 
 cmd_init() {
   require_cmds sgdisk cryptsetup mkfs.btrfs btrfs
@@ -238,17 +205,15 @@ cmd_init() {
 
   echo
   echo "==> Partitioning"
-  # The partition must be a whole number of 4096-byte sectors or LUKS refuses
-  # --sector-size 4096. Running to the last usable sector does not give that:
-  # GPT reserves an odd tail, so `-n 1:0:0` leaves a size indivisible by 8.
-  # Round the end down to an 8-sector boundary instead, costing at most 3.5 KiB.
+  # The partition must span a whole number of 4096-byte sectors or LUKS refuses
+  # --sector-size 4096, and `-n 1:0:0` does not give that (GPT's tail is odd).
+  # Round the end down to an 8-sector boundary; costs at most 3.5 KiB.
   local start=2048
   for spec in "$real0:$PART0" "$real1:$PART1"; do
     local dev="${spec%:*}" label="${spec##*:}" last end
     sudo sgdisk --zap-all "$dev"
-    # sgdisk -E prints chatter alongside the sector number ("Creating new GPT
-    # entries in memory." on a freshly zapped disk), so take the last bare
-    # numeric line rather than the whole output.
+    # sgdisk -E prints chatter alongside the sector number, so take the last
+    # bare numeric line.
     last=$(sudo sgdisk -E "$dev" | grep -oE '^[0-9]+$' | tail -n1)
     [[ "$last" =~ ^[0-9]+$ ]] || {
       echo "ERROR: could not read last usable sector of $dev." >&2; exit 1; }
@@ -286,8 +251,6 @@ cmd_init() {
   echo "Pool ready at $POOL_MOUNT"
   cmd_status
 }
-
-# ── open / close ─────────────────────────────────────────────────────
 
 cmd_open() {
   require_cmds cryptsetup btrfs
@@ -339,8 +302,6 @@ cmd_close() {
   echo "Safe to unplug."
 }
 
-# ── status ───────────────────────────────────────────────────────────
-
 cmd_status() {
   require_cmds btrfs
 
@@ -370,8 +331,6 @@ cmd_status() {
   sudo btrfs scrub status "$POOL_MOUNT" | sed 's/^/  /'
 }
 
-# ── sync ─────────────────────────────────────────────────────────────
-
 cmd_sync() {
   require_cmds rsync
 
@@ -389,16 +348,10 @@ cmd_sync() {
 
   require_open
 
-  # --numeric-ids keeps ownership correct across a reinstall, where the
-  # rebuilt system may not have the same name-to-uid mapping.
-  #
-  # --delete-during, not --delete-after: the latter needs the complete file
-  # list before it can transfer anything, which on a multi-million-file home
-  # means many minutes of silence. Deleting as we go keeps rsync's incremental
-  # recursion, so work starts immediately.
-  #
-  # --partial keeps a half-sent large file across an interruption; this run
-  # takes hours and Steam holds some very big ones.
+  # This MIRRORS: --delete-during removes anything in the pool that is no
+  # longer in the source. --numeric-ids keeps ownership correct across a
+  # reinstall that may not reproduce the name-to-uid mapping. --delete-during
+  # rather than --delete-after so rsync keeps incremental recursion.
   local args=(-aHAX --numeric-ids --info=progress2 --delete-during --partial)
   local pat
   for pat in ${SYNC_EXCLUDES+"${SYNC_EXCLUDES[@]}"} ${extra+"${extra[@]}"}; do
@@ -412,9 +365,7 @@ cmd_sync() {
   echo "==> rsync ${src%/}/ -> $dest/"
   $dry && echo "    (dry run)"
 
-  # Exit 24 means source files disappeared mid-run. On a live home directory
-  # that is normal -- browser caches rewrite themselves constantly -- and it
-  # is not a failure. Anything else is.
+  # Exit 24 (source files vanished mid-run) is normal on a live home directory.
   local rc=0
   sudo rsync "${args[@]}" "${src%/}/" "$dest/" || rc=$?
   case "$rc" in
@@ -425,12 +376,8 @@ cmd_sync() {
   esac
 }
 
-# ── restore ──────────────────────────────────────────────────────────
-
-# The reverse of sync: pool -> target. Deliberately never deletes. sync's
-# --delete-during is correct for a mirror, but on a restore the extra files
-# are whatever the freshly installed system already put there, and deleting
-# them is not what "restore my home" means. Use --mirror to opt in.
+# pool -> target. Deliberately never deletes: extra files on a fresh install
+# are the new system's own. --mirror opts into deletion.
 cmd_restore() {
   require_cmds rsync
 
@@ -450,18 +397,16 @@ cmd_restore() {
 
   require_open
 
-  # pool_dest maps a path under SYNC_SOURCE to its place in the pool. Here it
-  # names the source rather than the destination, which is what makes subtree
-  # restores work: /home/lakin/backups pulls from <pool>/trunkie-home/backups.
+  # pool_dest names the source here, not the destination — that is what makes
+  # subtree restores work.
   local src; src=$(pool_dest "$target")
   [ -d "$src" ] || {
     echo "ERROR: $src does not exist in the pool. Nothing to restore from." >&2
     exit 1
   }
 
-  # --numeric-ids preserves the uid/gid the files were saved with. Those are
-  # the old system's, so the chown below is what actually makes the restored
-  # files belong to the new account.
+  # --numeric-ids preserves the old system's uid/gid, so the chown below is
+  # what makes the restored files belong to the new account.
   local args=(-aHAX --numeric-ids --info=progress2 --partial)
   local pat
   for pat in ${extra+"${extra[@]}"}; do
@@ -478,7 +423,6 @@ cmd_restore() {
   sudo rsync "${args[@]}" "$src/" "${target%/}/"
 
   # Default to the owner implied by the path: /home/lakin -> lakin:users.
-  # NixOS need not have handed the rebuilt account the same uid Arch did.
   if [ "$owner" = "-" ]; then
     echo "Restore complete. Ownership left as stored (--no-chown)."
   else
@@ -492,8 +436,6 @@ cmd_restore() {
     fi
   fi
 }
-
-# ── verify ───────────────────────────────────────────────────────────
 
 cmd_verify() {
   require_cmds rsync
@@ -511,10 +453,8 @@ cmd_verify() {
 
   require_open
 
-  # --checksum compares content hashes instead of size and mtime. That is the
-  # entire point: a file whose bytes were corrupted in transit keeps its size
-  # and mtime, so the default quick check would call it identical. -n writes
-  # nothing, so this is safe to run against a pool you are relying on.
+  # --checksum, because corruption in transit preserves size and mtime and the
+  # default quick check would call the file identical. -n writes nothing.
   local args=(-aHAXn --checksum --numeric-ids --out-format=%n)
   local pat
   for pat in ${SYNC_EXCLUDES+"${SYNC_EXCLUDES[@]}"} ${extra+"${extra[@]}"}; do
@@ -533,10 +473,9 @@ cmd_verify() {
   echo "    Differing files print as they are found -- a quiet run is a clean one."
   echo
 
-  # rsync's own --info=progress2 counts *transferred* bytes, which in a dry
-  # run stay near zero however far along it is. Report bytes read off the
-  # pool instead: that is the work actually being done. It goes to stderr so
-  # it stays out of the tee'd log.
+  # --info=progress2 counts transferred bytes, which stay near zero in a dry
+  # run, so report bytes read off the pool instead. stderr, to stay out of the
+  # tee'd log.
   local start_sectors start_time total_gib
   start_sectors=$(pool_sectors_read)
   start_time=$(date +%s)
@@ -562,8 +501,7 @@ cmd_verify() {
   ) &
   local monitor=$!
 
-  # set +e because pipefail would otherwise abort on rsync's exit 24, and
-  # because the status wanted is rsync's, not tee's.
+  # pipefail would abort on rsync's exit 24, and we want rsync's status, not tee's.
   set +e
   sudo rsync "${args[@]}" "${src%/}/" "$dest/" 2>&1 | tee "$log"
   rc=${PIPESTATUS[0]}
@@ -596,8 +534,6 @@ cmd_verify() {
   fi
 }
 
-# ── snapshot ─────────────────────────────────────────────────────────
-
 cmd_snapshot() {
   require_cmds btrfs
   require_open
@@ -605,13 +541,9 @@ cmd_snapshot() {
   local dest="$POOL_MOUNT/snapshots/$name"
   [ -e "$dest" ] && { echo "ERROR: snapshot $name already exists." >&2; exit 1; }
 
-  # Read-only, so nothing that happens to the live subvolume later can
-  # reach through it. That is what separates a snapshot from a copy.
   sudo btrfs subvolume snapshot -r "$POOL_MOUNT/$SUBVOL" "$dest"
   echo "Snapshot: $dest"
 }
-
-# ── scrub ────────────────────────────────────────────────────────────
 
 cmd_scrub() {
   require_cmds btrfs
@@ -627,8 +559,6 @@ cmd_scrub() {
   fi
 }
 
-# ── restic ───────────────────────────────────────────────────────────
-
 cmd_restic() {
   require_cmds restic
   [ $# -gt 0 ] || { echo "ERROR: restic needs arguments, e.g. '$0 restic snapshots'." >&2; exit 1; }
@@ -641,8 +571,6 @@ cmd_restic() {
   RESTIC_COMPRESSION="${RESTIC_COMPRESSION:-max}" \
     restic "$@"
 }
-
-# ── dispatch ─────────────────────────────────────────────────────────
 
 [ $# -ge 1 ] || usage
 cmd="$1"; shift

@@ -1,21 +1,8 @@
--- Hyprland config (shared across all hosts)
--- Migrated from hyprland.conf: hyprlang was deprecated in 0.55 and is dropped
--- in 0.57. Only hyprland's own config moved to Lua — hyprlock.conf and
--- hypridle.conf still use hyprlang.
---
--- Per-host overrides (hyprHostConfig in machines.nix) and the plugin blocks
--- are appended to this file by hypr/default.nix, so they are Lua too.
-
-------------------
----- MONITORS ----
-------------------
+-- Shared across all hosts. hypr/default.nix appends the plugin blocks and the
+-- per-host hyprHostConfig from machines.nix to this file.
 
 hl.monitor({ output = "eDP-1", mode = "preferred", position = "auto", scale = 2, transform = 0 })
 hl.monitor({ output = "",      mode = "preferred", position = "auto", scale = 2 })
-
-------------------
----- SETTINGS ----
-------------------
 
 hl.config({
     input = {
@@ -67,56 +54,34 @@ hl.config({
     misc = {
         disable_hyprland_logo = true,
 
-        -- Compositor-level wake from DPMS off. Both default to false, which
-        -- makes the screens unwakeable by mouse or keyboard once hypridle
-        -- blanks them -- the only way back is hypridle's on-resume, so any
-        -- failure there is a black screen with no escape. These are the
-        -- independent path that keeps that from being fatal.
+        -- Default false, which leaves the screens unwakeable by input once
+        -- hypridle blanks them; the only way back would be hypridle itself.
         mouse_move_enables_dpms = true,
         key_press_enables_dpms = true,
     },
 })
 
--- Trackpad gestures
 hl.gesture({ fingers = 3, direction = "horizontal", action = "workspace" })
 hl.gesture({ fingers = 4, direction = "horizontal", action = "move" })
 hl.gesture({ fingers = 4, direction = "vertical",   action = "resize" })
 hl.gesture({ fingers = 3, direction = "down",       action = "fullscreen" })
 
--------------------------------
----- ENVIRONMENT VARIABLES ----
--------------------------------
-
--- Cursor theme — rose-pine-hyprcursor is SVG-based so it stays sharp when
--- hypr-dynamic-cursors magnifies on shake. Bibata stays around as the
--- XCURSOR fallback for xwayland / X11 apps (rose-pine ships hyprcursor only).
+-- rose-pine ships hyprcursor only; Bibata is the XCURSOR fallback for X11.
 hl.env("HYPRCURSOR_THEME", "rose-pine-hyprcursor")
 hl.env("HYPRCURSOR_SIZE", "32")
 hl.env("XCURSOR_THEME", "Bibata-Modern-Classic")
 hl.env("XCURSOR_SIZE", "32")
 
--------------------
----- AUTOSTART ----
--------------------
-
 hl.on("hyprland.start", function()
-    -- greetd launches Hyprland directly rather than through a session manager,
-    -- so nothing ever pulls in graphical-session.target and every user service
-    -- with `wantedBy = graphical-session.target` (lan-mouse, systembus-notify)
-    -- sits dead forever. start-hyprland imports the env vars but does not start
-    -- the target. graphical-session.target itself sets RefuseManualStart, so it
-    -- cannot be started directly — hyprland-session.target BindsTo it and pulls
-    -- it in as a dependency. Defined in hypr/default.nix.
+    -- greetd never pulls in graphical-session.target, and that target refuses
+    -- manual start; hyprland-session.target (hypr/default.nix) BindsTo it.
     hl.exec_cmd("systemctl --user start hyprland-session.target")
 
     hl.exec_cmd("iio-hyprland eDP-1")
     hl.exec_cmd("hyprctl setcursor rose-pine-hyprcursor 32")
     hl.exec_cmd("hypridle")
 
-    -- Two calls, not `awww-daemon && awww img`: the daemon runs in the
-    -- foreground and never exits, so a chained `&&` never fires and the
-    -- wallpaper silently falls back to whatever awww restored from
-    -- ~/.cache/awww.
+    -- Two calls, not `&&`: awww-daemon runs in the foreground and never exits.
     hl.exec_cmd("awww-daemon")
     hl.exec_cmd("sleep 1 && awww img /etc/wallpaper.jpg")
 
@@ -125,21 +90,12 @@ hl.on("hyprland.start", function()
     hl.exec_cmd("/etc/hypr/scripts/battery-borders.sh")
 end)
 
---------------------
----- WORKSPACES ----
---------------------
-
 hl.workspace_rule({ workspace = "11", persistent = true })
 hl.workspace_rule({ workspace = "12", persistent = true })
 hl.workspace_rule({ workspace = "13", persistent = true })
 hl.workspace_rule({ workspace = "14", persistent = true })
 
----------------------
----- KEYBINDINGS ----
----------------------
-
--- Mac-style universal copy/paste. Copy & paste use X11 legacy keys
--- (Ctrl+Insert / Shift+Insert) which work in both terminals and GUI apps.
+-- Mac-style copy/paste via X11 legacy keys, which work in terminals and GUI.
 hl.bind("SUPER + C", hl.dsp.send_shortcut({ mods = "CTRL",  key = "Insert" }), { description = "Universal copy" })
 hl.bind("SUPER + V", hl.dsp.send_shortcut({ mods = "SHIFT", key = "Insert" }), { description = "Universal paste" })
 hl.bind("SUPER + X", hl.dsp.exec_cmd("/etc/hypr/scripts/mac-shortcut.sh cut"))
@@ -149,8 +105,6 @@ hl.bind("SUPER + SHIFT + Z", hl.dsp.exec_cmd("/etc/hypr/scripts/mac-shortcut.sh 
 
 hl.bind("CTRL + SUPER + SHIFT + T", hl.dsp.exec_cmd("theme-toggle"))
 
--- Start/stop lan-mouse. Stopping also restarts the portal, which is the only
--- thing that reclaims the fds it leaks per capture session (see the script).
 hl.bind("CTRL + SUPER + M", hl.dsp.exec_cmd("/etc/hypr/scripts/lan-mouse-toggle.sh toggle"))
 
 hl.bind("SUPER + Return", hl.dsp.exec_cmd("ghostty"))
@@ -170,13 +124,10 @@ hl.bind("SUPER + L", hl.dsp.focus({ direction = "right" }))
 hl.bind("SUPER + K", hl.dsp.focus({ direction = "up" }))
 hl.bind("SUPER + J", hl.dsp.focus({ direction = "down" }))
 
--- Workspace switch / move. 1-9 map to their own key, 0 maps to workspace 10;
--- the extra four sit on letters so they stay reachable without a numrow reach.
 for i = 1, 10 do
     local key = i % 10 -- 10 maps to key 0
     hl.bind("SUPER + " .. key, hl.dsp.focus({ workspace = i }))
-    -- follow = false is the old movetoworkspacesilent: move the window without
-    -- dragging focus along with it.
+    -- follow = false is the old movetoworkspacesilent.
     hl.bind("SUPER + SHIFT + " .. key, hl.dsp.window.move({ workspace = i, follow = false }))
 end
 
@@ -189,13 +140,8 @@ end
 hl.bind("SUPER + grave", hl.dsp.workspace.toggle_special())
 hl.bind("SUPER + SHIFT + space", hl.dsp.window.move({ workspace = "special" }))
 
--------------------
----- RESIZING  ----
--------------------
-
 -- define_submap's optional second arg is NOT an escape key -- it is the submap
--- to jump to after any bind in here fires (a one-shot submap). Leaving it out
--- keeps resize mode sticky; escape has to be bound explicitly below.
+-- to jump to after any bind fires. Omitted, so resize mode stays sticky.
 hl.define_submap("resize", function()
     hl.bind("right", hl.dsp.window.resize({ x = 2,  y = 0,  relative = true }), { repeating = true })
     hl.bind("left",  hl.dsp.window.resize({ x = -2, y = 0,  relative = true }), { repeating = true })
@@ -222,18 +168,11 @@ end)
 
 hl.bind("SUPER + R", hl.dsp.submap("resize"))
 
---------------------------
----- MOVING / MONITORS ----
---------------------------
-
 hl.bind("SUPER + SHIFT + L", hl.dsp.window.move({ direction = "right" }))
 hl.bind("SUPER + SHIFT + H", hl.dsp.window.move({ direction = "left" }))
 hl.bind("SUPER + SHIFT + J", hl.dsp.window.move({ direction = "down" }))
 hl.bind("SUPER + SHIFT + K", hl.dsp.window.move({ direction = "up" }))
 
--- Move the current workspace to the monitor in that direction. Directional,
--- so it needs no per-host monitor names; hosts can add name-targeted binds
--- on SUPER + ALT + <number> in hyprHostConfig.
 hl.bind("SUPER + ALT + H", hl.dsp.workspace.move({ monitor = "l" }))
 hl.bind("SUPER + ALT + L", hl.dsp.workspace.move({ monitor = "r" }))
 hl.bind("SUPER + ALT + K", hl.dsp.workspace.move({ monitor = "u" }))
@@ -243,10 +182,6 @@ hl.bind("SUPER + mouse_down", hl.dsp.focus({ workspace = "e+1" }))
 hl.bind("SUPER + mouse_up",   hl.dsp.focus({ workspace = "e-1" }))
 hl.bind("SUPER + mouse:272", hl.dsp.window.drag(),   { mouse = true })
 hl.bind("SUPER + mouse:273", hl.dsp.window.resize(), { mouse = true })
-
-------------------
----- MEDIA    ----
-------------------
 
 hl.bind("XF86AudioRaiseVolume", hl.dsp.exec_cmd("wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%+"),   { locked = true, repeating = true })
 hl.bind("XF86AudioLowerVolume", hl.dsp.exec_cmd("wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-"),   { locked = true, repeating = true })

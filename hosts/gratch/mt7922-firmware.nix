@@ -1,16 +1,5 @@
-# Pin the MediaTek MT7922 (mt7921e) WiFi firmware to the Feb-2024 build.
-#
-# linux-firmware releases after Feb 2024 regressed the MT7922 firmware: the
-# card spontaneously deauthenticates (kernel: "by local choice", reason 3,
-# from_ap:false) every ~10-20 min *when the link is idle*, which tears down
-# the nebula tunnel (gratch unreachable until a keypress). Power-save is off,
-# ASPM off didn't help — it's the firmware blob itself.
-#
-# Upstream report: https://github.com/openwrt/mt76/issues/987
-# Reverting the two firmware files to the 20240220 linux-firmware tag
-# (firmware version 20240219103337, last-known-stable) fixes it.
-#
-# We override the base linux-firmware; NixOS re-compresses it to zstd.
+# Pin MT7922 (mt7921e) WiFi firmware to the 20240220 linux-firmware tag: later
+# blobs deauth the card every ~10-20 min when idle (openwrt/mt76#987).
 { ... }:
 let
   tag  = "20240220";

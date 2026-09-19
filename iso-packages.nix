@@ -9,7 +9,6 @@
     signal-desktop
     qogir-icon-theme
     fontconfig
-    # Dev tools
     devenv
     ranger
     # Charm tools
@@ -33,13 +32,9 @@
     curl
     jq
     tree-sitter
-    # backup.sh: restoring /home from the pool during an install.
-    # cryptsetup and btrfs-progs already come from the installer profile.
-    rsync
-    # KVM
+    rsync  # backup.sh restore; cryptsetup/btrfs-progs come from the installer profile
     lan-mouse
   ];
 
-  # Docker
   virtualisation.docker.enable = true;
 }

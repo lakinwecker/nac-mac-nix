@@ -1,29 +1,24 @@
-# AMD laptop — hostname "gratch"
+# AMD laptop
 { lib, pkgs, username, ... }:
 {
-  imports = [ ./mt7922-firmware.nix ];  # pin MT7922 wifi firmware (mt76#987 idle-disconnect)
+  imports = [ ./mt7922-firmware.nix ];
 
   hardware.amdgpu.initrd.enable = true;
 
-  # Cap Nix build parallelism. Defaults (max-jobs=auto=16 × cores=16) massively
-  # oversubscribe the 16 threads and freeze the desktop. 3 jobs × 4 threads =
-  # 12 threads, leaving 4 for Hyprland. (60 GB RAM, so memory isn't the limit.)
+  # 3 x 4 of 16 threads; the defaults oversubscribe and freeze the desktop.
   nix.settings.max-jobs = 3;
   nix.settings.cores = 4;
 
-  # ── Kernel power params ────────────────────────────────────────────
   boot.kernelParams = [
     "amd_pstate=active"
   ];
 
-  # ── Power management ───────────────────────────────────────────────
   powerManagement.enable = true;
   services.power-profiles-daemon.enable = false;
 
   services.tlp = {
     enable = true;
     settings = {
-      # CPU
       CPU_SCALING_GOVERNOR_ON_BAT = "powersave";
       CPU_SCALING_GOVERNOR_ON_AC = "performance";
       CPU_ENERGY_PERF_POLICY_ON_BAT = "power";
@@ -32,46 +27,26 @@
       PLATFORM_PROFILE_ON_AC = "performance";
       CPU_BOOST_ON_BAT = 0;
       CPU_BOOST_ON_AC = 1;
-
-      # Runtime PM
       RUNTIME_PM_ON_BAT = "auto";
       RUNTIME_PM_ON_AC = "on";
-
-      # USB
       USB_AUTOSUSPEND = 1;
-
-      # Wifi
       WIFI_PWR_ON_BAT = "on";
       WIFI_PWR_ON_AC = "off";
-
-      # PCIe
       PCIE_ASPM_ON_BAT = "powersupersave";
       PCIE_ASPM_ON_AC = "default";
-
-      # SATA
       SATA_LINKPWR_ON_BAT = "med_power_with_dipm";
       SATA_LINKPWR_ON_AC = "max_performance";
-
-      # Audio codec power save
       SOUND_POWER_SAVE_ON_BAT = 1;
       SOUND_POWER_SAVE_ON_AC = 0;
       SOUND_POWER_SAVE_CONTROLLER = "Y";
-
-      # Misc
       NMI_WATCHDOG = 0;
       WOL_DISABLE = "Y";
     };
   };
 
-  # (e2fsprogs, ddrescue, etc. now come from ../tools, installed everywhere.)
   environment.systemPackages = with pkgs; [ powertop lm_sensors ];
 
-  # ── secretspec: default to the pass provider ───────────────────────
-  # PASSWORD_STORE_DIR now comes from ../../common/user.nix, which sets it on
-  # every host. Defining it here too is a conflicting definition, not an
-  # override.
-
-  # store_dir: the real store is ~/passwords/pass, not ~/.password-store.
+  # The real pass store is ~/passwords/pass, not ~/.password-store.
   environment.etc."secretspec/config.toml".text = ''
     [defaults]
     provider = "pass://?store_dir=/home/${username}/passwords/pass"
@@ -87,10 +62,10 @@
     '';
   };
 
-  # ── Ollama: don't auto-start (use systemctl start ollama manually) ─
+  # Ollama: start manually.
   systemd.services.ollama.wantedBy = lib.mkForce [];
 
-  # ── Display: 120Hz on AC, 60Hz on battery ──────────────────────────
+  # 120Hz on AC, 60Hz on battery.
   environment.etc."hypr/scripts/power-refresh.sh" = {
     text = ''
       #!/usr/bin/env bash

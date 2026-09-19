@@ -4,10 +4,6 @@ let
   iconName   = "rose-pine-dawn";
   cursorName = "BreezeX-RosePineDawn-Linux";     # light variant from rose-pine-cursor
   wallpaper  = ./wallpapers/rose-pine/birb.png;  # CC0, see wallpapers/rose-pine/LICENSE
-  # rose-pine-gtk-theme + GNOME Shell themes (Moon, and a Dawn recolor of it).
-  # The base package is vendored (./rose-pine-gtk-theme.nix) because nixpkgs
-  # dropped it with gtk-engine-murrine. See ./rose-pine-theme.nix for the
-  # palette remap.
   rosePineTheme = pkgs.callPackage ./rose-pine-theme.nix {
     rose-pine-gtk-theme = pkgs.callPackage ./rose-pine-gtk-theme.nix { };
   };
@@ -21,18 +17,15 @@ in
   environment.systemPackages = with pkgs; [
     gimp
     gnome-tweaks
-    mpv     # video player (totem is excluded below)
-    loupe   # GNOME image/photo viewer
-    # Rosé Pine theming (Thunderbird is enabled via programs.thunderbird below)
+    mpv
+    loupe
     rosePineTheme
     rose-pine-icon-theme
     rose-pine-cursor
-    # GNOME Shell extensions: hide the overview dash + apply the shell theme
     gnomeExtensions.just-perfection
     gnomeExtensions.user-themes
   ];
 
-  # Remove GNOME bloat
   environment.gnome.excludePackages = with pkgs; [
     gnome-tour
     epiphany
@@ -40,18 +33,13 @@ in
     totem
   ];
 
-  # ── Firefox: Rosé Pine Dawn (light) theme (souris only) ─────────────
-  # Force-installs the AMO theme (merges with common/desktop.nix's
-  # uBlock/Privacy Badger/Dark Reader) and sets it as the active theme.
+  # Rosé Pine Dawn; merges with common/desktop.nix's extension set.
   programs.firefox.policies.ExtensionSettings."{f2b68b20-da4c-4b95-af7e-430bb8d3d6ce}" = {
     install_url = "https://addons.mozilla.org/firefox/downloads/latest/rose-pine-dawn-light-theme/latest.xpi";
     installation_mode = "force_installed";
   };
   programs.firefox.preferences."extensions.activeThemeID" = "{f2b68b20-da4c-4b95-af7e-430bb8d3d6ce}";
 
-  # ── Thunderbird: Rosé Pine Dawn theme (souris only) ─────────────────
-  # programs.thunderbird installs a policy-aware Thunderbird; force-install
-  # the ATN theme and set it active.
   programs.thunderbird = {
     enable = true;
     policies.ExtensionSettings."mrfallen45@gmail.com" = {
@@ -61,20 +49,16 @@ in
     preferences."extensions.activeThemeID" = "mrfallen45@gmail.com";
   };
 
-  # ── Rosé Pine Dawn ──────────────────────────────────────────────────
-  # These override the Adwaita-dark defaults from common/desktop.nix.
-  # mkBefore places this database ahead of common's in the user profile,
-  # so it wins on the shared keys (gtk-theme, color-scheme).
+  # mkBefore so these win over common/desktop.nix's Adwaita-dark defaults.
   programs.dconf.profiles.user.databases = lib.mkBefore [{
     settings = {
       "org/gnome/desktop/interface" = {
-        color-scheme = "prefer-light";  # Dawn is a light flavor
+        color-scheme = "prefer-light";
         gtk-theme    = themeName;
         icon-theme   = iconName;
         cursor-theme = cursorName;
-        accent-color = "pink";          # GNOME 47+ libadwaita accent; ignored if unsupported
+        accent-color = "pink";          # GNOME 47+ libadwaita; ignored if unsupported
       };
-      # Show minimize/maximize window buttons (GNOME defaults to close only).
       "org/gnome/desktop/wm/preferences" = {
         button-layout = "appmenu:minimize,maximize,close";
       };
@@ -87,8 +71,6 @@ in
         picture-uri     = "file://${wallpaper}";
         picture-options = "zoom";
       };
-      # Just Perfection: hide the dash (favorites bar) from the Activities
-      # overview. Anita wants the window picker + search, not the dock.
       "org/gnome/shell" = {
         disable-user-extensions = false;
         enabled-extensions = [
@@ -99,18 +81,13 @@ in
       "org/gnome/shell/extensions/just-perfection" = {
         dash = false;
       };
-      # Top bar / shell theme. Moon (dark) is the default — Anita's pick. The
-      # Dawn (light) recolor (see rosePineTheme override) is also installed;
-      # switch to "rose-pine-dawn" in Tweaks → Appearance → Shell.
       "org/gnome/shell/extensions/user-theme" = {
         name = "rose-pine-moon";
       };
     };
   }];
 
-  # libadwaita (GTK4) apps ignore the GTK theme; they only read
-  # ~/.config/gtk-4.0/gtk.css. Link the theme's palette there so Files,
-  # Settings, Text Editor, etc. pick up the Rosé Pine colors too.
+  # libadwaita (GTK4) apps ignore the GTK theme and only read this path.
   system.activationScripts.rosePineGtk4 = {
     deps = [ "users" ];
     text = ''

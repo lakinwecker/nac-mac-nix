@@ -8,45 +8,24 @@
       url = "github:nix-community/disko/latest";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    # ── Hyprland and its three out-of-tree plugins ──────────────────
-    #
-    # All four move together, and the release they can move *to* is dictated by
-    # the plugins, not by Hyprland. v0.56.1 is the newest release with a pin
-    # published for every one of them:
-    #
-    #   Hyprland              v0.56.1
-    #   hyprgrass             hl-0.56.1        (newest tag; nothing for 0.56.2)
-    #   hyprexpo (fork)       v0.56.1+3        (newest tag; nothing for 0.56.2)
-    #   hypr-dynamic-cursors  f5ba36c7         (hyprpm.toml pin for 0.56.1)
-    #
-    # v0.56.2 exists and dynamic-cursors covers it, but hyprgrass and hyprexpo
-    # do not — moving there costs harry's touch gestures and the overview on
-    # every host. That is why the fleet sits one release back rather than on
-    # the newest tag. Before bumping, check that all three plugins have
-    # published a pin for the target release; if any has not, do not bump.
-    #
-    # 0.56.1 also carries xdg-desktop-portal-hyprland v1.4.0+1, which has the
-    # InputCapture portal lan-mouse needs on trunkie (added in 1.4.0).
+    # Hyprland and its three plugins move together. v0.56.1 is the newest
+    # release with a published pin for all three — do not bump unless every
+    # plugin has one for the target release.
     hyprland = {
       url = "github:hyprwm/Hyprland/v0.56.1";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    # hyprgrass is Surface-only (touchscreen gestures). harry is the only host
-    # that passes it through to hypr/default.nix.
     hyprgrass = {
       url = "github:horriblename/hyprgrass/hl-0.56.1";
       inputs.hyprland.follows = "hyprland";
     };
-    # Taken from the plugin's own hyprpm.toml commit_pins table, which maps a
-    # Hyprland commit to the plugin commit that builds against it:
-    #   ["5c9377c…" (Hyprland v0.56.1), "f5ba36c…"]
-    # Do NOT pin the commit that *adds* a newer table row — its own tree tracks
-    # Hyprland main and wants headers that do not exist in a tagged release.
+    # From the plugin's hyprpm.toml commit_pins row for Hyprland v0.56.1. Do
+    # NOT pin the commit that *adds* a newer row — it tracks Hyprland main.
     hypr-dynamic-cursors = {
       url = "github:VirtCode/hypr-dynamic-cursors/f5ba36c7622098b53bf62ddb8ddf03b914abbdf8";
       inputs.hyprland.follows = "hyprland";
     };
-    # Community-maintained hyprexpo fork (workspace overview).
+    # Community fork; upstream hyprexpo has no 0.56 pin.
     hyprexpo-src = {
       url = "github:sandwichfarm/hyprexpo/v0.56.1+3";
       flake = false;
@@ -56,7 +35,6 @@
 
   outputs = { self, nixpkgs, devenv, nixos-hardware, disko, hyprland, hyprgrass, hypr-dynamic-cursors, hyprexpo-src, ... }:
   let
-    # ── Machine registry ────────────────────────────────────────────
     machines = import ./machines.nix;
 
     devenvOverlay = { ... }: {
@@ -70,14 +48,12 @@
     commonModules = [ ./common devenvOverlay ];
     desktopModule = { hyprland = ./hypr; xfce = ./xfce; gnome = ./gnome; };
 
-    # Build the NixOS module list for a machine.
     mkHostModules = name: m:
       commonModules
       ++ map (hw: nixos-hardware.nixosModules.${hw}) (m.hardware or [])
       ++ [ desktopModule.${m.desktop} ]
       ++ [ ./hosts/${name} ];
 
-    # Build specialArgs from a machine's registry entry.
     mkSpecialArgs = _name: m:
       {
         username   = m.username or "lakin";
@@ -105,7 +81,6 @@
         xfceAvatar    = m.xfceAvatar or null;
       } else {});
 
-    # Generate {<name>-iso, <name>} configs for one machine.
     mkMachineConfigs = name: m: let
       hostModules = mkHostModules name m;
       specialArgs = mkSpecialArgs name m;
@@ -122,7 +97,6 @@
       };
     };
 
-    # ── Helpers (unchanged) ─────────────────────────────────────────
     defaultSpecialArgs = mkSpecialArgs "" { desktop = "hyprland"; };
 
     mkIso = {
@@ -179,25 +153,18 @@
         ./iso-packages.nix
         ({ username, ... }: {
           boot.loader.systemd-boot.enable = true;
-          # The ESP is only 511 MB and each generation costs ~75 MB (kernel +
-          # initrd), so cap retained generations — without this it keeps every
-          # generation and eventually fills /boot mid-switch ("No space left").
+          # 511 MB ESP, ~75 MB per generation; uncapped it fills /boot mid-switch.
           boot.loader.systemd-boot.configurationLimit = 5;
           boot.loader.efi.canTouchEfiVariables = true;
 
-          # Graphical boot splash. Plymouth runs on whatever initrd the host
-          # uses (systemd-initrd where enabled, classic otherwise); the quiet
-          # params + low console log level suppress the text scroll so the
-          # splash isn't stepped on. kernelParams merges with per-host params.
+          # quiet/splash + low log level keep the text scroll off the splash.
           boot.plymouth.enable = true;
           boot.kernelParams = [ "quiet" "splash" "rd.udev.log_level=3" "udev.log_priority=3" ];
           boot.consoleLogLevel = 0;
           boot.initrd.verbose = false;
 
-          # Shutdown-hang mitigation. A user-session unit sometimes fails to
-          # stop, and the default 90s stop timeout (hit potentially twice)
-          # leaves reboot wedged for minutes. Cap it so a stuck unit is killed
-          # in 15s and the machine actually powers down.
+          # A stuck user-session unit plus the default 90s timeout wedges
+          # reboot for minutes.
           systemd.settings.Manager.DefaultTimeoutStopSec = "15s";
           systemd.user.settings.Manager.DefaultTimeoutStopSec = "15s";
 
@@ -219,9 +186,8 @@
   in {
     nixosConfigurations = nixpkgs.lib.concatMapAttrs mkMachineConfigs machines;
 
-    # `nix flake check` guard against reintroducing the hyprlang-era hyprctl
-    # spellings. Both of them fail silently under the Lua config, so there is
-    # nothing at runtime to notice them — see hypr/scripts/hypr-lua.sh.
+    # Guards against hyprlang-era hyprctl spellings, which fail silently under
+    # the Lua config. See hypr/scripts/hypr-lua.sh.
     checks.x86_64-linux.hyprctl-lua =
       let pkgs = nixpkgs.legacyPackages.x86_64-linux;
       in pkgs.runCommand "hyprctl-lua-check" { nativeBuildInputs = [ pkgs.bash pkgs.gnugrep pkgs.findutils ]; } ''

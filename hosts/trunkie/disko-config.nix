@@ -1,26 +1,15 @@
 { lib, ... }:
 {
-  # Trunkie — 3-disk layout (Threadripper 1950X desktop, ROG Zenith Extreme)
+  # root 931G unmirrored (reproducible from this flake); /home is btrfs RAID1
+  # across home0 + home1.
   #
-  #   root   WD SN550 931G          onboard M.2; ESP + single-device btrfs
-  #   home0  ADATA SX8200 Pro 1.9T  DIMM.2 slot 1
-  #   home1  WD Black SN770 1.8T    DIMM.2 slot 2
+  # The home mkfs must stay on home1: disko creates devices in attrName order
+  # (home0, home1, root) with no dependency ordering for multi-device btrfs, so
+  # the member running mkfs must sort AFTER the member it names in extraArgs.
+  # Moving the btrfs block onto home0 fails mid-install, disks already wiped.
   #
-  # Root is not mirrored: it is reproducible from this flake, so a root disk
-  # failure costs a reinstall, not data. Only /home gets RAID1.
-  #
-  # The home mkfs lives on home1, not home0, and this matters: disko has no
-  # dependency ordering for multi-device btrfs (its btrfs type leaves _meta as
-  # an empty _dev, contributing no deviceDependencies), so devices are created
-  # in lib.attrNames order — home0, home1, root. Whichever member runs
-  # mkfs.btrfs must sort AFTER the member it names in extraArgs, or that
-  # /dev/mapper node does not exist yet and mkfs fails mid-install with the
-  # disks already repartitioned. Do not move the btrfs block onto home0.
-  #
-  # Install (always by-id — NVMe enumeration order is not stable):
-  #   ./install.sh trunkie --disk root=/dev/disk/by-id/... \
-  #                        --disk home0=/dev/disk/by-id/... \
-  #                        --disk home1=/dev/disk/by-id/...
+  # Install by-id — NVMe enumeration order is not stable:
+  #   ./install.sh trunkie --disk root=... --disk home0=... --disk home1=...
 
   disko.devices = {
     disk = {
@@ -31,7 +20,7 @@
           type = "gpt";
           partitions = {
             ESP = {
-              # 1G rather than 512M: NixOS keeps a kernel+initrd per generation.
+              # 1G, not 512M: NixOS keeps a kernel+initrd per generation.
               size = "1G";
               type = "EF00";
               content = {
@@ -69,7 +58,7 @@
       };
 
       home0 = {
-        # RAID1 partner that home1's mkfs references. No filesystem of its own.
+        # RAID1 partner referenced by home1's mkfs. No filesystem of its own.
         device = lib.mkDefault "/dev/nvme1n1";
         type = "disk";
         content = {
@@ -89,7 +78,7 @@
       };
 
       home1 = {
-        # Runs the mkfs for the home mirror.
+        # Runs the mkfs for the home mirror — see the note at the top.
         device = lib.mkDefault "/dev/nvme2n1";
         type = "disk";
         content = {

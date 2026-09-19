@@ -1,18 +1,8 @@
-// Vendored from zellij 0.44.3's built-in `tokyo-night-storm` theme, with only the
-// `text_selected` component changed.
-//
-// zellij paints pane text selection itself, from text_selected.background /
-// .base (zellij-server/src/panes/grid.rs). Upstream sets those to #24283b on
-// #c0caf5 — #24283b is byte-identical to ghostty's TokyoNight Storm `background`, so a
-// selection was a 1.00:1 no-op and effectively invisible. These are ghostty's
-// own selection-background / selection-foreground, so selecting inside zellij
-// now looks the same as selecting in a bare ghostty window.
-//
-// This has to live in the theme *directory*: setup.rs merges the built-ins
-// over any `themes {}` block in config.kdl, then merges the theme dir over
-// those. Themes::merge replaces a whole entry rather than deep-merging, which
-// is why the untouched components are copied verbatim rather than omitted.
-//
+// Vendored from zellij 0.44.3's built-in `tokyo-night-storm`, only
+// `text_selected` changed: upstream's is invisible against ghostty's background,
+// so these are ghostty's own selection colours. Must live in the theme dir
+// (built-ins override config.kdl `themes {}`), and Themes::merge replaces whole
+// entries, so untouched components are copied verbatim.
 // Re-vendor from zellij-utils/assets/themes/tokyo-night-storm.kdl on a zellij bump.
 themes {
     tokyo-night-storm {

@@ -27,7 +27,6 @@
     source = xfceWallpaper;
   };
 
-  # User avatar — used by LightDM greeter and AccountsService
   system.activationScripts.xfceAvatar = lib.mkIf (xfceAvatar != null) {
     deps = [ "users" ];
     text = ''
@@ -38,8 +37,6 @@
     '';
   };
 
-  # Set wallpaper via XDG autostart — uses xrandr to discover monitor names
-  # at runtime so it works on any hardware.
   environment.etc."xfce-set-wallpaper.sh" = lib.mkIf (xfceWallpaper != null) {
     text = ''
       #!/bin/sh

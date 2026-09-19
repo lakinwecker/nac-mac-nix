@@ -1,4 +1,4 @@
-# Surface Pro 9 (Intel) — hostname "harry"
+# Surface Pro 9 (Intel)
 { lib, pkgs, ... }:
 {
   hardware.microsoft-surface.kernelVersion = "stable";
@@ -9,7 +9,7 @@
     structuredExtraConfig = { RUST = lib.mkForce lib.kernel.no; };
   }];
 
-  # Type Cover at LUKS prompt — modules matched from running system via lsmod/sysfs
+  # Load-bearing: the Type Cover is dead at the LUKS prompt without these.
   boot.initrd.kernelModules = [
     "pinctrl_tigerlake"
     "intel_lpss"
@@ -26,13 +26,12 @@
     "ithc"
   ];
 
-  # No surface_gpe blacklist: it never binds here anyway. DMI sys_vendor is
-  # " Microsoft Corporation" (leading space) and the driver uses DMI_EXACT_MATCH.
+  # No surface_gpe blacklist: DMI sys_vendor has a leading space and the driver
+  # uses DMI_EXACT_MATCH, so it never binds here anyway.
 
   services.iptsd.enable = true;
   hardware.sensor.iio.enable = true;
 
-  # ── Power management (TLP) ─────────────────────────────────────────
   services.power-profiles-daemon.enable = false;
   services.tlp = {
     enable = true;
@@ -59,15 +58,12 @@
   powerManagement.enable = true;
   powerManagement.powertop.enable = true;
 
-  # ── Sleep ──────────────────────────────────────────────────────────
-  # SP9 only supports s2idle (Modern Standby) — no S3/deep in firmware.
-  # Hibernate is deliberately not configured; see docs/suspend-harry.md.
+  # All three are load-bearing for suspend — see docs/suspend-harry.md.
+  # Firmware has no S3; PSR blocks wake; without hpiosize=0 the Thunderbolt
+  # bridge overlaps the ACPI PM1/GPE0 blocks and the SCI storms after s2idle.
   boot.kernelParams = [
     "mem_sleep_default=s2idle"
-    "i915.enable_psr=0"       # panel self-refresh can block wake
-    # Without this the Thunderbolt hotplug bridge (00:07.0) claims an I/O window
-    # containing the ACPI PM1/GPE0 blocks; they read all-ones after s2idle and
-    # the SCI storms. Check nesting in /proc/ioports before changing.
+    "i915.enable_psr=0"
     "pci=hpiosize=0"
   ];
 
@@ -81,25 +77,24 @@
     HandleLidSwitchExternalPower = "suspend";
   };
 
-  # Default is HybridSleep, which needs a hibernate image we don't have.
+  # Default HybridSleep needs a hibernate image we don't have.
   services.upower.criticalPowerAction = "PowerOff";
 
-  # Reload ithc + iptsd after resume — touchscreen loses state across sleep.
-  # Use resumeCommands, not a unit on post-resume.target: that target does not
-  # exist in nixpkgs, so the old unit never ran on any boot.
+  # Touchscreen loses state across sleep. Must be resumeCommands, not a unit on
+  # post-resume.target — that target does not exist in nixpkgs and never runs.
   powerManagement.resumeCommands = ''
     ${pkgs.kmod}/bin/modprobe -r ithc 2>/dev/null || true
     ${pkgs.kmod}/bin/modprobe ithc 2>/dev/null || true
     for unit in $(${pkgs.systemd}/bin/systemctl list-units --plain --no-legend 'iptsd@*' | ${pkgs.gawk}/bin/awk '{print $1}'); do
       ${pkgs.systemd}/bin/systemctl restart "$unit" 2>/dev/null || true
     done
-    # Restart iio-hyprland — auto-rotation stops working after suspend
+    # auto-rotation stops working after suspend
     ${pkgs.procps}/bin/pkill iio-hyprland 2>/dev/null || true
     ${pkgs.coreutils}/bin/sleep 1
     ${pkgs.util-linux}/bin/runuser -u lakin -- ${pkgs.iio-hyprland}/bin/iio-hyprland eDP-1 &
   '';
 
-  # Prevent XHCI (USB 3.0) from triggering instant wake
+  # XHCI otherwise triggers instant wake.
   powerManagement.powerDownCommands = ''
     for dev in XHCI XHC; do
       if grep -q "$dev.*enabled" /proc/acpi/wakeup; then
@@ -108,8 +103,7 @@
     done
   '';
 
-  # ── Swap ───────────────────────────────────────────────────────────
-  # Btrfs swapfile — set NOCOW before creation
+  # btrfs swapfile needs NOCOW before creation.
   system.activationScripts.swapNocow = {
     text = ''
       if [ -d /swap ]; then

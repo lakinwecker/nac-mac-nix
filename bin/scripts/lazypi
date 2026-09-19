@@ -2,15 +2,14 @@
 # LazyPi (https://lazypi.org), the installer for the Pi coding agent.
 set -euo pipefail
 
-# Not inherited reliably: ../../pi/default.nix sets this via sessionVariables,
-# which PAM applies at login and devenv shells don't carry. Unset, npm targets
-# the read-only nodejs store path and dies with ENOENT on mkdir.
+# Not reliably inherited (devenv shells drop it); npm would target the
+# read-only nodejs store path.
 NPM_CONFIG_PREFIX="${NPM_CONFIG_PREFIX:-$HOME/.npm-global}"
 export NPM_CONFIG_PREFIX
 mkdir -p "$NPM_CONFIG_PREFIX/bin"
 
-# Drop our own directory from PATH: it also holds the `pi` wrapper, and LazyPi
-# decides whether Pi needs installing with a bare `which pi`.
+# Drop our own dir from PATH: LazyPi probes with a bare `which pi`, which would
+# find the `pi` wrapper sitting next to this script.
 SELF_DIR="$(cd -- "$(dirname -- "$0")" && pwd)"
 PATH="$(printf '%s' "$PATH" | tr ':' '\n' | grep -vxF -- "$SELF_DIR" | paste -sd: - || true)"
 export PATH

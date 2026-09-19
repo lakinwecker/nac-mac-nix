@@ -1,24 +1,7 @@
 #!/usr/bin/env bash
-# Installs a NixOS host config onto a machine.
-# Run from inside the flake directory on the live ISO (/iso/flake).
-#
-# Usage:
-#   ./install.sh <host> --disk <name>=<disk-id> [--disk <name>=<disk-id> ...] [--wipe]
-#
-# Each <name> is a disk declared in that host's disko config. Single-disk hosts
-# declare one disk called "main", so the name may be omitted:
-#   ./install.sh cornfield --disk /dev/disk/by-id/ata-SAMSUNG_...
-#
-# Dual-drive hosts declare "main" and "home"; --home-disk is shorthand for
-# --disk home=...:
-#   ./install.sh gratch --disk <main-id> --home-disk <home-id>
-#
-# Four-disk hosts name every member explicitly:
-#   ./install.sh trunkie --disk root0=<id> --disk root1=<id> \
-#                        --disk home0=<id> --disk home1=<id>
-#
-# <disk-id> is a /dev/disk/by-id/... path or a bare device like /dev/sda.
-# Prefer by-id: NVMe enumeration order is not stable across boots.
+# DESTRUCTIVE: formats the named disks. Run from the flake dir on the live ISO
+# (/iso/flake). See usage() below; --disk names come from the host's disko
+# config. Prefer by-id paths — NVMe enumeration order is not stable.
 set -euo pipefail
 
 NIX_OPTS=(--extra-experimental-features nix-command)
@@ -80,11 +63,9 @@ done
 
 [ ${#DISK_NAMES[@]} -gt 0 ] || { echo "ERROR: at least one --disk is required." >&2; usage; }
 
-# ── Check the supplied names against the host's disko config ─────────
-# Read the disko file directly rather than evaluating the whole NixOS config:
-# it is pure, needs no flake and no nixpkgs, and takes milliseconds. These
-# files only ever call lib.mkDefault, so a stub lib suffices. If that stops
-# being true the eval fails and we skip validation rather than block install.
+# Check the supplied names against the host's disko config. Read the disko file
+# directly, not the whole NixOS config: it is pure and only ever calls
+# lib.mkDefault, so a stub lib suffices. On eval failure we skip the check.
 declared=$(nix eval --json --impure "${NIX_OPTS[@]}" --expr "
   let
     machines  = import ./machines.nix;
@@ -123,7 +104,6 @@ else
   echo "WARNING: could not read $HOST's disko config; skipping disk-name check." >&2
 fi
 
-# ── Verify disks exist ───────────────────────────────────────────────
 for d in "${DISK_PATHS[@]}"; do
   [ -e "$d" ] || { echo "ERROR: disk $d not found." >&2; exit 1; }
 done
@@ -137,7 +117,6 @@ echo
 read -r -p "This will DESTROY all data on the target disk(s). Type 'WIPE' to continue: " confirm
 [ "$confirm" = "WIPE" ] || { echo "Aborted."; exit 1; }
 
-# ── LUKS passphrase ──────────────────────────────────────────────────
 if [ ! -s /tmp/disk-password ]; then
   echo
   echo "Enter LUKS passphrase:"
@@ -150,9 +129,8 @@ if [ ! -s /tmp/disk-password ]; then
   unset pass1 pass2
 fi
 
-# ── Phase 0: close stale LUKS on the target disks + optional wipe ────
 # Only close mappings backed by a disk we are about to format, so a container
-# the operator opened by hand to read another drive is left alone.
+# opened by hand to read another drive is left alone.
 echo
 echo "==> Closing any stale LUKS mappings on the target disks"
 sudo umount -R /mnt 2>/dev/null || true
@@ -175,7 +153,6 @@ if $WIPE; then
   done
 fi
 
-# ── Install via disko-install ────────────────────────────────────────
 echo
 echo "==> Running disko-install (format + nixos-install)"
 
@@ -186,7 +163,6 @@ done
 
 "${DISKO_ARGS[@]}"
 
-# ── Cleanup ─────────────────────────────────────────────────────────
 echo
 echo "==> Unmounting and closing LUKS"
 sudo umount -R /mnt || true

@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
-# Dispatches mac-style shortcuts that need terminal detection.
-# Copy/paste are handled directly in hyprland.lua via X11 legacy keys
-# (Ctrl+Insert / Shift+Insert) — no detection needed for those.
+# Mac-style shortcuts that need terminal detection. Copy/paste need none and
+# are bound directly in hyprland.lua.
 set -euo pipefail
 
 . /etc/hypr/scripts/hypr-lua.sh
@@ -25,7 +24,6 @@ case "${class},${initialClass},${title}" in
 esac
 
 send() {
-  # $1 = modifiers (space-separated), $2 = key
   hypr_dispatch "hl.dsp.send_shortcut({ mods = \"$1\", key = \"$2\", window = \"activewindow\" })"
 }
 

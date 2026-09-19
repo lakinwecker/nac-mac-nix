@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
-# Fails if anything still talks to Hyprland the hyprlang way. Both banned
-# forms fail silently at runtime — see hypr/scripts/hypr-lua.sh.
-# Standalone: `bash hypr/lint-hyprctl.sh .`  Or via `nix flake check`.
+# Fails if anything still talks to Hyprland the hyprlang way; both banned forms
+# fail silently at runtime. See hypr/scripts/hypr-lua.sh.
 set -uo pipefail
 
 root=${1:-.}
@@ -14,7 +13,6 @@ mapfile -t files < <(
     -print | sort
 )
 
-# Strip comment lines, keep original line numbers.
 uncommented() { grep -n '' "$1" | grep -vP '^\d+:\s*(#|--)'; }
 
 report() {

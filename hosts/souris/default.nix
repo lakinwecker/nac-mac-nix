@@ -1,17 +1,12 @@
-# Dell XPS 13 9370 (2018, 8th-gen Kaby Lake R, Intel UHD 620) — Anita's laptop
+# Dell XPS 13 9370 (Kaby Lake R, Intel UHD 620) — Anita's laptop
 { pkgs, lib, ... }:
 {
-  # Anita's own package list lives in a friendly, top-level file
-  # (anita-installed-programs.nix, next to machines.nix).
   imports = [ ../../anita-installed-programs.nix ];
 
-  # Default login shell (overrides common's nushell). fish lives only here now
-  # — the shared fish module was dropped, so this is stock fish, no custom rc.
   programs.fish.enable = true;
   users.defaultUserShell = lib.mkForce pkgs.fish;
 
-  # Secondary admin account for remote maintenance (Lakin). SSH is key-only
-  # (see common/networking.nix); sudo uses the initial password below.
+  # Secondary admin account for remote maintenance.
   users.users.lakin = {
     isNormalUser = true;
     description = "Lakin";
@@ -22,32 +17,23 @@
     ];
   };
 
-  # Strip personal-infra services that ship in common but don't belong here.
-  # (nebula + syncthing are intentionally kept.)
-  services.mpd.enable = lib.mkForce false;                    # music daemon
-  systemd.user.services.lan-mouse.enable = lib.mkForce false; # desktop KVM
+  # Strip personal-infra services from common; nebula + syncthing stay.
+  services.mpd.enable = lib.mkForce false;
+  systemd.user.services.lan-mouse.enable = lib.mkForce false;
 
-  # Cap Nix build parallelism so it doesn't pin this quad-core (i5/i7-8xxxU):
-  # one derivation at a time, up to 4 threads each. Lives in the host module,
-  # so it applies to BOTH the souris installer ISO (install-time builds) and
-  # the installed system (update-system rebuilds).
+  # Don't pin this quad-core. Applies to the ISO and the installed system both.
   nix.settings.max-jobs = 1;
   nix.settings.cores = 4;
 
-  # ── Memory (only 8 GB, so she hits limits) ─────────────────────────
-  # Compressed RAM swap (zstd). No disk swap on this host, so this is the
-  # only swap — gives real headroom before anything gets killed.
+  # Only 8 GB and no disk swap, so zram is the only swap.
   zramSwap = {
     enable = true;
     algorithm = "zstd";
-    memoryPercent = 100;   # zram device up to 100% of RAM; compression makes it hold more
+    memoryPercent = 100;
   };
-  # zram is fast, so lean on it before the machine gets tight.
   boot.kernel.sysctl."vm.swappiness" = 150;
 
-  # Protect GIMP from earlyoom (enabled in common/default.nix): when memory
-  # runs low, kill something else (usually the browser) rather than her
-  # in-progress image edits. Matches gimp, gimp-2.10, gimp-3.0, etc.
+  # Let earlyoom (common/default.nix) kill the browser, not her image edits.
   services.earlyoom.extraArgs = [ "--avoid" "^gimp" ];
 
   boot.initrd.systemd.enable = true;
@@ -56,13 +42,12 @@
   ];
   boot.kernelModules = [ "kvm-intel" ];
 
-  # Disable the touchscreen (Anita doesn't want it). libinput ignores any
-  # device tagged as a touchscreen; touchpad and pen are unaffected.
+  # Disable the touchscreen (Anita doesn't want it).
   services.udev.extraRules = ''
     ACTION=="add|change", ENV{ID_INPUT_TOUCHSCREEN}=="1", ENV{LIBINPUT_IGNORE_DEVICE}="1"
   '';
 
-  # Intel VA-API HW video decode (UHD 620); without iHD, Firefox software-decodes.
+  # Intel VA-API HW decode; without iHD, Firefox software-decodes.
   hardware.graphics.extraPackages = with pkgs; [ intel-media-driver ];
   environment.sessionVariables.LIBVA_DRIVER_NAME = "iHD";
   programs.firefox.preferences = {
@@ -92,8 +77,6 @@
   hardware.wirelessRegulatoryDatabase = true;
   boot.extraModprobeConfig = ''options cfg80211 ieee80211_regdom=CA'';
 
-  # `update-system` — the one command Anita runs after editing
-  # anita-installed-programs.nix. Rebuilds souris from the config repo.
   environment.systemPackages = with pkgs; [
     powertop
     lm_sensors
@@ -103,8 +86,6 @@
     pciutils         # lspci
     (writeShellScriptBin "update-system" ''
       set -euo pipefail
-      # Where this config repo is checked out on souris. If you clone it
-      # somewhere else, change this line (or set NIXOS_CONFIG_DIR).
       repo="''${NIXOS_CONFIG_DIR:-$HOME/nac-mac-nix}"
       if [ ! -e "$repo/flake.nix" ]; then
         echo "Couldn't find the config at $repo" >&2

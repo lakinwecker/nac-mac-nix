@@ -1,17 +1,10 @@
 #!/usr/bin/env bash
 # Toggle light/dark across ghostty, nvim, hyprland, zellij, GTK apps, Firefox.
-# Source of truth: dconf color-scheme (same key gsettings uses). Persisted
-# to a state file so new nvim instances start in the right mode.
-#
-# Uses `dconf` rather than `gsettings` because gsettings needs the
-# gsettings-desktop-schemas in XDG_DATA_DIRS, which Hyprland's exec
-# environment does not always provide. dconf reads/writes the underlying
-# database directly and the change notifications still reach apps that
-# subscribe via xdg-desktop-portal (Firefox, ghostty).
+# Source of truth: dconf color-scheme. dconf, not gsettings — Hyprland's exec
+# environment doesn't reliably have gsettings-desktop-schemas in XDG_DATA_DIRS.
 set -euo pipefail
 
-# Hyprland's exec spawns this with a minimal PATH — make sure NixOS's
-# system tools (dconf, hyprctl, nvim, notify-send) are findable.
+# Hyprland's exec gives this a minimal PATH.
 export PATH="/run/wrappers/bin:/run/current-system/sw/bin:/etc/profiles/per-user/$USER/bin:${PATH:-}"
 
 scheme_key="/org/gnome/desktop/interface/color-scheme"
@@ -41,17 +34,16 @@ state_dir="${XDG_STATE_HOME:-$HOME/.local/state}"
 mkdir -p "$state_dir"
 printf '%s\n' "$mode" > "$state_dir/theme-mode"
 
-# GTK / GNOME / xdg-desktop-portal — drives Firefox + ghostty auto-follow.
+# Drives Firefox + ghostty auto-follow via xdg-desktop-portal.
 dconf write "$scheme_key" "$gtk_scheme"
 dconf write "$theme_key" "$gtk_theme"
 
-# Hyprland border colors (live).
 if [ -n "${HYPRLAND_INSTANCE_SIGNATURE:-}" ] && command -v hyprctl >/dev/null 2>&1; then
   hyprctl keyword general:col.active_border "$hypr_active" >/dev/null
   hyprctl keyword general:col.inactive_border "$hypr_inactive" >/dev/null
 fi
 
-# Nvim — push to every running instance via its auto-socket.
+# Push to every running nvim via its auto-socket.
 if command -v nvim >/dev/null 2>&1; then
   runtime_dir="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
   shopt -s nullglob
@@ -64,12 +56,9 @@ if command -v nvim >/dev/null 2>&1; then
   shopt -u nullglob
 fi
 
-# Ghostty auto-follows the color-scheme via xdg-desktop-portal when its
-# config uses `theme = light:X,dark:Y`. No explicit action needed here.
+# ghostty needs no action: its `theme = light:X,dark:Y` follows the portal.
 
-# Zellij — push to every live session. Sessions started under a terminal that
-# reports mode 2031 (ghostty does) already follow on their own; this covers the
-# ones that don't. Errors on sessions predating theme_dark/theme_light.
+# Covers zellij sessions whose terminal doesn't report mode 2031.
 if command -v zellij >/dev/null 2>&1; then
   sessions=$(zellij list-sessions --no-formatting 2>/dev/null | grep -v 'EXITED' | awk '{print $1}' || true)
   for session in $sessions; do
@@ -77,9 +66,7 @@ if command -v zellij >/dev/null 2>&1; then
   done
 fi
 
-# Wayle — swap the variant config and restart the panel. Copy a fresh
-# variant from /etc each time rather than symlinking, mirroring how the
-# activation script seeds it at boot.
+# Copy rather than symlink, mirroring how the activation script seeds it.
 wayle_src="/etc/wayle/config-$mode.toml"
 wayle_dst="$HOME/.config/wayle/config.toml"
 if [ -f "$wayle_src" ] && command -v wayle >/dev/null 2>&1; then
@@ -87,9 +74,7 @@ if [ -f "$wayle_src" ] && command -v wayle >/dev/null 2>&1; then
   wayle panel restart >/dev/null 2>&1 || true
 fi
 
-# Claude Code — settings.json `theme` field. Preserves the `-daltonized`
-# or `-ansi` suffix (e.g. dark-daltonized <-> light-daltonized). New claude
-# sessions pick this up; already-running ones need a relaunch.
+# Substring swap preserves any `-daltonized`/`-ansi` suffix.
 claude_settings="$HOME/.claude/settings.json"
 if command -v jq >/dev/null 2>&1 && [ -f "$claude_settings" ]; then
   current_theme=$(jq -r '.theme // "dark"' "$claude_settings")
@@ -106,10 +91,7 @@ if command -v jq >/dev/null 2>&1 && [ -f "$claude_settings" ]; then
   fi
 fi
 
-# Signal Desktop — theme-setting in ephemeral.json. Running Signal won't
-# pick this up live; set Signal's Appearance to "Match system" if you
-# want live updates (Signal then follows the portal color-scheme we just
-# set via dconf).
+# Not picked up live; set Signal's Appearance to "Match system" for that.
 signal_settings="$HOME/.config/Signal/ephemeral.json"
 if command -v jq >/dev/null 2>&1 && [ -f "$signal_settings" ]; then
   tmp=$(mktemp)

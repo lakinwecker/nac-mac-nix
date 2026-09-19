@@ -1,6 +1,5 @@
 { lib, devTools ? true, ... }:
 {
-  # Kill runaway processes before the kernel OOM killer freezes the machine.
   services.earlyoom = {
     enable = true;
     freeMemThreshold = 5;
@@ -24,9 +23,6 @@
     ../cli-tools
     ../tools
   ]
-  # Dev-only modules: LazyVim, zellij, ollama (ai/), texlive (latex/),
-  # node + npm prefix for the Pi coding agent (pi/).
-  # Skipped on trimmed machines (devTools = false).
   ++ lib.optionals devTools [
     ../nvim
     ../zellij

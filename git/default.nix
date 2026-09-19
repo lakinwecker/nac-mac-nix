@@ -4,12 +4,10 @@
     difftastic
   ];
 
-  # Writes /etc/gitconfig; ~/.gitconfig (user identity) still wins.
   programs.git = {
     enable = true;
     config = {
-      # Structural diffs for diff/show/log -p. `--no-ext-diff` restores the
-      # classic output; lazygit already passes it.
+      # `--no-ext-diff` restores classic output; lazygit already passes it.
       diff.external = "${pkgs.difftastic}/bin/difft";
       diff.tool = "difftastic";
       difftool.prompt = false;

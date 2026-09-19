@@ -22,8 +22,7 @@ let
     "no-idle"
     "power-mode"
   ]
-  # Gated individually because this module itself is imported unconditionally:
-  # these are ../pi's entry points, and ../pi is devTools-only.
+  # ../pi entry points; this module itself is imported unconditionally.
   ++ lib.optionals devTools [
     "pi"
     "lazypi"

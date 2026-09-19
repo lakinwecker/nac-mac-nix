@@ -1,12 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Usage: screenshot.sh area
-#        screenshot.sh delayed [seconds]
+# usage: screenshot.sh area | delayed [seconds]
 MODE="${1:-area}"
 DELAY="${2:-3}"
 
-ROUNDING=8   # match hyprland.conf decoration:rounding
+ROUNDING=8   # match decoration.rounding in hyprland.lua
 QUALITY=90
 OUTDIR="$HOME/Pictures/Screenshots"
 
@@ -24,7 +23,6 @@ capture() {
   esac
 }
 
-# Round the corners into the alpha channel, then encode.
 encode() {
   magick png:- \
     \( +clone -alpha extract \

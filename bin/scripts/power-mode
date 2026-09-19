@@ -1,13 +1,8 @@
 #!/usr/bin/env bash
 # Switch roach between the anti-stutter tuning and the low-power tuning.
 # Usage: power-mode performance | powersave | status [--with-reloads]
-#
-# Without --with-reloads nothing disconnects: no module reload, so wifi and
-# bluetooth links stay up. Three knobs cannot be changed this way and are
-# handled by the boot specialisation instead -- i915.enable_psr (module params
-# are root-read-only, i915 cannot unload while driving the display), and
-# rtw89's disable_ps_mode / disable_aspm_l1* (read once at probe; the ASPM
-# state is latched off by pci_disable_link_state, so /sys/.../link is empty).
+# i915.enable_psr and rtw89's disable_ps_mode/disable_aspm_l1* can't be changed
+# at runtime at all; the boot specialisation handles those.
 set -euo pipefail
 
 MODE="${1:-status}"

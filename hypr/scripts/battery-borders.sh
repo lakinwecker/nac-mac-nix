@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
-# Scales Hyprland window borders by remaining battery once below a threshold.
-# Growth is cubic so the alarm gets dramatically worse below ~10%:
-#   size = LOW_START_SIZE + (LOW_THRESHOLD - capacity)^3 / LOW_GROWTH_DIV
+# Scales window borders by remaining battery once below a threshold.
 set -euo pipefail
 
 . /etc/hypr/scripts/hypr-lua.sh

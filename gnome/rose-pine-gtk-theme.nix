@@ -1,12 +1,5 @@
-# Vendored copy of nixpkgs' rose-pine-gtk-theme, which was removed because it
-# depended on gtk-engine-murrine (dropped as an unmaintained GTK2 engine).
-#
-# The GTK2 engines were only ever needed for GTK2 apps: upstream's nixpkgs
-# derivation carried gtk-engine-murrine in propagatedUserEnvPkgs and
-# gnome-themes-extra/gtk_engines in buildInputs, but it is `dontBuild` and its
-# installPhase copies nothing but gtk3/ and gtk4/ files. souris runs GNOME with
-# GTK3/GTK4 apps, so dropping all three changes nothing we install.
-#
+# Vendored copy of nixpkgs' rose-pine-gtk-theme (removed with gtk-engine-murrine).
+# The GTK2 engine deps are dropped: only gtk3/gtk4 files are installed.
 # ./rose-pine-theme.nix overrides this to add the GNOME Shell themes.
 {
   lib,
@@ -25,7 +18,6 @@ stdenvNoCC.mkDerivation rec {
     hash = "sha256-vCWs+TOVURl18EdbJr5QAHfB+JX9lYJ3TPO6IklKeFE=";
   };
 
-  # The upstream Makefile is for theme maintainers only.
   dontBuild = true;
 
   installPhase = ''

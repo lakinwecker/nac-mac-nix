@@ -1,14 +1,10 @@
 { pkgs, lib, kagi ? true, ... }:
 {
-  # ── Graphics ────────────────────────────────────────────────────────
   hardware.graphics.enable = true;
 
-  # ── Power ───────────────────────────────────────────────────────────
-  # Battery reporting for laptops and for Bluetooth devices (gratch also
-  # drives its lid/battery handling off `upower --monitor`).
+  # gratch's lid/battery handling reads `upower --monitor`.
   services.upower.enable = true;
 
-  # ── GTK / dconf ────────────────────────────────────────────────────
   programs.dconf = {
     enable = true;
     profiles.user.databases = [{
@@ -19,17 +15,14 @@
     }];
   };
 
-  # ── Qt ──────────────────────────────────────────────────────────────
   qt = {
     enable = true;
     platformTheme = "gnome";
     style = "adwaita-dark";
   };
 
-  # ── Firefox ─────────────────────────────────────────────────────────
-  # Search defaults live here rather than in the profile: a profile reset (a
-  # `firstrun-created-default` after an upgrade, say) silently takes the search
-  # engine back to Google, and nothing outside this file puts it back.
+  # Search defaults live here, not in the profile: a profile reset silently
+  # reverts the search engine to Google and nothing else puts it back.
   programs.firefox = {
     enable = true;
     policies = {
@@ -46,22 +39,18 @@
         (extension "privacy-badger17" "jid1-MnnxcxisBPnSXQ@jetpack")
         (extension "darkreader" "addon@darkreader.org")
       ] ++ lib.optionals kagi [
-        # Registers the "Kagi" engine that SearchEngines.Default names below,
-        # and carries the session token so search works without a separate login.
+        # Registers the "Kagi" engine named by SearchEngines.Default below.
         (extension "kagi-search-for-firefox" "search@kagi.com")
       ]);
     }
-    # SearchEngines was ESR-only until Firefox 139; it applies on release now.
-    # The string has to match the engine name the extension registers.
+    # Must match the engine name the extension registers.
     // lib.optionalAttrs kagi {
       SearchEngines.Default = "Kagi";
     };
   };
 
-  # ── Default browser ─────────────────────────────────────────────────
-  # Without an explicit default, xdg-open picks the first app in
-  # mimeinfo.cache that claims the scheme, and chromium sorts before
-  # firefox — so installing chromium silently steals every link.
+  # Without this, xdg-open takes the first mimeinfo.cache match and chromium
+  # sorts before firefox, stealing every link.
   xdg.mime.defaultApplications = {
     "text/html" = "firefox.desktop";
     "x-scheme-handler/http" = "firefox.desktop";
@@ -72,7 +61,6 @@
 
   environment.sessionVariables.BROWSER = "firefox";
 
-  # ── Fonts ───────────────────────────────────────────────────────────
   fonts.fontconfig.enable = true;
   fonts.fontDir.enable = true;
   fonts.packages = with pkgs; [

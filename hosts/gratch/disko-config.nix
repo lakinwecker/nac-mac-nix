@@ -1,8 +1,5 @@
 { lib, ... }:
 {
-  # Two separate btrfs filesystems, one per NVMe drive.
-  # - main: ESP + LUKS cryptroot → btrfs with /, /nix
-  # - home:        LUKS crypthome → btrfs with /home
   disko.devices = {
     disk = {
       main = {
