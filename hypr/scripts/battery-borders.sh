@@ -22,9 +22,11 @@ if [ -z "$bat" ]; then
     exit 0
 fi
 
+# `|| true` because of `set -e`: hypr_config returns non-zero on a failed
+# hyprctl call, which would otherwise end the poll loop for the session.
 set_borders() {
     local size=$1 active=$2 inactive=$3
-    hypr_config "{ general = { border_size = $size, col = { active_border = \"$active\", inactive_border = \"$inactive\" } } }"
+    hypr_config "{ general = { border_size = $size, col = { active_border = \"$active\", inactive_border = \"$inactive\" } } }" || true
 }
 
 while true; do
