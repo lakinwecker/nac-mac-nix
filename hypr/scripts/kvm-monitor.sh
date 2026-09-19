@@ -21,6 +21,8 @@ set -euo pipefail
 
 unset LD_LIBRARY_PATH
 
+. /etc/hypr/scripts/hypr-lua.sh
+
 usage() { echo "usage: $0 on|off <output>" >&2; exit 1; }
 
 [ $# -eq 2 ] || usage
@@ -29,7 +31,7 @@ output=$2
 
 case "$action" in
   off)
-    hyprctl eval "hl.monitor({ output = \"$output\", disabled = true })"
+    hypr_monitor "{ output = \"$output\", disabled = true }"
     ;;
   on)
     # Re-apply from hyprland.lua rather than repeating the mode here, so the

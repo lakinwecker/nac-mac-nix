@@ -4,6 +4,8 @@
 #   size = LOW_START_SIZE + (LOW_THRESHOLD - capacity)^3 / LOW_GROWTH_DIV
 set -euo pipefail
 
+. /etc/hypr/scripts/hypr-lua.sh
+
 DEFAULT_SIZE=2
 DEFAULT_ACTIVE=0xffd7827e
 DEFAULT_INACTIVE=0xff286983
@@ -24,9 +26,7 @@ fi
 
 set_borders() {
     local size=$1 active=$2 inactive=$3
-    hyprctl keyword general:border_size "$size" >/dev/null
-    hyprctl keyword general:col.active_border "$active" >/dev/null
-    hyprctl keyword general:col.inactive_border "$inactive" >/dev/null
+    hypr_config "{ general = { border_size = $size, col = { active_border = \"$active\", inactive_border = \"$inactive\" } } }"
 }
 
 while true; do

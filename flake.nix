@@ -218,5 +218,15 @@
 
   in {
     nixosConfigurations = nixpkgs.lib.concatMapAttrs mkMachineConfigs machines;
+
+    # `nix flake check` guard against reintroducing the hyprlang-era hyprctl
+    # spellings. Both of them fail silently under the Lua config, so there is
+    # nothing at runtime to notice them — see hypr/scripts/hypr-lua.sh.
+    checks.x86_64-linux.hyprctl-lua =
+      let pkgs = nixpkgs.legacyPackages.x86_64-linux;
+      in pkgs.runCommand "hyprctl-lua-check" { nativeBuildInputs = [ pkgs.bash pkgs.gnugrep pkgs.findutils ]; } ''
+        bash ${./hypr/lint-hyprctl.sh} ${./.}
+        touch $out
+      '';
   };
 }

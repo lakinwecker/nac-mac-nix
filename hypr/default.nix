@@ -92,19 +92,25 @@ let
         },
     })
 
-    -- hyprexpo overview. Routed via exec because the direct dispatcher /
-    -- hyprexpo-gesture don't fire from a swipe on some touchpads (roach),
-    -- though they work from the CLI.
-    -- action takes a string action name, a table of start/update/finish
-    -- callbacks, or a plain Lua function. A bare dispatcher falls through to
-    -- the string parser and errors, so wrap it in a function.
+    -- hyprexpo overview. The plugin registers its own Lua namespace
+    -- (hl.plugin.hyprexpo.expo), which acts directly rather than returning a
+    -- dispatcher — so no hl.dispatch wrapper. The old exec route ran
+    -- `hyprctl dispatch hyprexpo:expo toggle`, which is hyprlang and errors
+    -- out under a Lua config.
+    --
+    -- Safe unguarded: the closure only runs on a swipe, by which time plugins
+    -- have loaded. Only top-level uses of hl.plugin.* need an `if` guard.
     hl.gesture({
         fingers = 3,
         direction = "up",
         action = function()
-            hl.dispatch(hl.dsp.exec_cmd("hyprctl dispatch hyprexpo:expo toggle"))
+            hl.plugin.hyprexpo.expo("toggle")
         end,
     })
+
+    hl.bind("SUPER + Up", function()
+        hl.plugin.hyprexpo.expo("toggle")
+    end, { description = "Toggle hyprexpo overview" })
   '';
   # dynamic_cursors, not "dynamic-cursors": CConfigManager::luaConfigValueName
   # rewrites ':' to '.' AND '-' to '_', so the Lua name for
@@ -257,6 +263,12 @@ in {
   environment.etc."hypr/scripts/idle-dpms.sh" = {
     source = ./scripts/idle-dpms.sh;
     mode = "0755";
+  };
+
+  # Sourced by the scripts above; see the file for why it exists.
+  environment.etc."hypr/scripts/hypr-lua.sh" = {
+    source = ./scripts/hypr-lua.sh;
+    mode = "0644";
   };
 
   # Power key opens the wlogout menu via hyprland.lua; a long press still poweroffs.

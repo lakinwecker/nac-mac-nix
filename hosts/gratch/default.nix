@@ -94,6 +94,8 @@
   environment.etc."hypr/scripts/power-refresh.sh" = {
     text = ''
       #!/usr/bin/env bash
+      . /etc/hypr/scripts/hypr-lua.sh
+
       CURRENT_STATE=""
 
       set_refresh() {
@@ -106,9 +108,9 @@
         [ "$state" = "$CURRENT_STATE" ] && return
         CURRENT_STATE="$state"
         if [ "$state" = "ac" ]; then
-          hyprctl keyword monitor eDP-1,2560x1600@120,auto,1.25
+          hypr_monitor '{ output = "eDP-1", mode = "2560x1600@120", position = "auto", scale = 1.25 }'
         else
-          hyprctl keyword monitor eDP-1,2560x1600@60,auto,1.25
+          hypr_monitor '{ output = "eDP-1", mode = "2560x1600@60", position = "auto", scale = 1.25 }'
         fi
       }
 

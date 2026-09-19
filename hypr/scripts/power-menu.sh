@@ -58,7 +58,8 @@ entry() {
     entry hibernate "systemctl hibernate" "Hibernate" h
   fi
 
-  entry logout   "hyprctl dispatch exit" "Log out"  e
+  # wlogout execs the action through sh, so it can't use hypr-lua.sh's wrappers.
+  entry logout   "hyprctl dispatch 'hl.dsp.exit()'" "Log out"  e
   entry reboot   "systemctl reboot"      "Reboot"   r
   entry shutdown "systemctl poweroff"    "Shut down" s
 

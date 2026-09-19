@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
 # Dispatches mac-style shortcuts that need terminal detection.
-# Copy/paste are handled directly in hyprland.conf via X11 legacy keys
+# Copy/paste are handled directly in hyprland.lua via X11 legacy keys
 # (Ctrl+Insert / Shift+Insert) — no detection needed for those.
 set -euo pipefail
+
+. /etc/hypr/scripts/hypr-lua.sh
 
 action="${1:-}"
 if [ -z "$action" ]; then
@@ -24,7 +26,7 @@ esac
 
 send() {
   # $1 = modifiers (space-separated), $2 = key
-  hyprctl dispatch sendshortcut "$1,$2,activewindow" >/dev/null
+  hypr_dispatch "hl.dsp.send_shortcut({ mods = \"$1\", key = \"$2\", window = \"activewindow\" })"
 }
 
 case "$action" in
