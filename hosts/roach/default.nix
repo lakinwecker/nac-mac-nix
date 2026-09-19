@@ -1,13 +1,8 @@
 # Asus TUF Gaming F16 (FX608JM) — Intel Raptor Lake + NVIDIA RTX
-# hostname "roach"
 { lib, pkgs, config, username, ... }:
 {
-  # ── Nix ────────────────────────────────────────────────────────────
-  # Trusted users may pass restricted client settings (e.g. the
-  # `system` setting devenv/direnv sets when evaluating a shell).
   nix.settings.trusted-users = [ "root" username ];
 
-  # ── ASUS services ──────────────────────────────────────────────────
   services.asusd.enable = true;
   services.supergfxd.enable = true;
 
@@ -27,13 +22,8 @@
     };
   };
 
-  # supergfxd opens /etc/supergfxd.conf with O_RDWR | O_CREAT and
-  # panics if it can't (with the misleading "The directory ... is
-  # missing" message). NixOS's environment.etc would make it a
-  # symlink to the read-only nix store, which fails the O_RDWR
-  # open. Write it as a real mutable file via an activation
-  # script instead. Format is JSON, schema confirmed against
-  # supergfxctl 5.2.7's GfxConfig struct.
+  # supergfxd opens /etc/supergfxd.conf O_RDWR and panics on a read-only nix
+  # store symlink, so environment.etc can't be used — write a real file.
   system.activationScripts.supergfxdConfig = {
     deps = [ "etc" ];
     text = ''
@@ -52,7 +42,6 @@
     '';
   };
 
-  # ── NVIDIA GPU ─────────────────────────────────────────────────────
   hardware.graphics = {
     enable = true;
     enable32Bit = true;
@@ -63,13 +52,12 @@
     open = true;
     nvidiaSettings = true;
     powerManagement.enable = true;
-    # explicit runtime D3 (NVreg_DynamicPowerManagement=0x02)
     powerManagement.finegrained = true;
     package = config.boot.kernelPackages.nvidiaPackages.stable;
     prime = {
       offload = {
         enable = true;
-        enableOffloadCmd = true;  # provides nvidia-offload wrapper
+        enableOffloadCmd = true;
       };
       intelBusId = "PCI:0:2:0";
       nvidiaBusId = "PCI:1:0:0";
@@ -77,15 +65,10 @@
   };
   services.xserver.videoDrivers = [ "nvidia" ];
 
-  # Stable, colon-free alias for the iGPU's card node. AQ_DRM_DEVICES is split
-  # on ':' (aquamarine src/backend/drm/DRM.cpp), so /dev/dri/by-path/pci-0000:...
-  # shreds into three bogus entries, aquamarine finds no GPUs, and Hyprland
-  # aborts in initServer before it writes a line of log. Card numbering isn't
-  # guaranteed stable either, hence the symlink keyed on the PCI address.
-  # (rule lives in the services.udev.extraRules block further down)
-
-  # Render on the iGPU (eDP-1 hangs off it). Setting GBM_BACKEND/
-  # __GLX_VENDOR_LIBRARY_NAME to nvidia here pins the dGPU in D0; don't.
+  # AQ_DRM_DEVICES must be colon-free (aquamarine splits on ':'), hence the
+  # /dev/dri/igpu symlink in services.udev.extraRules below. Render on the
+  # iGPU: setting GBM_BACKEND/__GLX_VENDOR_LIBRARY_NAME to nvidia pins the
+  # dGPU in D0.
   environment.sessionVariables = {
     LIBVA_DRIVER_NAME = "iHD";
     AQ_DRM_DEVICES = "/dev/dri/igpu";
@@ -93,17 +76,14 @@
     ELECTRON_OZONE_PLATFORM_HINT = "auto";
   };
 
-  # ── Boot / initrd ─────────────────────────────────────────────────
-  # Systemd-based stage-1 gives an emergency shell on failure
   boot.initrd.systemd.enable = true;
 
-  # Initrd needs NVMe drivers or the second drive's partlabel
-  # symlinks race and never appear, hanging stage-1 on
-  # "waiting for /dev/disk/by-partlabel/disk-home-luks".
+  # Without nvme here the second drive's partlabel symlinks race and stage-1
+  # hangs on "waiting for /dev/disk/by-partlabel/disk-home-luks".
   boot.initrd.availableKernelModules = [
     "nvme"
     "nvme_core"
-    "vmd"        # Intel VMD — often enabled in BIOS on Raptor Lake laptops
+    "vmd"
     "xhci_pci"
     "ahci"
     "usbhid"
@@ -121,36 +101,21 @@
   boot.kernelParams = [
     "nvidia_drm.modeset=1"
     "nvidia_drm.fbdev=1"
-    # Disable Intel GPU Panel Self-Refresh. PSR entry during
-    # static screen + PSR exit on input events causes 50-500ms
-    # stutters that look like keyboard+mouse+compositor freezing
-    # together. Single most common Intel-laptop input-stutter fix.
-    "i915.enable_psr=0"
+    "i915.enable_psr=0"   # PSR entry/exit causes 50-500ms input stutter
   ];
 
-  # ── IRQ balancing ──────────────────────────────────────────────────
-  # Distribute hardware IRQs across cores instead of piling on CPU0.
-  # Prevents input stutter when CPU0 is momentarily saturated.
   services.irqbalance.enable = true;
 
-  # ── USB HID autosuspend ────────────────────────────────────────────
-  # Disable USB autosuspend for HID (input) devices. USB mice and
-  # keyboards don't meaningfully save power from autosuspend, but
-  # the first event after an idle window incurs a 100-500ms wake
-  # penalty that shows up as "mouse froze for a moment."
+  # USB HID autosuspend off: 100-500ms wake-from-idle stutter, negligible saving.
   services.udev.extraRules = ''
-    # Stable, colon-free alias for the iGPU card node — see AQ_DRM_DEVICES above
+    # iGPU card-node alias — see AQ_DRM_DEVICES above
     SUBSYSTEM=="drm", KERNEL=="card[0-9]*", KERNELS=="0000:00:02.0", SYMLINK+="dri/igpu"
-    # USB HID (bInterfaceClass 03) — disable autosuspend
     ACTION=="add", SUBSYSTEM=="usb", ATTR{bInterfaceClass}=="03", TEST=="power/control", ATTR{power/control}="on"
-    # Bluetooth adapter (bDeviceClass e0 = Wireless Controller) — disable autosuspend
     ACTION=="add", SUBSYSTEM=="usb", ATTR{bDeviceClass}=="e0", TEST=="power/control", ATTR{power/control}="on"
-    # Also target the parent device for class-03 children
     ACTION=="add", SUBSYSTEM=="usb", ATTR{bDeviceClass}=="00", ATTR{product}=="*Mouse*", TEST=="power/control", ATTR{power/control}="on"
     ACTION=="add", SUBSYSTEM=="usb", ATTR{bDeviceClass}=="00", ATTR{product}=="*Keyboard*", TEST=="power/control", ATTR{power/control}="on"
   '';
 
-  # ── Power management (TLP) ────────────────────────────────────────
   services.power-profiles-daemon.enable = false;
   services.tlp = {
     enable = true;
@@ -180,16 +145,15 @@
   };
   powerManagement.powertop.enable = false;
 
-  # ── No suspend while plugged in ──────────────────────────────────────
-  # hyprSuspendOnAc = false (machines.nix) already stops hypridle's idle
-  # suspend on mains power, but that listener is only one of the two routes
-  # into suspend: closing the lid goes through logind, which defaults to
-  # suspending regardless of power source.
-  #
-  # Only the external-power case is overridden, so the lid still suspends on
-  # battery — closing a laptop and walking off should not leave it awake in a
-  # bag. Docked with the lid shut now keeps running.
+  # Pairs with hyprSuspendOnAc = false (machines.nix); lid still suspends on battery.
   services.logind.settings.Login.HandleLidSwitchExternalPower = "ignore";
+
+  # Must match eDP-1's scale in machines.nix (and xwayland.force_zero_scaling there).
+  programs.steam.package = pkgs.steam.override {
+    extraEnv = {
+      STEAM_FORCE_DESKTOPUI_SCALING = "1.25";
+    };
+  };
 
   environment.systemPackages = with pkgs; [ powertop lm_sensors iw ];
 }
