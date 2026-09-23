@@ -24,6 +24,7 @@ left = [
 ]
 center = ["media"]
 right = [
+    "custom-screenshot",
     "volume",
     "network",
     "bluetooth",
@@ -38,7 +39,19 @@ right = [
 theme-provider = "wayle"
 
 [modules]
-custom = []
+
+# roach's keyboard has no Print key, so the bar carries the screenshot action
+# too. No command: interval-ms = 0 is manual-poll, and an empty format leaves a
+# pure icon button.
+[[modules.custom]]
+id = "screenshot"
+interval-ms = 0
+format = ""
+label-show = false
+icon-name = "ld-camera-symbolic"
+tooltip-format = "Screenshot — click: select area, right-click: 3s delay"
+left-click = "/etc/hypr/scripts/screenshot.sh area"
+right-click = "/etc/hypr/scripts/screenshot.sh delayed 3"
 
 [modules.hyprland-workspaces]
 min-workspace-count = 14

@@ -192,6 +192,9 @@ hl.bind("XF86MonBrightnessUp",   hl.dsp.exec_cmd("brightnessctl set 5%+"), { loc
 
 hl.bind("Print",         hl.dsp.exec_cmd("/etc/hypr/scripts/screenshot.sh area"))
 hl.bind("SHIFT + Print", hl.dsp.exec_cmd("/etc/hypr/scripts/screenshot.sh delayed 3"))
+-- roach's keyboard has no Print key; these work everywhere.
+hl.bind("SUPER + SHIFT + S",        hl.dsp.exec_cmd("/etc/hypr/scripts/screenshot.sh area"))
+hl.bind("CTRL + SUPER + SHIFT + S", hl.dsp.exec_cmd("/etc/hypr/scripts/screenshot.sh delayed 3"))
 
 hl.bind("XF86AudioPlay", hl.dsp.exec_cmd("playerctl play-pause"), { locked = true })
 hl.bind("XF86AudioNext", hl.dsp.exec_cmd("playerctl next"),       { locked = true })
