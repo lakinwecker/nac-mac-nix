@@ -94,6 +94,7 @@ hl.workspace_rule({ workspace = "11", persistent = true })
 hl.workspace_rule({ workspace = "12", persistent = true })
 hl.workspace_rule({ workspace = "13", persistent = true })
 hl.workspace_rule({ workspace = "14", persistent = true })
+hl.workspace_rule({ workspace = "15", persistent = true })
 
 -- Mac-style copy/paste via X11 legacy keys, which work in terminals and GUI.
 hl.bind("SUPER + C", hl.dsp.send_shortcut({ mods = "CTRL",  key = "Insert" }), { description = "Universal copy" })
@@ -109,8 +110,10 @@ hl.bind("CTRL + SUPER + M", hl.dsp.exec_cmd("/etc/hypr/scripts/lan-mouse-toggle.
 
 hl.bind("SUPER + Return", hl.dsp.exec_cmd("ghostty"))
 hl.bind("SUPER + SHIFT + Q", hl.dsp.window.close())
-hl.bind("SUPER + SHIFT + E", hl.dsp.exit())
-hl.bind("SUPER + E", hl.dsp.group.toggle())
+-- Exit is CTRL + SUPER + SHIFT + E: SUPER + SHIFT + E sat one stray modifier
+-- away from the workspace binds and got hit by accident.
+hl.bind("CTRL + SUPER + SHIFT + E", hl.dsp.exit())
+hl.bind("SUPER + G", hl.dsp.group.toggle())
 hl.bind("SUPER + SHIFT + V", hl.dsp.window.float({ action = "toggle" }))
 hl.bind("SUPER + space", hl.dsp.exec_cmd("nwg-drawer -c 7 -is 64 -s /etc/hypr/nwg-drawer.css"))
 hl.bind("SUPER + D", hl.dsp.exec_cmd("rofi -show drun -theme /etc/hypr/rofi-tokyonight.rasi"))
@@ -131,7 +134,9 @@ for i = 1, 10 do
     hl.bind("SUPER + SHIFT + " .. key, hl.dsp.window.move({ workspace = i, follow = false }))
 end
 
-local lettered = { I = 11, T = 12, O = 13, semicolon = 14 }
+-- Labelled c, e, g, s, * in the bar -- keep these numbers in sync with
+-- hypr/wayle/base.toml's workspace-map.
+local lettered = { I = 11, E = 12, T = 13, O = 14, semicolon = 15 }
 for key, ws in pairs(lettered) do
     hl.bind("SUPER + " .. key, hl.dsp.focus({ workspace = ws }))
     hl.bind("SUPER + SHIFT + " .. key, hl.dsp.window.move({ workspace = ws, follow = false }))

@@ -54,15 +54,16 @@ left-click = "/etc/hypr/scripts/screenshot.sh area"
 right-click = "/etc/hypr/scripts/screenshot.sh delayed 3"
 
 [modules.hyprland-workspaces]
-min-workspace-count = 14
+min-workspace-count = 15
 monitor-specific = false
 display-mode = "label"
 
 [modules.hyprland-workspaces.workspace-map]
 11 = { label = "c" }
-12 = { label = "g" }
-13 = { label = "s" }
-14 = { label = "*" }
+12 = { label = "e" }
+13 = { label = "g" }
+14 = { label = "s" }
+15 = { label = "*" }
 
 [modules.media]
 label-max-length = 35
