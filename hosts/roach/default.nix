@@ -27,9 +27,17 @@
   system.activationScripts.supergfxdConfig = {
     deps = [ "etc" ];
     text = ''
-      cat > /etc/supergfxd.conf <<'JSON'
+      # gpu-mode owns the mode; a rebuild must not stomp a mux session.
+      mkdir -p /var/lib/gpu-mode
+      [ -e /var/lib/gpu-mode/mode ] || echo hybrid > /var/lib/gpu-mode/mode
+      if [ "$(cat /var/lib/gpu-mode/mode)" = mux ]; then
+        GFXMODE=AsusMuxDgpu
+      else
+        GFXMODE=Hybrid
+      fi
+      cat > /etc/supergfxd.conf <<JSON
       {
-        "mode": "Hybrid",
+        "mode": "$GFXMODE",
         "vfio_enable": false,
         "vfio_save": false,
         "always_reboot": false,
@@ -96,6 +104,7 @@
     options rtw89_pci disable_aspm_l1=y disable_aspm_l1ss=y
     options rtw89_core disable_ps_mode=y
     options btusb enable_autosuspend=n
+    options bluetooth disable_ertm=1
   '';
 
   boot.kernelParams = [
@@ -110,6 +119,8 @@
   services.udev.extraRules = ''
     # iGPU card-node alias — see AQ_DRM_DEVICES above
     SUBSYSTEM=="drm", KERNEL=="card[0-9]*", KERNELS=="0000:00:02.0", SYMLINK+="dri/igpu"
+    # dGPU alias for gpu-mode mux
+    SUBSYSTEM=="drm", KERNEL=="card[0-9]*", KERNELS=="0000:01:00.0", SYMLINK+="dri/dgpu"
     ACTION=="add", SUBSYSTEM=="usb", ATTR{bInterfaceClass}=="03", TEST=="power/control", ATTR{power/control}="on"
     ACTION=="add", SUBSYSTEM=="usb", ATTR{bDeviceClass}=="e0", TEST=="power/control", ATTR{power/control}="on"
     ACTION=="add", SUBSYSTEM=="usb", ATTR{bDeviceClass}=="00", ATTR{product}=="*Mouse*", TEST=="power/control", ATTR{power/control}="on"
@@ -158,5 +169,7 @@
     };
   };
 
-  environment.systemPackages = with pkgs; [ powertop lm_sensors iw ];
+  hardware.xpadneo.enable = true;
+
+  environment.systemPackages = with pkgs; [ powertop lm_sensors iw lutris ];
 }

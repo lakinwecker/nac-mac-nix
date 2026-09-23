@@ -9,6 +9,7 @@
     lm_sensors
     btrfs-progs
     smartmontools
+    lutris
   ];
 
   services.btrfs.autoScrub = {

@@ -21,6 +21,7 @@ let
     "rotate-screen"
     "no-idle"
     "power-mode"
+    "gpu-mode"
   ]
   # ../pi entry points; this module itself is imported unconditionally.
   ++ lib.optionals devTools [

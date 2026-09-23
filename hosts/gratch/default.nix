@@ -44,7 +44,7 @@
     };
   };
 
-  environment.systemPackages = with pkgs; [ powertop lm_sensors ];
+  environment.systemPackages = with pkgs; [ powertop lm_sensors lutris ];
 
   # The real pass store is ~/passwords/pass, not ~/.password-store.
   environment.etc."secretspec/config.toml".text = ''

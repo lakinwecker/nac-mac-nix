@@ -1,0 +1,78 @@
+#!/usr/bin/env bash
+# Switch roach between hybrid (quiet, iGPU drives the panel, dGPU idles) and
+# mux (dGPU drives the panel — the only way this chassis grants full TGP).
+# Both directions need a logout: supergfxd can't switch while a compositor
+# holds the cards, and the session's GPU pins are set at login.
+set -euo pipefail
+
+STATE_DIR=/var/lib/gpu-mode
+STATE="$STATE_DIR/mode"
+DGPU=0000:01:00.0
+
+priv() {
+  if [ "$(id -u)" -eq 0 ]; then "$@"; else sudo "$@"; fi
+}
+
+current() {
+  cat "$STATE" 2>/dev/null || echo hybrid
+}
+
+live_mode() {
+  command -v supergfxctl >/dev/null 2>&1 || { echo unknown; return; }
+  supergfxctl -g 2>/dev/null | tr -d '[:space:]' || echo unknown
+}
+
+set_mode() {
+  local want="$1" gfx
+  case "$want" in
+    hybrid) gfx=Hybrid ;;
+    mux)    gfx=AsusMuxDgpu ;;
+    *)      echo "unknown mode: $want" >&2; return 1 ;;
+  esac
+
+  if [ "$(current)" = "$want" ] && [ "$(live_mode)" = "$gfx" ]; then
+    echo "gpu-mode: already $want"
+    return 0
+  fi
+
+  priv mkdir -p "$STATE_DIR"
+  printf '%s' "$want" | priv tee "$STATE" >/dev/null
+
+  if ! priv supergfxctl -m "$gfx"; then
+    echo "gpu-mode: supergfxctl refused the switch — state file left at $want" >&2
+    echo "          check 'supergfxctl -g' and 'journalctl -u supergfxd -b'" >&2
+    return 1
+  fi
+
+  echo "gpu-mode: $want staged ($gfx) — log out to apply"
+  [ "$want" = mux ] && echo "          battery life will be worse until you switch back"
+  return 0
+}
+
+status() {
+  local rs
+  printf 'requested mode        : %s\n' "$(current)"
+  printf 'supergfxd mode        : %s\n' "$(live_mode)"
+  printf 'session AQ_DRM_DEVICES: %s\n' "${AQ_DRM_DEVICES:-unset}"
+  rs="$(cat /sys/bus/pci/devices/$DGPU/power/runtime_status 2>/dev/null || echo n/a)"
+  printf 'dgpu runtime          : %s (control: %s)\n' "$rs" \
+    "$(cat /sys/bus/pci/devices/$DGPU/power/control 2>/dev/null || echo n/a)"
+
+  # Querying the card wakes it, so don't while it's suspended.
+  if [ "$rs" = active ] && command -v nvidia-smi >/dev/null 2>&1; then
+    nvidia-smi --query-gpu=power.draw,enforced.power.limit,clocks.sm,temperature.gpu,utilization.gpu \
+      --format=csv,noheader 2>/dev/null \
+      | awk -F', ' '{printf "dgpu draw / limit     : %s / %s\ndgpu clock/temp/util  : %s / %sC / %s\n", $1, $2, $3, $4, $5}'
+  else
+    printf 'dgpu draw / limit     : (suspended — not queried)\n'
+  fi
+}
+
+case "${1:-status}" in
+  hybrid|mux) set_mode "$1" ;;
+  status)     status ;;
+  *)
+    echo "Usage: gpu-mode hybrid|mux|status" >&2
+    exit 1
+    ;;
+esac

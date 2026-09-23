@@ -2,6 +2,16 @@
 let
   hyprgrassEnabled = hyprgrass != null;
   hyprexpoEnabled = hyprexpoSrc != null;
+  # No state file (every host but roach) means hybrid — env left untouched.
+  startSession = pkgs.writeShellScript "start-hyprland-session" ''
+    if [ "$(cat /var/lib/gpu-mode/mode 2>/dev/null || echo hybrid)" = mux ]; then
+      export AQ_DRM_DEVICES=/dev/dri/dgpu
+      export GBM_BACKEND=nvidia-drm
+      export __GLX_VENDOR_LIBRARY_NAME=nvidia
+      export __NV_PRIME_RENDER_OFFLOAD=0
+    fi
+    exec ${hyprland.packages.${pkgs.system}.hyprland}/bin/start-hyprland
+  '';
   # base.toml + a per-mode palette block; theme-toggle swaps the whole file.
   mkWayleConfig = name: palette:
     pkgs.runCommand name { } ''
@@ -150,7 +160,7 @@ in {
     enable = true;
     settings = {
       default_session = {
-        command = "${hyprland.packages.${pkgs.system}.hyprland}/bin/start-hyprland";
+        command = "${startSession}";
         user = username;
       };
     };
