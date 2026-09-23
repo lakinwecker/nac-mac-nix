@@ -115,6 +115,24 @@
 
   services.irqbalance.enable = true;
 
+  # No disk swap here, so a full 31 GB of anon pages left the kernel nothing to
+  # reclaim but the page cache: launching a game evicted the executables and
+  # everything faulted back off nvme (io pressure full ~80%, 50% iowait, the
+  # compositor itself taking 15k major faults). 25% gives reclaim somewhere to
+  # go without eating the RAM it is meant to protect.
+  zramSwap = {
+    enable = true;
+    algorithm = "zstd";
+    memoryPercent = 25;
+  };
+  # zram is far cheaper than an nvme round-trip, so page out eagerly rather
+  # than defending anon pages at the page cache's expense. 180 is the zram
+  # convention; the pre-6.4 ceiling was 100.
+  boot.kernel.sysctl."vm.swappiness" = 180;
+  # Default freeSwapThreshold = 10 would let earlyoom fire on a zram-only box
+  # while zram still had room. Free RAM is the signal that matters here.
+  services.earlyoom.freeSwapThreshold = lib.mkForce 2;
+
   # USB HID autosuspend off: 100-500ms wake-from-idle stutter, negligible saving.
   services.udev.extraRules = ''
     # iGPU card-node alias — see AQ_DRM_DEVICES above
