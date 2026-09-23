@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Switch roach between the anti-stutter tuning and the low-power tuning.
-# Usage: power-mode performance | powersave | cpu [pct] | status [--with-reloads]
+# Usage: power-mode performance | powersave | cpu [pct] | fan <cmd> | status [--with-reloads]
 # i915.enable_psr and rtw89's disable_ps_mode/disable_aspm_l1* can't be changed
 # at runtime at all; the boot specialisation handles those.
 set -euo pipefail
@@ -81,6 +81,185 @@ cpu_cap() {
   printf 'cpu max_perf_pct: %s -> %s\n' "$cur" "$(cat "$MAX_PERF")"
 }
 
+# --- fan curve (asus_custom_fan_curve) ---------------------------------------
+# 8 (temp C, pwm 0-255) points per fan: pwm1 = cpu_fan, pwm2 = gpu_fan.
+# pwm*_enable: 1 = apply the written curve, 2 = back to firmware/profile
+# control, 3 = reset the stored curve to factory and hand back control.
+# Writing a point marks the curve disabled again, so enable must be re-written
+# after every batch -- the driver does this deliberately to avoid a
+# one-write-per-change lockup. The EC keeps a separate curve per
+# platform_profile, so a profile change swaps the whole set out from under an
+# applied curve; re-run this after touching the profile.
+FAN_POINTS=8
+# The stock curves run the gpu fan a little harder than the cpu fan at the same
+# temperature; presets keep that shape instead of defining two tables.
+FAN_GPU_BIAS=8
+
+fan_hwmon() {
+  local h
+  for h in /sys/class/hwmon/hwmon*; do
+    [ -r "$h/name" ] || continue
+    [ "$(cat "$h/name")" = "asus_custom_fan_curve" ] || continue
+    printf '%s' "$h"
+    return 0
+  done
+  return 1
+}
+
+# temp:pwm pairs, coolest first. Every preset reaches 255 well before the
+# 100C thermal-throttle ceiling -- do not write a preset that tops out lower.
+fan_preset() {
+  case "$1" in
+    quiet)      echo "45:20 60:30 70:45 78:70 84:110 88:160 92:210 97:255" ;;
+    balanced)   echo "45:25 58:40 65:60 72:90 80:130 86:180 92:220 97:255" ;;
+    aggressive) echo "40:40 50:70 60:110 68:150 75:190 82:220 88:240 95:255" ;;
+    *)          return 1 ;;
+  esac
+}
+
+fan_clamp() {
+  local v="$1"
+  [ "$v" -lt 0 ] && v=0
+  [ "$v" -gt 255 ] && v=255
+  printf '%s' "$v"
+}
+
+# Write one fan's 8 points, then enable. bias is added to each pwm (gpu fan).
+fan_write_curve() {
+  local hw="$1" idx="$2" bias="$3" points="$4" i=1 pair temp pwm
+  for pair in $points; do
+    temp="${pair%%:*}"
+    pwm="${pair##*:}"
+    setval "$hw/pwm${idx}_auto_point${i}_temp" "$temp"
+    setval "$hw/pwm${idx}_auto_point${i}_pwm" "$(fan_clamp $((pwm + bias)))"
+    i=$((i + 1))
+  done
+  [ "$i" -eq $((FAN_POINTS + 1)) ] || { echo "  pwm$idx: wrote $((i - 1))/$FAN_POINTS points" >&2; }
+  setval "$hw/pwm${idx}_enable" 1
+}
+
+fan_each_idx() {
+  local hw="$1" idx
+  for idx in 1 2; do
+    [ -e "$hw/pwm${idx}_auto_point1_pwm" ] || continue
+    printf '%s\n' "$idx"
+  done
+}
+
+fan_apply() {
+  local hw="$1" points="$2" idx bias
+  for idx in $(fan_each_idx "$hw"); do
+    bias=0
+    [ "$idx" = 2 ] && bias=$FAN_GPU_BIAS
+    fan_write_curve "$hw" "$idx" "$bias" "$points"
+  done
+}
+
+# Shift the curve already in sysfs by N pwm steps, for iterative tuning.
+fan_offset() {
+  local hw="$1" delta="$2" idx i points pwm temp
+  for idx in $(fan_each_idx "$hw"); do
+    points=""
+    for i in $(seq 1 $FAN_POINTS); do
+      temp="$(cat "$hw/pwm${idx}_auto_point${i}_temp" 2>/dev/null)" || continue
+      pwm="$(cat "$hw/pwm${idx}_auto_point${i}_pwm" 2>/dev/null)" || continue
+      points="$points $temp:$((pwm + delta))"
+    done
+    # Already-read values include the stock gpu bias, so do not re-add it.
+    fan_write_curve "$hw" "$idx" 0 "$points"
+  done
+}
+
+fan_show() {
+  local hw="$1" idx i temp pwm label state
+  printf 'platform_profile      : %s\n' \
+    "$(cat /sys/firmware/acpi/platform_profile 2>/dev/null || echo n/a)"
+  for idx in $(fan_each_idx "$hw"); do
+    label="$(cat "/sys/devices/platform/asus-nb-wmi/hwmon/"*"/fan${idx}_label" 2>/dev/null | head -1)"
+    state="$(cat "$hw/pwm${idx}_enable" 2>/dev/null || echo n/a)"
+    case "$state" in
+      1) state="1 (custom curve applied)" ;;
+      2) state="2 (firmware/profile control)" ;;
+      3) state="3 (factory reset)" ;;
+    esac
+    printf '%-14s pwm%s     : %s\n' "${label:-fan}" "$idx" "$state"
+    printf '  curve               :'
+    for i in $(seq 1 $FAN_POINTS); do
+      temp="$(cat "$hw/pwm${idx}_auto_point${i}_temp" 2>/dev/null || echo '?')"
+      pwm="$(cat "$hw/pwm${idx}_auto_point${i}_pwm" 2>/dev/null || echo '?')"
+      printf ' %sC:%s' "$temp" "$pwm"
+    done
+    printf '\n'
+  done
+  for i in /sys/devices/platform/asus-nb-wmi/hwmon/*/fan?_input; do
+    [ -r "$i" ] || continue
+    label="$(cat "${i%_input}_label" 2>/dev/null || basename "$i")"
+    printf '%-14s rpm      : %s\n' "$label" "$(cat "$i")"
+  done
+  # hwmon numbering is not stable across boots, so find coretemp by name.
+  local ct
+  for ct in /sys/class/hwmon/hwmon*; do
+    [ -r "$ct/name" ] || continue
+    [ "$(cat "$ct/name")" = "coretemp" ] || continue
+    printf 'cpu package temp      : %s\n' \
+      "$(awk '{printf "%.1fC", $1/1000}' "$ct/temp1_input" 2>/dev/null || echo n/a)"
+    break
+  done
+}
+
+fan_cmd() {
+  local sub="${1:-show}" hw points
+  hw="$(fan_hwmon)" || { echo "no asus_custom_fan_curve hwmon device" >&2; return 1; }
+  case "$sub" in
+    show|"")
+      fan_show "$hw"
+      ;;
+    quiet|balanced|aggressive)
+      points="$(fan_preset "$sub")"
+      echo "fan curve: $sub"
+      fan_apply "$hw" "$points"
+      fan_show "$hw"
+      ;;
+    auto)
+      echo "fan curve: handing control back to the firmware/platform profile"
+      local idx
+      for idx in $(fan_each_idx "$hw"); do setval "$hw/pwm${idx}_enable" 2; done
+      ;;
+    reset)
+      echo "fan curve: resetting stored curve to factory defaults"
+      local idx
+      for idx in $(fan_each_idx "$hw"); do setval "$hw/pwm${idx}_enable" 3; done
+      ;;
+    set)
+      points="${2:-}"
+      [ -n "$points" ] || { echo "fan set needs a curve: 'T:P,T:P,...' x$FAN_POINTS" >&2; return 1; }
+      points="${points//,/ }"
+      # shellcheck disable=SC2086
+      set -- $points
+      [ "$#" -eq $FAN_POINTS ] || {
+        echo "fan set needs exactly $FAN_POINTS temp:pwm pairs, got $#" >&2
+        return 1
+      }
+      echo "fan curve: custom"
+      fan_apply "$hw" "$points"
+      fan_show "$hw"
+      ;;
+    offset)
+      local delta="${2:-}"
+      case "$delta" in
+        ""|*[!0-9+-]*) echo "fan offset needs a pwm delta, e.g. -20" >&2; return 1 ;;
+      esac
+      echo "fan curve: offset by $delta"
+      fan_offset "$hw" "$delta"
+      fan_show "$hw"
+      ;;
+    *)
+      echo "Usage: power-mode fan [show|quiet|balanced|aggressive|auto|reset|set T:P,...|offset N]" >&2
+      return 1
+      ;;
+  esac
+}
+
 hid_autosuspend() {
   local val="$1" iface parent
   for iface in /sys/bus/usb/devices/*:*; do
@@ -116,6 +295,10 @@ case "$MODE" in
     cpu_cap "${2:-}"
     ;;
 
+  fan)
+    fan_cmd "${2:-show}" "${3:-}"
+    ;;
+
   status)
     dev="$(wifi_dev || true)"
     printf 'cpu max_perf_pct      : %s\n' "$(cat "$MAX_PERF" 2>/dev/null || echo n/a)"
@@ -142,10 +325,12 @@ case "$MODE" in
     done
     printf 'dgpu runtime          : %s\n' \
       "$(cat /sys/bus/pci/devices/0000:01:00.0/power/runtime_status 2>/dev/null || echo n/a)"
+    if hw="$(fan_hwmon)"; then fan_show "$hw"; fi
     ;;
 
   *)
-    echo "Usage: power-mode performance|powersave|cpu [pct]|status [--with-reloads]" >&2
+    echo "Usage: power-mode performance|powersave|cpu [pct]|fan [subcmd]|status [--with-reloads]" >&2
+    echo "       power-mode fan [show|quiet|balanced|aggressive|auto|reset|set T:P,...|offset N]" >&2
     exit 1
     ;;
 esac
