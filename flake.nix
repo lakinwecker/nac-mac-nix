@@ -3,6 +3,9 @@
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    # Own input so `nix flake update nixpkgs-claude` bumps claude-code alone,
+    # without dragging the kernel and mesa along with it.
+    nixpkgs-claude.url = "github:NixOS/nixpkgs/nixos-unstable";
     nixos-hardware.url = "github:NixOS/nixos-hardware/master";
     disko = {
       url = "github:nix-community/disko/latest";
@@ -33,7 +36,7 @@
     devenv.url = "github:cachix/devenv/v2.3.1";
   };
 
-  outputs = { self, nixpkgs, devenv, nixos-hardware, disko, hyprland, hyprgrass, hypr-dynamic-cursors, hyprexpo-src, ... }:
+  outputs = { self, nixpkgs, nixpkgs-claude, devenv, nixos-hardware, disko, hyprland, hyprgrass, hypr-dynamic-cursors, hyprexpo-src, ... }:
   let
     machines = import ./machines.nix;
 
@@ -45,7 +48,20 @@
       ];
     };
 
-    commonModules = [ ./common devenvOverlay ];
+    claudeOverlay = { ... }: {
+      nixpkgs.overlays = [
+        (_final: prev: {
+          # Imported rather than legacyPackages: this is a separate pkgs
+          # instance, so common/user.nix's allowUnfree does not reach it.
+          claude-code = (import nixpkgs-claude {
+            inherit (prev.stdenv.hostPlatform) system;
+            config.allowUnfree = true;
+          }).claude-code;
+        })
+      ];
+    };
+
+    commonModules = [ ./common devenvOverlay claudeOverlay ];
     desktopModule = { hyprland = ./hypr; xfce = ./xfce; gnome = ./gnome; };
 
     mkHostModules = name: m:
