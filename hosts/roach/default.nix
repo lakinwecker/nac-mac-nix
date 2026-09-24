@@ -59,6 +59,7 @@
     modesetting.enable = true;
     open = true;
     nvidiaSettings = true;
+    dynamicBoost.enable = true;
     powerManagement.enable = true;
     powerManagement.finegrained = true;
     package = config.boot.kernelPackages.nvidiaPackages.stable;
@@ -189,5 +190,5 @@
 
   hardware.xpadneo.enable = true;
 
-  environment.systemPackages = with pkgs; [ powertop lm_sensors iw lutris ];
+  environment.systemPackages = with pkgs; [ powertop lm_sensors iw lutris mangohud ];
 }

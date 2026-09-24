@@ -43,6 +43,8 @@
       })
     '';
     extraModules = [
+      ./gh-extensions
+      ./gh-dash
       ({ ... }: {
         # In /etc rather than ~/.config — see the note on trunkie.
         environment.etc."lan-mouse/config.toml".text = ''
@@ -82,6 +84,7 @@
           kb_options = "altwin:swap_lalt_lwin,caps:backspace",
       })
     '';
+    extraModules = [ ./gh-extensions ./gh-dash ];
   };
 
   trunkie = {
@@ -120,6 +123,8 @@
       hl.bind("SUPER + ALT + 2", hl.dsp.workspace.move({ monitor = "DP-1" }))
     '';
     extraModules = [
+      ./gh-extensions
+      ./gh-dash
       ({ ... }: {
         # In /etc, not ~/.config: activation runs before /home is mounted, so a
         # home-written config is shadowed the moment /home mounts over it.
@@ -157,7 +162,7 @@
     hyprIdleTimeouts = { dim = 360; lock = 600; dpms = 1200; };
     hyprSuspendOnAc = false;
     hyprHostConfig = ''
-      hl.monitor({ output = "eDP-1",     mode = "preferred",    position = "1920x0", scale = 1.25, vrr = 1 })
+      hl.monitor({ output = "eDP-1",     mode = "highrr",       position = "1920x0", scale = 1.25, vrr = 1 })
       hl.monitor({ output = "HDMI-A-2",  mode = "1920x1080@60", position = "0x0",    scale = 1 })
       hl.monitor({ output = "",          mode = "preferred",    position = "auto",   scale = 1 })
 
@@ -180,6 +185,8 @@
     # phoebe captures; roach only emulates.
     lanMouseCaptureBackend = "dummy";
     extraModules = [
+      ./gh-extensions
+      ./gh-dash
       ({ ... }: {
         # In /etc rather than ~/.config for the same reason as trunkie.
         environment.etc."lan-mouse/config.toml".text = ''
