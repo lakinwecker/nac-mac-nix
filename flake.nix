@@ -4,8 +4,9 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     # Own input so `nix flake update nixpkgs-claude` bumps claude-code alone,
-    # without dragging the kernel and mesa along with it.
-    nixpkgs-claude.url = "github:NixOS/nixpkgs/nixos-unstable";
+    # without dragging the kernel and mesa along with it. master, not
+    # nixos-unstable: unstable waits on CI and lagged by two releases here.
+    nixpkgs-claude.url = "github:NixOS/nixpkgs/master";
     nixos-hardware.url = "github:NixOS/nixos-hardware/master";
     disko = {
       url = "github:nix-community/disko/latest";
