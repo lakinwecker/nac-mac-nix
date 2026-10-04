@@ -22,6 +22,7 @@ let
     "no-idle"
     "power-mode"
     "gpu-mode"
+    "bluetooth-reset"
   ]
   # ../pi entry points; this module itself is imported unconditionally.
   ++ lib.optionals devTools [

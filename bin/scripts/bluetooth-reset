@@ -1,0 +1,118 @@
+#!/usr/bin/env bash
+# Bring bluetooth back after a resume that left it wedged or disconnected.
+# Escalates one level at a time and stops as soon as the controller is powered:
+#   soft     power-cycle the controller through bluez
+#   service  restart bluetooth.service
+#   driver   unload and reload the controller's kernel driver (btusb on roach)
+# Then it asks every paired device to reconnect.
+set -euo pipefail
+
+HCI=hci0
+
+usage() {
+  cat >&2 <<'USAGE'
+usage: bluetooth-reset            escalate soft -> service -> driver until powered
+       bluetooth-reset <level>    run just one level: soft | service | driver
+       bluetooth-reset connect    only reconnect paired devices
+USAGE
+  exit 1
+}
+
+priv() {
+  if [ "$(id -u)" -eq 0 ]; then "$@"; else sudo "$@"; fi
+}
+
+powered() {
+  bluetoothctl show 2>/dev/null | grep -q 'Powered: yes'
+}
+
+wait_powered() {
+  local i
+  for i in $(seq 1 20); do
+    powered && return 0
+    sleep 0.5
+  done
+  return 1
+}
+
+# Retry power on: the controller often answers "Busy" for a moment after it
+# reappears.
+power_on() {
+  local i
+  for i in 1 2 3 4 5; do
+    bluetoothctl power on >/dev/null 2>&1 && return 0
+    sleep 1
+  done
+  return 1
+}
+
+soft() {
+  echo "bluetooth-reset: power-cycling controller"
+  bluetoothctl power off >/dev/null 2>&1 || true
+  sleep 1
+  power_on
+}
+
+service() {
+  echo "bluetooth-reset: restarting bluetooth.service"
+  priv systemctl restart bluetooth
+  wait_powered || power_on
+}
+
+driver() {
+  local mod
+  mod=$(basename "$(readlink -f "/sys/class/bluetooth/$HCI/device/driver/module" 2>/dev/null)" 2>/dev/null || true)
+  mod=${mod:-btusb}
+  echo "bluetooth-reset: reloading kernel module $mod"
+  priv systemctl stop bluetooth
+  priv modprobe -r "$mod"
+  sleep 1
+  priv modprobe "$mod"
+  # Wait for the hci device to reappear before bluez goes looking for it.
+  local i
+  for i in $(seq 1 20); do
+    [ -e "/sys/class/bluetooth/$HCI" ] && break
+    sleep 0.5
+  done
+  priv systemctl start bluetooth
+  wait_powered || power_on
+}
+
+connect() {
+  local devices
+  devices=$(bluetoothctl devices Paired | awk '{print $2}')
+  [ -n "$devices" ] || { echo "bluetooth-reset: no paired devices"; return 0; }
+  echo "bluetooth-reset: reconnecting paired devices (the ones that are switched on)"
+  local mac
+  for mac in $devices; do
+    (
+      name=$(bluetoothctl info "$mac" | sed -n 's/^\s*Name: //p')
+      if timeout 15 bluetoothctl connect "$mac" 2>/dev/null | grep -q 'Connection successful'; then
+        echo "  connected  ${name:-$mac}"
+      else
+        echo "  no answer  ${name:-$mac}"
+      fi
+    ) &
+  done
+  wait
+}
+
+case "${1:-}" in
+  "")
+    for level in soft service driver; do
+      if "$level" && powered; then
+        connect
+        exit 0
+      fi
+    done
+    echo "bluetooth-reset: controller still not powered; check 'journalctl -k -b | grep -i bluetooth'" >&2
+    exit 1
+    ;;
+  soft|service|driver)
+    "$1"
+    powered || { echo "bluetooth-reset: controller not powered after $1" >&2; exit 1; }
+    connect
+    ;;
+  connect) connect ;;
+  *) usage ;;
+esac
