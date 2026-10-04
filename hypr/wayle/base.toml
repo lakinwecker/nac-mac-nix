@@ -13,6 +13,8 @@ layer = "top"
 bg = "bg-surface"
 border-location = "none"
 rounding = "none"
+button-group-module-gap = 0.05
+button-group-background = "transparent"
 button-label-weight = "semibold"
 
 [[bar.layout]]
@@ -31,8 +33,13 @@ right = [
     "battery",
     "notifications",
     "systray",
-    "clock",
-    "world-clock",
+    { name = "clocks", modules = [
+        "clock",
+        "custom-eastern",
+        "custom-utc",
+        "custom-london",
+        "custom-lyon",
+    ] },
 ]
 
 [styling]
@@ -52,6 +59,45 @@ icon-name = "ld-camera-symbolic"
 tooltip-format = "Screenshot — click: select area, right-click: 3s delay"
 left-click = "/etc/hypr/scripts/screenshot.sh area"
 right-click = "/etc/hypr/scripts/screenshot.sh delayed 3"
+
+# One module per zone rather than world-clock: its tz() renders an empty label
+# here, and a single label can't give UTC its own background. TZ takes the full
+# zoneinfo path because the bare name silently falls back to UTC.
+[[modules.custom]]
+id = "eastern"
+command = "TZ=:/etc/zoneinfo/America/New_York date +%H:%M"
+interval-ms = 5000
+format = "{{ output }}"
+icon-show = false
+label-color = "yellow"
+button-bg-color = "transparent"
+
+[[modules.custom]]
+id = "utc"
+command = "TZ=:/etc/zoneinfo/UTC date +%H:%M"
+interval-ms = 5000
+format = "{{ output }}"
+icon-show = false
+label-color = "fg-on-accent"
+button-bg-color = "accent"
+
+[[modules.custom]]
+id = "london"
+command = "TZ=:/etc/zoneinfo/Europe/London date +%H:%M"
+interval-ms = 5000
+format = "{{ output }}"
+icon-show = false
+label-color = "yellow"
+button-bg-color = "transparent"
+
+[[modules.custom]]
+id = "lyon"
+command = "TZ=:/etc/zoneinfo/Europe/Paris date +%H:%M"
+interval-ms = 5000
+format = "{{ output }}"
+icon-show = false
+label-color = "yellow"
+button-bg-color = "transparent"
 
 [modules.hyprland-workspaces]
 min-workspace-count = 15
@@ -83,11 +129,8 @@ blocklist = ["discord", "slack"]
 [modules.systray]
 
 [modules.clock]
-format = "%H:%M:%S"
-dropdown-show-seconds = true
-
-[modules.world-clock]
-format = "{{ tz('America/New_York','%H:%M') }} | {{ tz('UTC','%H:%M') }} | {{ tz('Europe/Paris','%H:%M') }}"
+format = "%H:%M"
+dropdown-show-seconds = false
 
 [modules.dashboard]
 
