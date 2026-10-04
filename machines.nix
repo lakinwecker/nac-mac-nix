@@ -159,6 +159,7 @@
     hardware = [ "common-cpu-intel" "common-gpu-nvidia-nonprime" "common-pc-laptop" "common-pc-laptop-ssd" ];
     diskoConfig = ./hosts/roach/disko-config.nix;
     ollamaAccel = "cuda";   # 8GB VRAM
+    ghosttyOpacity = 1.0;
     hyprIdleTimeouts = { dim = 360; lock = 600; dpms = 1200; };
     hyprSuspendOnAc = false;
     hyprHostConfig = ''
