@@ -9,3 +9,5 @@ window-decoration = false
 gtk-titlebar = false
 
 shell-integration-features = cursor,sudo,title,ssh-env,ssh-terminfo
+
+app-notifications = no-clipboard-copy
