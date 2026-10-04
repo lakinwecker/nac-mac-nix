@@ -55,6 +55,7 @@
   environment.etc."nvim/lua/plugins/lazygit.lua".source = ./lua/plugins/lazygit.lua;
   environment.etc."nvim/lua/plugins/snacks.lua".source = ./lua/plugins/snacks.lua;
   environment.etc."nvim/lua/plugins/go.lua".source = ./lua/plugins/go.lua;
+  environment.etc."nvim/lua/plugins/explorer.lua".source = ./lua/plugins/explorer.lua;
 
   system.activationScripts.nvimConfig = {
     deps = [ "users" ];
@@ -81,6 +82,7 @@
       ln -sf /etc/nvim/lua/plugins/lazygit.lua "$NVIM_CONFIG/lua/plugins/lazygit.lua"
       ln -sf /etc/nvim/lua/plugins/snacks.lua "$NVIM_CONFIG/lua/plugins/snacks.lua"
       ln -sf /etc/nvim/lua/plugins/go.lua "$NVIM_CONFIG/lua/plugins/go.lua"
+      ln -sf /etc/nvim/lua/plugins/explorer.lua "$NVIM_CONFIG/lua/plugins/explorer.lua"
       chown -R ${username}:users "$NVIM_CONFIG"
     '';
   };
