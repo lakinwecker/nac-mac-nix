@@ -56,6 +56,7 @@
   environment.etc."nvim/lua/plugins/snacks.lua".source = ./lua/plugins/snacks.lua;
   environment.etc."nvim/lua/plugins/go.lua".source = ./lua/plugins/go.lua;
   environment.etc."nvim/lua/plugins/explorer.lua".source = ./lua/plugins/explorer.lua;
+  environment.etc."nvim/lua/plugins/markdown.lua".source = ./lua/plugins/markdown.lua;
 
   system.activationScripts.nvimConfig = {
     deps = [ "users" ];
@@ -83,6 +84,7 @@
       ln -sf /etc/nvim/lua/plugins/snacks.lua "$NVIM_CONFIG/lua/plugins/snacks.lua"
       ln -sf /etc/nvim/lua/plugins/go.lua "$NVIM_CONFIG/lua/plugins/go.lua"
       ln -sf /etc/nvim/lua/plugins/explorer.lua "$NVIM_CONFIG/lua/plugins/explorer.lua"
+      ln -sf /etc/nvim/lua/plugins/markdown.lua "$NVIM_CONFIG/lua/plugins/markdown.lua"
       chown -R ${username}:users "$NVIM_CONFIG"
     '';
   };
