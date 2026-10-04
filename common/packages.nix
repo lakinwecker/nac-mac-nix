@@ -1,4 +1,4 @@
-{ pkgs, ... }:
+{ pkgs, lib, devTools ? true, ... }:
 {
   environment.systemPackages = with pkgs; [
     # Shell extras
@@ -20,7 +20,6 @@
     dust
     tree
     jq
-    scc
     zip
     unzip
     # firefox comes from programs.firefox in ./desktop.nix
@@ -32,5 +31,8 @@
     adwaita-icon-theme
     gnome-themes-extra
     libnotify
+  ]
+  ++ lib.optionals devTools [
+    scc
   ];
 }
