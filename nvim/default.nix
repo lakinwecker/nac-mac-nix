@@ -24,6 +24,16 @@
     wl-clipboard
     fzf
     delta
+
+    # Go/Lua tooling for LazyVim; mason's `go install` needs go on PATH
+    go
+    gopls
+    gotools
+    gofumpt
+    gomodifytags
+    impl
+    delve
+    lua-language-server
   ];
 
   environment.etc."nvim/init.lua".source = ./init.lua;
@@ -44,6 +54,7 @@
   environment.etc."nvim/lua/plugins/codediff.lua".source = ./lua/plugins/codediff.lua;
   environment.etc."nvim/lua/plugins/lazygit.lua".source = ./lua/plugins/lazygit.lua;
   environment.etc."nvim/lua/plugins/snacks.lua".source = ./lua/plugins/snacks.lua;
+  environment.etc."nvim/lua/plugins/go.lua".source = ./lua/plugins/go.lua;
 
   system.activationScripts.nvimConfig = {
     deps = [ "users" ];
@@ -69,6 +80,7 @@
       ln -sf /etc/nvim/lua/plugins/codediff.lua "$NVIM_CONFIG/lua/plugins/codediff.lua"
       ln -sf /etc/nvim/lua/plugins/lazygit.lua "$NVIM_CONFIG/lua/plugins/lazygit.lua"
       ln -sf /etc/nvim/lua/plugins/snacks.lua "$NVIM_CONFIG/lua/plugins/snacks.lua"
+      ln -sf /etc/nvim/lua/plugins/go.lua "$NVIM_CONFIG/lua/plugins/go.lua"
       chown -R ${username}:users "$NVIM_CONFIG"
     '';
   };

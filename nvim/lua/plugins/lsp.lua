@@ -5,14 +5,16 @@ return {
       local on_publish_diagnostics = vim.lsp.diagnostic.on_publish_diagnostics
       local lsp = require("lspconfig")
 
-      opts.servers = {
+      opts.servers = vim.tbl_deep_extend("force", opts.servers or {}, {
         clangd = {
           filetypes = { "c", "cpp", "objc", "objcpp", "cuda", "hpp" },
         },
         metals = {
           filetypes = { "scala" },
         },
-      }
+        -- mason's prebuilt binary doesn't run on NixOS; nix provides it
+        lua_ls = { mason = false },
+      })
       opts.servers.bashls = vim.tbl_deep_extend("force", opts.servers.bashls or {}, {
         handlers = {
           ["textDocument/publishDiagnostics"] = function(err, res, ...)
