@@ -3,6 +3,9 @@
 scala.disabled = true
 nodejs.disabled = true
 
+[kubernetes]
+disabled = false
+
 [time]
 disabled = false
 utc_time_offset = "0"

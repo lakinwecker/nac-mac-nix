@@ -4,7 +4,7 @@
 # which left trimmed hosts (souris) without them. They're extracted here and
 # imported unconditionally so every machine — trimmed or not — gets them.
 # `devTools` now only gates the heavier editor/AI/LaTeX modules.
-{ pkgs, ... }:
+{ pkgs, username, ... }:
 {
   environment.systemPackages = with pkgs; [
     # System monitor
@@ -21,6 +21,7 @@
     bun
     # Kubernetes
     kubectl
+    kubie
     k9s
     kubernetes-helm
     # Databases
@@ -30,4 +31,22 @@
     ncmpcpp
     bluetuith
   ];
+
+  environment.etc."kubie/kubie.yaml".text = ''
+    prompt:
+      disable: true
+  '';
+
+  system.activationScripts.kubieConfig = {
+    deps = [ "users" ];
+    text = ''
+      KUBE_DIR="/home/${username}/.kube"
+      KUBIE_CONFIG="$KUBE_DIR/kubie.yaml"
+      if [ ! -e "$KUBIE_CONFIG" ]; then
+        install -d -o ${username} -g users "$KUBE_DIR"
+        ln -sf /etc/kubie/kubie.yaml "$KUBIE_CONFIG"
+        chown -h ${username}:users "$KUBIE_CONFIG"
+      fi
+    '';
+  };
 }
