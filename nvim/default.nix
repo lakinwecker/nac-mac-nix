@@ -34,6 +34,9 @@
     impl
     delve
     lua-language-server
+
+    # emet-lsp for dull-ca/emet.nvim
+    golem-tools
   ];
 
   environment.etc."nvim/init.lua".source = ./init.lua;
@@ -57,6 +60,7 @@
   environment.etc."nvim/lua/plugins/go.lua".source = ./lua/plugins/go.lua;
   environment.etc."nvim/lua/plugins/explorer.lua".source = ./lua/plugins/explorer.lua;
   environment.etc."nvim/lua/plugins/markdown.lua".source = ./lua/plugins/markdown.lua;
+  environment.etc."nvim/lua/plugins/emet.lua".source = ./lua/plugins/emet.lua;
 
   system.activationScripts.nvimConfig = {
     deps = [ "users" ];
@@ -85,6 +89,7 @@
       ln -sf /etc/nvim/lua/plugins/go.lua "$NVIM_CONFIG/lua/plugins/go.lua"
       ln -sf /etc/nvim/lua/plugins/explorer.lua "$NVIM_CONFIG/lua/plugins/explorer.lua"
       ln -sf /etc/nvim/lua/plugins/markdown.lua "$NVIM_CONFIG/lua/plugins/markdown.lua"
+      ln -sf /etc/nvim/lua/plugins/emet.lua "$NVIM_CONFIG/lua/plugins/emet.lua"
       chown -R ${username}:users "$NVIM_CONFIG"
     '';
   };

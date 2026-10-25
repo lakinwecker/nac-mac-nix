@@ -7,11 +7,18 @@ let
     ${pkgs.zoxide}/bin/zoxide init nushell > $out
   '';
 
+  # Skip the +ssh-cache shortcut: it never expires, so a host that loses its
+  # terminfo gets TERM=xterm-ghostty forever. The remote probe reuses ControlMaster,
+  # and requires cup= so a capability-less stub entry counts as missing.
   ghosttyNu = pkgs.runCommand "ghostty.nu" { } ''
     substitute \
       ${pkgs.ghostty}/share/ghostty/shell-integration/nushell/vendor/autoload/ghostty.nu \
       $out \
-      --replace-fail '$env.GHOSTTY_SHELL_FEATURES |' '$env.GHOSTTY_SHELL_FEATURES? |'
+      --replace-fail '$env.GHOSTTY_SHELL_FEATURES |' '$env.GHOSTTY_SHELL_FEATURES? |' \
+      --replace-fail '(^$ghostty "+ssh-cache" $"--host=($ssh_id)" | complete | $in.exit_code == 0)' 'false' \
+      --replace-fail 'print $"Setting up xterm-ghostty terminfo on ($ssh_cfg.hostname)..."' "" \
+      --replace-fail 'infocmp xterm-ghostty >/dev/null 2>&1 && exit 0' 'infocmp xterm-ghostty 2>/dev/null | grep -q cup= && exit 0' \
+      --replace-fail 'tic -x - 2>/dev/null && exit 0' 'tic -x - 2>/dev/null && infocmp xterm-ghostty 2>/dev/null | grep -q cup= && exit 0'
   '';
 in
 {

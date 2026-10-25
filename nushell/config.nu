@@ -49,7 +49,8 @@ def --wrapped lipass [...rest] {
 source ~/.config/nushell/starship.nu
 source ~/.config/nushell/zoxide.nu
 
-# Ghostty shell integration (symlinked from ghostty pkg by the nushell module).
+# Ghostty shell integration, patched by nushell/default.nix. Ghostty's own
+# injection is off so it can't shadow this copy.
 # Safe to source unconditionally — the module only activates when GHOSTTY_* env vars are set.
 source ~/.config/nushell/ghostty.nu
 use ghostty *

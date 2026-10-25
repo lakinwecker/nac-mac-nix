@@ -35,9 +35,11 @@
       flake = false;
     };
     devenv.url = "github:cachix/devenv/v2.4.0";
+    # No nixpkgs follows: that would miss the dull-ca cachix builds.
+    golem.url = "github:dull-ca/golem";
   };
 
-  outputs = { self, nixpkgs, nixpkgs-claude, devenv, nixos-hardware, disko, hyprland, hyprgrass, hypr-dynamic-cursors, hyprexpo-src, ... }:
+  outputs = { self, nixpkgs, nixpkgs-claude, devenv, golem, nixos-hardware, disko, hyprland, hyprgrass, hypr-dynamic-cursors, hyprexpo-src, ... }:
   let
     machines = import ./machines.nix;
 
@@ -49,20 +51,28 @@
       ];
     };
 
+    golemOverlay = { ... }: {
+      nixpkgs.overlays = [
+        (_final: prev: {
+          golem-tools = golem.packages.${prev.stdenv.hostPlatform.system}.golem-tools;
+        })
+      ];
+    };
+
     claudeOverlay = { ... }: {
       nixpkgs.overlays = [
         (_final: prev: {
           # Imported rather than legacyPackages: this is a separate pkgs
           # instance, so common/user.nix's allowUnfree does not reach it.
-          claude-code = (import nixpkgs-claude {
+          inherit (import nixpkgs-claude {
             inherit (prev.stdenv.hostPlatform) system;
             config.allowUnfree = true;
-          }).claude-code;
+          }) claude-code glow;
         })
       ];
     };
 
-    commonModules = [ ./common devenvOverlay claudeOverlay ];
+    commonModules = [ ./common devenvOverlay claudeOverlay golemOverlay ];
     desktopModule = { hyprland = ./hypr; xfce = ./xfce; gnome = ./gnome; };
 
     mkHostModules = name: m:

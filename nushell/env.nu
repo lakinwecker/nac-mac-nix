@@ -24,3 +24,9 @@ if "XDG_RUNTIME_DIR" in $env {
         ^ssh-agent -a $env.SSH_AUTH_SOCK out+err> /dev/null
     }
 }
+
+# Ghostty's own nushell injection is off (ghostty/config), so it never sets
+# this; config.nu's patched ghostty.nu reads it to enable the ssh/sudo wrappers.
+if "GHOSTTY_RESOURCES_DIR" in $env {
+    $env.GHOSTTY_SHELL_FEATURES = "ssh-env,ssh-terminfo,sudo"
+}
