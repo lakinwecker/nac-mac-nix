@@ -85,8 +85,6 @@
     ELECTRON_OZONE_PLATFORM_HINT = "auto";
   };
 
-  boot.initrd.systemd.enable = true;
-
   # Without nvme here the second drive's partlabel symlinks race and stage-1
   # hangs on "waiting for /dev/disk/by-partlabel/disk-home-luks".
   boot.initrd.availableKernelModules = [

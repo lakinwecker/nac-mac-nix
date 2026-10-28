@@ -190,7 +190,6 @@ laptops off the home network still resolve it.
 nix.settings.substituters = [
   "http://172.16.100.7:8080/nix-cache"     # ahead of upstream
   "https://cache.nixos.org"
-  "https://hyprland.cachix.org"
 ];
 nix.settings.trusted-public-keys = [ "nix-cache:…" ];   # from `attic cache info`
 ```

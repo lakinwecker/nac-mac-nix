@@ -3,10 +3,9 @@
   nixpkgs.hostPlatform = "x86_64-linux";
   nix.settings.experimental-features = [ "nix-command" "flakes" ];
   nix.settings.trusted-users = [ "root" "@wheel" ];
-  nix.settings.substituters = [ "https://cache.nixos.org" "https://hyprland.cachix.org" "https://devenv.cachix.org" "https://dull-ca.cachix.org" ];
+  nix.settings.substituters = [ "https://cache.nixos.org" "https://devenv.cachix.org" "https://dull-ca.cachix.org" ];
   nix.settings.trusted-public-keys = [
     "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
-    "hyprland.cachix.org-1:a7pgxzMz7+chwVL3/pzj6jIBMioiJM7ypFP8PwtkuGc="
     "devenv.cachix.org-1:w1cLUi8dv3hnoSPGAuibQv+f9TZLr6cv/Hm9XgU50cw="
     "dull-ca.cachix.org-1:dRCsbIU6rWu2X/4+BOxwvtyVOHUXXmRp7ZmEXwne9bk="
   ];

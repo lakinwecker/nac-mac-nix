@@ -16,10 +16,12 @@
   services.avahi = {
     enable = true;
     nssmdns4 = true;
-    denyInterfaces = [ "docker0" "br-+" "veth+" "nebula1" ];
-    publish = {
-      enable = true;
-      addresses = true;
+    settings = {
+      server.deny-interfaces = [ "docker0" "br-+" "veth+" "nebula1" ];
+      publish = {
+        disable-publishing = false;
+        publish-addresses = true;
+      };
     };
   };
 

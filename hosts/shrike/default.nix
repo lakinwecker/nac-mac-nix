@@ -7,7 +7,6 @@
     enable32Bit = true;
   };
 
-  boot.initrd.systemd.enable = true;
   boot.initrd.availableKernelModules = [
     "nvme"
     "nvme_core"

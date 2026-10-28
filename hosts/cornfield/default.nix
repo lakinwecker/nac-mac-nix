@@ -1,7 +1,6 @@
 # Lenovo ThinkPad T460 (Skylake)
 { pkgs, ... }:
 {
-  boot.initrd.systemd.enable = true;
   boot.initrd.availableKernelModules = [
     "xhci_pci" "ahci" "usb_storage" "sd_mod" "sdhci_pci"
   ];

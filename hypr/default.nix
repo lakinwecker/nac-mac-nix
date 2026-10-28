@@ -1,7 +1,6 @@
-{ pkgs, lib, username, hyprland, hyprgrass ? null, hyprDynamicCursors, hyprexpoSrc, hyprHostConfig ? "", hyprWallpaper ? ./wallpaper.jpg, hyprDynamicCursorsMode ? "none", hyprIdleTimeouts ? {}, hyprSuspendOnAc ? true, hyprLockGrace ? 2, hyprHibernate ? true, ... }:
+{ pkgs, lib, username, hyprgrassSrc ? null, hyprexpoSrc, hyprDynamicCursorsSrc, hyprHostConfig ? "", hyprWallpaper ? ./wallpaper.jpg, hyprDynamicCursorsMode ? "none", hyprIdleTimeouts ? {}, hyprSuspendOnAc ? true, hyprLockGrace ? 2, hyprHibernate ? true, ... }:
 let
-  hyprgrassEnabled = hyprgrass != null;
-  hyprexpoEnabled = hyprexpoSrc != null;
+  hyprgrassEnabled = hyprgrassSrc != null;
   # No state file (every host but roach) means hybrid — env left untouched.
   startSession = pkgs.writeShellScript "start-hyprland-session" ''
     if [ "$(cat /var/lib/gpu-mode/mode 2>/dev/null || echo hybrid)" = mux ]; then
@@ -10,7 +9,7 @@ let
       export __GLX_VENDOR_LIBRARY_NAME=nvidia
       export __NV_PRIME_RENDER_OFFLOAD=0
     fi
-    exec ${hyprland.packages.${pkgs.system}.hyprland}/bin/start-hyprland
+    exec ${pkgs.hyprland}/bin/start-hyprland
   '';
   # base.toml + a per-mode palette block; theme-toggle swaps the whole file.
   mkWayleConfig = name: palette:
@@ -65,11 +64,17 @@ let
     if hyprSuspendOnAc
     then "systemctl suspend"
     else "sh -c 'grep -lq 1 /sys/class/power_supply/*/online 2>/dev/null || systemctl suspend'";
-  hyprlandPackage = hyprland.packages.${pkgs.system}.hyprland;
-  hyprexpo = pkgs.callPackage hyprexpoSrc {
-    hyprland = hyprlandPackage;
-    hyprlandPlugins = pkgs.hyprlandPlugins.override { hyprland = hyprlandPackage; };
+  hyprexpo = pkgs.callPackage hyprexpoSrc { };
+  hyprDynamicCursors = pkgs.hyprlandPlugins.hypr-dynamic-cursors.overrideAttrs {
+    version = "0.56.2-${builtins.substring 0 7 hyprDynamicCursorsSrc.rev}";
+    src = hyprDynamicCursorsSrc;
+    preBuild = "ulimit -s $(ulimit -H -s)";
   };
+  hyprgrass = pkgs.hyprlandPlugins.hyprgrass.overrideAttrs (old: {
+    version = "0.56.2-${builtins.substring 0 7 hyprgrassSrc.rev}";
+    src = hyprgrassSrc;
+    buildInputs = (old.buildInputs or []) ++ [ pkgs.lua ];
+  });
   hyprexpoConfig = ''
     hl.plugin.load("/etc/hypr/plugins/hyprexpo.so")
 
@@ -123,18 +128,14 @@ let
     })
   '';
 in {
-  imports = [ hyprland.nixosModules.default ];
-
   programs.hyprland = {
     enable = true;
-    package = hyprland.packages.${pkgs.system}.hyprland;
-    portalPackage = hyprland.packages.${pkgs.system}.xdg-desktop-portal-hyprland;
+    withUWSM = true;
   };
 
   programs.steam.enable = true;
 
   xdg.portal = {
-    enable = true;
     extraPortals = [ pkgs.xdg-desktop-portal-gtk ];
     config = {
       common.default = [ "hyprland" "gtk" ];
@@ -144,17 +145,13 @@ in {
   };
 
   environment.etc."hypr/plugins/hyprgrass.so" = lib.mkIf hyprgrassEnabled {
-    source = "${(hyprgrass.packages.${pkgs.system}.default.overrideAttrs (old: {
-      buildInputs = (old.buildInputs or []) ++ [ pkgs.lua ];
-    }))}/lib/libhyprgrass.so";
+    source = "${hyprgrass}/lib/libhyprgrass.so";
   };
 
   environment.etc."hypr/plugins/hypr-dynamic-cursors.so".source =
-    "${hyprDynamicCursors.packages.${pkgs.system}.default}/lib/libhypr-dynamic-cursors.so";
+    "${hyprDynamicCursors}/lib/libhypr-dynamic-cursors.so";
 
-  environment.etc."hypr/plugins/hyprexpo.so" = lib.mkIf hyprexpoEnabled {
-    source = "${hyprexpo}/lib/libhyprexpo.so";
-  };
+  environment.etc."hypr/plugins/hyprexpo.so".source = "${hyprexpo}/lib/libhyprexpo.so";
 
   services.greetd = {
     enable = true;
@@ -282,7 +279,7 @@ in {
   environment.etc."hypr/hyprland.lua".text =
     builtins.readFile ./hyprland.lua
     + lib.optionalString hyprgrassEnabled ("\n-- hyprgrass plugin\n" + builtins.readFile ./hyprgrass.lua)
-    + lib.optionalString hyprexpoEnabled ("\n-- hyprexpo plugin\n" + hyprexpoConfig)
+    + "\n-- hyprexpo plugin\n" + hyprexpoConfig
     + "\n-- hypr-dynamic-cursors plugin\n" + dynamicCursorsConfig
     + "\n-- Per-host overrides\n" + hyprHostConfig;
   environment.etc."hypr/hypridle.conf".text = hypridleConf;

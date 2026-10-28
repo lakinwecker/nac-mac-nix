@@ -12,26 +12,16 @@
       url = "github:nix-community/disko/latest";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    # Hyprland and its three plugins move together. v0.56.1 is the newest
-    # release with a published pin for all three — do not bump unless every
-    # plugin has one for the target release.
-    hyprland = {
-      url = "github:hyprwm/Hyprland/v0.56.1";
-      inputs.nixpkgs.follows = "nixpkgs";
+    hyprgrass-src = {
+      url = "github:horriblename/hyprgrass/8e605468cbf429791d61ddbfaeb14ff5e08fec3e";
+      flake = false;
     };
-    hyprgrass = {
-      url = "github:horriblename/hyprgrass/hl-0.56.1";
-      inputs.hyprland.follows = "hyprland";
+    hypr-dynamic-cursors-src = {
+      url = "github:VirtCode/hypr-dynamic-cursors/5a224284872208b5324759d535d65061043725de";
+      flake = false;
     };
-    # From the plugin's hyprpm.toml commit_pins row for Hyprland v0.56.1. Do
-    # NOT pin the commit that *adds* a newer row — it tracks Hyprland main.
-    hypr-dynamic-cursors = {
-      url = "github:VirtCode/hypr-dynamic-cursors/f5ba36c7622098b53bf62ddb8ddf03b914abbdf8";
-      inputs.hyprland.follows = "hyprland";
-    };
-    # Community fork; upstream hyprexpo has no 0.56 pin.
     hyprexpo-src = {
-      url = "github:sandwichfarm/hyprexpo/v0.56.1+3";
+      url = "github:sandwichfarm/hyprexpo/v0.56.2+5";
       flake = false;
     };
     devenv.url = "github:cachix/devenv/v2.4.0";
@@ -39,7 +29,7 @@
     golem.url = "github:dull-ca/golem";
   };
 
-  outputs = { self, nixpkgs, nixpkgs-claude, devenv, golem, nixos-hardware, disko, hyprland, hyprgrass, hypr-dynamic-cursors, hyprexpo-src, ... }:
+  outputs = { self, nixpkgs, nixpkgs-claude, devenv, golem, nixos-hardware, disko, hyprgrass-src, hypr-dynamic-cursors-src, hyprexpo-src, ... }:
   let
     machines = import ./machines.nix;
 
@@ -84,8 +74,7 @@
     mkSpecialArgs = _name: m:
       {
         username   = m.username or "lakin";
-        hyprland   = if m.desktop == "hyprland" then hyprland else null;
-        hyprgrass  = if (m.hyprgrass or false) then hyprgrass else null;
+        hyprgrassSrc = if (m.hyprgrass or false) then hyprgrass-src else null;
         ollamaAccel = m.ollamaAccel or "cpu";
         devTools   = m.devTools or true;
         ghosttyOpacity = m.ghosttyOpacity or 0.85;
@@ -96,8 +85,8 @@
         hyprHostConfig = m.hyprHostConfig or "";
         hyprWallpaper  = m.hyprWallpaper or ./hypr/wallpaper.jpg;
         hyprDynamicCursorsMode = m.hyprDynamicCursorsMode or "none";
-        hyprDynamicCursors = hypr-dynamic-cursors;
         hyprexpoSrc = hyprexpo-src;
+        hyprDynamicCursorsSrc = hypr-dynamic-cursors-src;
         hyprIdleTimeouts       = m.hyprIdleTimeouts or {};
         hyprSuspendOnAc        = m.hyprSuspendOnAc or true;
         hyprLockGrace          = m.hyprLockGrace or 2;
@@ -188,7 +177,6 @@
           boot.plymouth.enable = true;
           boot.kernelParams = [ "quiet" "splash" "rd.udev.log_level=3" "udev.log_priority=3" ];
           boot.consoleLogLevel = 0;
-          boot.initrd.verbose = false;
 
           # A stuck user-session unit plus the default 90s timeout wedges
           # reboot for minutes.

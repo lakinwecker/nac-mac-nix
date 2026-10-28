@@ -3,8 +3,6 @@
 {
   hardware.amdgpu.initrd.enable = true;
 
-  # Also gives one passphrase prompt for all three LUKS containers, not three.
-  boot.initrd.systemd.enable = true;
   environment.systemPackages = with pkgs; [
     lm_sensors
     btrfs-progs

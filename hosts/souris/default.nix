@@ -36,7 +36,6 @@
   # Let earlyoom (common/default.nix) kill the browser, not her image edits.
   services.earlyoom.extraArgs = [ "--avoid" "^gimp" ];
 
-  boot.initrd.systemd.enable = true;
   boot.initrd.availableKernelModules = [
     "xhci_pci" "ahci" "nvme" "usb_storage" "sd_mod"
   ];
