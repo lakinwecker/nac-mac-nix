@@ -35,9 +35,8 @@ in
       RemainAfterExit = true;
     };
     script = ''
-      # bluetoothd owns the bus name before it exports device objects.
       for _ in $(seq 30); do
-        busctl tree org.bluez --list > /dev/null 2>&1 && break
+        busctl tree org.bluez --list 2>/dev/null | grep -q '/dev_' && break
         sleep 1
       done
 

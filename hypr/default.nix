@@ -235,6 +235,11 @@ in {
     mode = "0755";
   };
 
+  environment.etc."hypr/scripts/headphones.sh" = {
+    source = ./scripts/headphones.sh;
+    mode = "0755";
+  };
+
   environment.etc."hypr/scripts/lan-mouse-toggle.sh" = {
     source = ./scripts/lan-mouse-toggle.sh;
     mode = "0755";

@@ -107,6 +107,7 @@ hl.bind("SUPER + SHIFT + Z", hl.dsp.exec_cmd("/etc/hypr/scripts/mac-shortcut.sh 
 hl.bind("CTRL + SUPER + SHIFT + T", hl.dsp.exec_cmd("theme-toggle"))
 
 hl.bind("CTRL + SUPER + M", hl.dsp.exec_cmd("/etc/hypr/scripts/lan-mouse-toggle.sh toggle"))
+hl.bind("CTRL + SUPER + B", hl.dsp.exec_cmd("/etc/hypr/scripts/headphones.sh toggle"), { description = "Grab or release the headphones" })
 
 hl.bind("SUPER + Return", hl.dsp.exec_cmd("ghostty"))
 hl.bind("SUPER + SHIFT + Q", hl.dsp.window.close())
