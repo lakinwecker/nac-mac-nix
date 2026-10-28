@@ -57,6 +57,16 @@
     "x-scheme-handler/https" = "firefox.desktop";
     "x-scheme-handler/about" = "firefox.desktop";
     "x-scheme-handler/unknown" = "firefox.desktop";
+    "application/xhtml+xml" = "firefox.desktop";
+    "application/xml" = "firefox.desktop";
+    "text/xml" = "firefox.desktop";
+    "application/rss+xml" = "firefox.desktop";
+    "application/rdf+xml" = "firefox.desktop";
+    "image/png" = "firefox.desktop";
+    "image/jpeg" = "firefox.desktop";
+    "image/gif" = "firefox.desktop";
+    "image/webp" = "firefox.desktop";
+    "application/pdf" = "org.pwmt.zathura-pdf-mupdf.desktop";
   };
 
   environment.sessionVariables.BROWSER = "firefox";
