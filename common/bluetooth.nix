@@ -5,6 +5,29 @@ let
     "MOMENTUM 4" = "80:C3:BA:62:0F:62";
     "MX Master 3S" = "DE:6A:6A:F8:14:82";
   };
+
+  trustDevices = pkgs.writeShellScript "bluetooth-trust-devices" ''
+    export PATH=${lib.makeBinPath [ pkgs.systemd pkgs.coreutils pkgs.gnugrep ]}
+
+    trust() {
+      mac="$1"; label="$2"
+      node="dev_$(echo "$mac" | tr 'a-f:' 'A-F_')"
+      # Trust is per-adapter; trunkie has two radios.
+      paths=$(busctl tree org.bluez --list 2>/dev/null | grep -E "/$node$" || true)
+      if [ -z "$paths" ]; then
+        echo "$label ($mac) not paired on this host — skipping"
+        return 0
+      fi
+      for path in $paths; do
+        busctl set-property org.bluez "$path" org.bluez.Device1 Trusted b true \
+          && echo "trusted $label at $path"
+      done
+    }
+
+    ${lib.concatStringsSep "\n" (lib.mapAttrsToList
+      (label: mac: "trust ${lib.escapeShellArg mac} ${lib.escapeShellArg label}")
+      trustedDevices)}
+  '';
 in
 {
   hardware.bluetooth = {
@@ -23,7 +46,6 @@ in
     };
   };
 
-  # Only trusts devices already on the bus; restart after pairing something new.
   systemd.services.bluetooth-trust-devices = {
     description = "Mark known Bluetooth devices as trusted";
     after = [ "bluetooth.service" ];
@@ -39,25 +61,29 @@ in
         busctl tree org.bluez --list 2>/dev/null | grep -q '/dev_' && break
         sleep 1
       done
+      ${trustDevices}
+    '';
+  };
 
-      trust() {
-        mac="$1"; label="$2"
-        node="dev_$(echo "$mac" | tr 'a-f:' 'A-F_')"
-        # Trust is per-adapter; trunkie has two radios.
-        paths=$(busctl tree org.bluez --list 2>/dev/null | grep -E "/$node$" || true)
-        if [ -z "$paths" ]; then
-          echo "$label ($mac) not paired on this host — skipping"
-          return 0
-        fi
-        for path in $paths; do
-          busctl set-property org.bluez "$path" org.bluez.Device1 Trusted b true \
-            && echo "trusted $label at $path"
+  # Re-pairing wipes Trusted, so re-trust whenever a device's Paired flips.
+  systemd.services.bluetooth-trust-on-pair = {
+    description = "Trust known Bluetooth devices as soon as they pair";
+    after = [ "bluetooth.service" ];
+    partOf = [ "bluetooth.service" ];
+    wantedBy = [ "bluetooth.target" ];
+    path = [ pkgs.dbus ];
+    serviceConfig = {
+      Restart = "always";
+      RestartSec = 5;
+    };
+    script = ''
+      dbus-monitor --system \
+        "type='signal',interface='org.freedesktop.DBus.Properties',member='PropertiesChanged',arg0='org.bluez.Device1'" |
+        while read -r line; do
+          case "$line" in
+            *'"Paired"'*) ${trustDevices} ;;
+          esac
         done
-      }
-
-      ${lib.concatStringsSep "\n" (lib.mapAttrsToList
-        (label: mac: "trust ${lib.escapeShellArg mac} ${lib.escapeShellArg label}")
-        trustedDevices)}
     '';
   };
 
