@@ -7,6 +7,7 @@
     # without dragging the kernel and mesa along with it. master, not
     # nixos-unstable: unstable waits on CI and lagged by two releases here.
     nixpkgs-claude.url = "github:NixOS/nixpkgs/master";
+    nixpkgs-firefox.url = "github:NixOS/nixpkgs/nixos-unstable";
     nixos-hardware.url = "github:NixOS/nixos-hardware/master";
     disko = {
       url = "github:nix-community/disko/latest";
@@ -29,7 +30,7 @@
     golem.url = "github:dull-ca/golem";
   };
 
-  outputs = { self, nixpkgs, nixpkgs-claude, devenv, golem, nixos-hardware, disko, hyprgrass-src, hypr-dynamic-cursors-src, hyprexpo-src, ... }:
+  outputs = { self, nixpkgs, nixpkgs-claude, nixpkgs-firefox, devenv, golem, nixos-hardware, disko, hyprgrass-src, hypr-dynamic-cursors-src, hyprexpo-src, ... }:
   let
     machines = import ./machines.nix;
 
@@ -62,7 +63,15 @@
       ];
     };
 
-    commonModules = [ ./common devenvOverlay claudeOverlay golemOverlay ];
+    firefoxOverlay = { ... }: {
+      nixpkgs.overlays = [
+        (_final: prev: {
+          inherit (nixpkgs-firefox.legacyPackages.${prev.stdenv.hostPlatform.system}) firefox-unwrapped;
+        })
+      ];
+    };
+
+    commonModules = [ ./common devenvOverlay claudeOverlay golemOverlay firefoxOverlay ];
     desktopModule = { hyprland = ./hypr; xfce = ./xfce; gnome = ./gnome; };
 
     mkHostModules = name: m:
