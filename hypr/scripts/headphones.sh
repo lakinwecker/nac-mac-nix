@@ -56,7 +56,7 @@ if err=$(connect); then
 fi
 
 case "$err" in
-  *page-timeout*|*host-down*|*HostDown*)
+  *page-timeout*|*host-down*|*HostDown*|*"Host is down"*|*"timed out"*)
     note "not reachable — are they switched on and in range?" ;;
   *)
     note "refused — both slots are probably taken (phone + Mac). Disconnect them on one of those, then press again." ;;
